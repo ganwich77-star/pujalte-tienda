@@ -60,7 +60,7 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
       const formData = new FormData()
       formData.append('file', file)
       
-      const res = await fetch('/pujaltefotografia/api/upload', {
+      const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData
       })
@@ -157,7 +157,7 @@ _Pago: ${paymentMethodText}_`
     }
 
     try {
-      const res = await fetch('/pujaltefotografia/api/orders', {
+      const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -211,7 +211,7 @@ _Pago: ${paymentMethodText}_`
     setProcessingPayment(true)
 
     try {
-      const res = await fetch('/pujaltefotografia/api/checkout', {
+      const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -288,9 +288,8 @@ _Pago: ${paymentMethodText}_`
   const fixPath = (path: string) => {
     if (!path) return ''
     if (path.startsWith('http') || path.startsWith('data:')) return path
-    let cleanPath = path.replace('/pujaltefotografia', '')
-    if (!cleanPath.startsWith('/')) cleanPath = `/${cleanPath}`
-    return `/pujaltefotografia${cleanPath}`
+    // Asegurar que la ruta empiece por /
+    return path.startsWith('/') ? path : `/${path}`
   }
 
   return (
@@ -883,7 +882,7 @@ _Pago: ${paymentMethodText}_`
             className="mb-6 relative z-10 pt-8"
           >
             <img 
-              src={config.logo ? (config.logo.startsWith('/') ? `/pujaltefotografia${config.logo}` : `/pujaltefotografia/${config.logo}`) : "/pujaltefotografia/logo_ia.png"} 
+              src={config.logo ? (config.logo.startsWith('/') ? `/pujaltefotografia${config.logo}` : `/${config.logo}`) : "/logo_ia.png"} 
               alt="Logo" 
               className="h-24 w-auto mx-auto mb-4 drop-shadow-lg" 
             />

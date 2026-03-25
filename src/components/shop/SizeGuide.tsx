@@ -38,7 +38,7 @@ export function SizeGuide({ isOpen, onClose }: SizeGuideProps) {
             className="relative w-full h-full p-4 md:p-10 flex items-center justify-center select-none cursor-default"
           >
             <img 
-              src={`/pujaltefotografia/guia_tamanos.jpg?v=${Date.now()}`} 
+              src={`/guia_tamanos.jpg?v=${Date.now()}`} 
               alt="Guía de Tamaños Pujalte"
               className="max-w-full max-h-full w-auto h-auto object-contain pointer-events-none drop-shadow-[0_0_50px_rgba(255,255,255,0.1)]"
             />

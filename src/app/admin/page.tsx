@@ -128,7 +128,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetch('/pujaltefotografia/api/admin/config')
+      fetch('/api/admin/config')
         .then(res => res.json())
         .then(data => setConfig(data))
     }
@@ -151,7 +151,7 @@ export default function AdminPage() {
     setMessage(null)
 
     try {
-      const res = await fetch('/pujaltefotografia/api/admin/config', {
+      const res = await fetch('/api/admin/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -174,7 +174,7 @@ export default function AdminPage() {
     formData.append('file', file)
 
     try {
-      const res = await fetch('/pujaltefotografia/api/upload', {
+      const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData
       })

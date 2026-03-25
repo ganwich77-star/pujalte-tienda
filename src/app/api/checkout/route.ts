@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
               methods: paycometMethod,
               secure: 1,
               userInteraction: 1,
-              urlOk: `${baseUrl}/pujaltefotografia/?payment=success&orderId=${orderId}&tracking=${trackingNumber}`,
-              urlKo: `${baseUrl}/pujaltefotografia/?payment=error&orderId=${orderId}&tracking=${trackingNumber}`
+              urlOk: `${baseUrl}/?payment=success&orderId=${orderId}&tracking=${trackingNumber}`,
+              urlKo: `${baseUrl}/?payment=error&orderId=${orderId}&tracking=${trackingNumber}`
             }
           })
         });

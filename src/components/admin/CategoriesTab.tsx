@@ -241,7 +241,7 @@ export function CategoriesTab({ categories, onRefresh }: CategoriesTabProps) {
 
     setLoading(true)
     try {
-      const url = '/pujaltefotografia/api/categories'
+      const url = '/api/categories'
       const method = editingCategory ? 'PUT' : 'POST'
       const body = editingCategory ? { ...formData, id: editingCategory.id } : formData
 
@@ -269,7 +269,7 @@ export function CategoriesTab({ categories, onRefresh }: CategoriesTabProps) {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`/pujaltefotografia/api/categories?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/categories?id=${id}`, { method: 'DELETE' })
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Error al eliminar')
@@ -297,7 +297,7 @@ export function CategoriesTab({ categories, onRefresh }: CategoriesTabProps) {
           sortOrder: index
         }))
         
-        await fetch('/pujaltefotografia/api/reorder', {
+        await fetch('/api/reorder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'category', items: itemsToUpdate })

@@ -97,7 +97,7 @@ interface ProductsTabProps {
 const fixPath = (path: string) => {
   if (!path) return ''
   if (path.startsWith('http') || path.startsWith('data:')) return path
-  let cleanPath = path.replace('/pujaltefotografia', '')
+  let cleanPath = path.replace('/', '')
   if (!cleanPath.startsWith('/')) cleanPath = `/${cleanPath}`
   return `/pujaltefotografia${cleanPath}`
 }
