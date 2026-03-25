@@ -1,15 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Package, ChevronDown, Check, Info, ShoppingCart } from 'lucide-react'
-import { Card } from '@/components/ui/card'
+import { motion } from 'framer-motion'
+import { Check, ShoppingCart, Plus, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Product, ProductVariant, StoreConfig } from '@/types'
 import { fixPath } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface ProductCardProps {
   product: Product
@@ -22,183 +27,158 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     product.hasVariants && product.variants.length > 0 ? product.variants[0] : null
   )
-
-  const [expanded, setExpanded] = useState(false)
   const [added, setAdded] = useState(false)
+  const [open, setOpen] = useState(false)
 
   const displayPrice = selectedVariant 
     ? (product.variantBehavior === 'replace' ? Number(selectedVariant.price) : Number(product.price) + Number(selectedVariant.price)) 
     : Number(product.price)
 
-  const onAdd = (e: React.MouseEvent) => {
-    e.stopPropagation()
+  const onAdd = () => {
     handleAddToCart(product, selectedVariant || undefined)
     setAdded(true)
-    setTimeout(() => setAdded(false), 2000)
+    setTimeout(() => {
+      setAdded(false)
+      setOpen(false)
+    }, 1500)
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      layout
-      className="w-full px-2 lg:px-0"
-    >
-      <div 
-        className={`group relative bg-white/95 backdrop-blur-md rounded-[2rem] border transition-all duration-500 overflow-hidden ${
-          expanded 
-            ? 'shadow-2xl border-slate-200 ring-4 ring-black/5 -translate-y-1' 
-            : 'border-slate-100/80 shadow-sm hover:shadow-xl hover:border-slate-200 hover:-translate-y-0.5'
-        }`}
-      >
-        {/* PARTE SUPERIOR (SIEMPRE VISIBLE) */}
-        <div 
-          className="p-4 cursor-pointer flex items-center md:gap-5 gap-3"
-          onClick={() => setExpanded(!expanded)}
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <motion.div 
+          whileHover={{ y: -5 }}
+          className="group cursor-pointer flex flex-col gap-2"
         >
-          {/* Imagen de Producto tipo Avatar de Lujo */}
-          <div className="relative h-16 w-16 md:h-20 md:w-20 rounded-[1.5rem] overflow-hidden bg-slate-50 shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-500">
+          {/* FOTO 1:1 */}
+          <div className="relative aspect-square w-full bg-slate-100 rounded-[2rem] overflow-hidden shadow-sm group-hover:shadow-xl transition-all duration-500 border border-slate-100 italic">
             {config.showImages && product.image ? (
+              <img 
+                src={fixPath(product.image)} 
+                alt={product.name} 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                 <Plus className="h-10 w-10 opacity-20" />
+              </div>
+            )}
+            
+            {/* Indicador de "Más Info" */}
+            <div className="absolute top-3 right-3 p-1.5 bg-white/80 backdrop-blur-md rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
+               <Info className="h-4 w-4 text-slate-800" />
+            </div>
+
+            {/* Badge de Precio */}
+            <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-sm text-white text-[10px] font-black px-2.5 py-1 rounded-xl border border-white/10">
+               {formatPrice(displayPrice)}
+            </div>
+          </div>
+
+          {/* Nombre Corto */}
+          <div className="px-1 text-center">
+             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4A7C59]/60 block mb-0.5">
+                {product.category?.name || 'Estudio'}
+             </span>
+             <h3 className="text-[13px] font-bold text-slate-800 leading-tight truncate px-1">
+               {product.name}
+             </h3>
+          </div>
+        </motion.div>
+      </DialogTrigger>
+
+      {/* VENTANA DE MÁS INFO (MODAL) */}
+      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden bg-white/95 backdrop-blur-xl border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] rounded-[3rem]">
+        <div className="relative">
+           {/* Imagen en el Modal */}
+           <div className="aspect-[4/3] w-full overflow-hidden bg-slate-50 relative">
               <img 
                 src={fixPath(product.image)} 
                 alt={product.name} 
                 className="w-full h-full object-cover" 
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center opacity-20">
-                <Package className="h-8 w-8 text-black" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6">
+                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 block mb-1">Detalles del artículo</span>
+                 <DialogTitle className="text-2xl font-black text-white leading-none tracking-tight">
+                    {product.name}
+                 </DialogTitle>
               </div>
-            )}
-            
-            {/* Badge de Precio Rápido si no está expandido */}
-            {!expanded && (
-               <div className="absolute bottom-1 right-1 bg-black/80 backdrop-blur-sm text-white text-[8px] font-black px-1.5 py-0.5 rounded-lg border border-white/10">
-                  {formatPrice(displayPrice)}
-               </div>
-            )}
-          </div>
+           </div>
 
-          {/* Info Principal */}
-          <div className="flex-grow min-w-0 pr-4">
-             <div className="flex items-center gap-2 mb-1">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A7C59]">
-                   {product.category?.name || 'ESTUDIO'}
-                </span>
-                {product.hasVariants && !expanded && (
-                   <span className="w-1 h-1 rounded-full bg-slate-300" />
-                )}
-                {product.hasVariants && !expanded && (
-                   <span className="text-[9px] font-bold text-slate-400 capitalize">
-                      {product.variants.length} opciones
-                   </span>
-                )}
-             </div>
-             <h3 className="text-[15px] font-black text-slate-900 leading-[1.3] truncate tracking-tight">
-               {product.name}
-             </h3>
-          </div>
-
-          {/* Botón de expansión / Icono */}
-          <div className="flex items-center gap-1">
-             <div className={`p-2 rounded-2xl transition-all duration-500 ${expanded ? 'bg-black text-white rotate-180' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-black'}`}>
-               <ChevronDown className="h-4 w-4" />
-             </div>
-          </div>
-        </div>
-
-        {/* CONTENIDO DESPLEGABLE (ZONA DE DETALLE) */}
-        <AnimatePresence>
-          {expanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-            >
-              <div className="px-6 pb-6 pt-2 flex flex-col gap-6 border-t border-slate-50">
-                {/* Descripción y Detalles */}
-                {product.description && (
-                  <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50 relative overflow-hidden group">
-                     <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-black">
-                        <Info className="h-10 w-10 rotate-12" />
-                     </div>
-                     <p className="text-[12px] leading-relaxed text-slate-600 font-medium relative z-10 italic">
-                       &ldquo;{product.description}&rdquo;
-                     </p>
-                  </div>
-                )}
-
-                {/* Filtro de Selección (Variantes) */}
-                {product.hasVariants && product.variants.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center px-1">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        {product.variantType || 'Elegir medida / opción'}
-                      </Label>
-                    </div>
-                    <Select
-                      value={selectedVariant?.id || ''}
-                      onValueChange={(v) => {
-                        const variant = product.variants.find(vr => vr.id === v)
-                        setSelectedVariant(variant || null)
-                      }}
-                    >
-                      <SelectTrigger className="w-full h-12 rounded-2xl border-none bg-slate-900 text-white hover:bg-black transition-all text-[13px] font-bold tracking-tight px-5 shadow-xl">
-                        <SelectValue placeholder="Seleccionar..." />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-none shadow-2xl p-2 bg-slate-900 text-white">
-                        {product.variants.sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0)).map(variant => (
-                          <SelectItem key={variant.id} value={variant.id} className="text-[12px] font-bold rounded-xl py-3 cursor-pointer focus:bg-white/10 focus:text-white">
-                            <div className="flex items-center justify-between w-full">
-                               <span className="mr-8">{variant.name}</span>
-                               <span className="text-emerald-400 font-black tabular-nums">
-                                 {Number(variant.price) > 0 
-                                   ? (product.variantBehavior === 'replace' ? formatPrice(Number(variant.price)) : `+${formatPrice(Number(variant.price))}`) 
-                                   : (product.variantBehavior === 'replace' ? formatPrice(Number(product.price)) : 'Base')}
-                               </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {/* ZONA DE PRECIO Y CARRITO (FOOTER) */}
-                <div className="flex items-center justify-between gap-4 pt-6 mt-2 border-t border-slate-100">
-                   <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] mb-0.5 pl-1">Precio Final</span>
-                      <div className="flex items-end gap-1">
-                         <span className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
-                           {formatPrice(displayPrice)}
-                         </span>
-                         <span className="text-[10px] font-bold text-slate-400 mb-1">IVA incl.</span>
-                      </div>
-                   </div>
-                   
-                   <Button 
-                    onClick={onAdd}
-                    disabled={added}
-                    className={`h-14 px-8 rounded-2xl transition-all duration-300 transform active:scale-95 flex items-center gap-3 border-none group/btn shadow-2xl ${
-                      added 
-                       ? 'bg-emerald-500 hover:bg-emerald-500 scale-[0.98]' 
-                       : 'bg-black hover:bg-slate-800 text-white'
-                    }`}
-                   >
-                     <span className="text-[11px] font-black uppercase tracking-[0.2em] px-1">
-                        {added ? '¡Añadido!' : 'Añadir al pack'}
-                     </span>
-                     <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-500 ${added ? 'bg-white text-emerald-500 rotate-0' : 'bg-white/20 text-white group-hover/btn:rotate-12'}`}>
-                        {added ? <Check className="h-4 w-4" strokeWidth={4} /> : <ShoppingCart className="h-4 w-4" strokeWidth={3} />}
-                     </div>
-                   </Button>
+           <div className="p-8 space-y-8">
+              {/* Descripción */}
+              {product.description && (
+                <div className="bg-slate-50/80 p-5 rounded-3xl border border-slate-100 relative">
+                   <p className="text-[13px] leading-relaxed text-slate-600 font-medium italic">
+                     &ldquo;{product.description}&rdquo;
+                   </p>
                 </div>
+              )}
+
+              {/* Variantes */}
+              {product.hasVariants && product.variants.length > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] pl-1">
+                    {product.variantType || 'Elige una opción'}
+                  </Label>
+                  <Select
+                    value={selectedVariant?.id || ''}
+                    onValueChange={(v) => {
+                      const variant = product.variants.find(vr => vr.id === v)
+                      setSelectedVariant(variant || null)
+                    }}
+                  >
+                    <SelectTrigger className="w-full h-14 rounded-3xl border-none bg-slate-900 text-white hover:bg-black transition-all text-[14px] font-bold px-6 shadow-xl">
+                      <SelectValue placeholder="Seleccionar..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-3xl border-none shadow-2xl p-2 bg-slate-900 text-white">
+                      {product.variants.sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0)).map(variant => (
+                        <SelectItem key={variant.id} value={variant.id} className="text-[13px] font-bold rounded-2xl py-3.5 cursor-pointer focus:bg-white/10 focus:text-emerald-400">
+                          <div className="flex items-center justify-between w-full min-w-[200px]">
+                             <span className="mr-8">{variant.name}</span>
+                             <span className="font-black tabular-nums">
+                               {Number(variant.price) > 0 
+                                 ? (product.variantBehavior === 'replace' ? formatPrice(Number(variant.price)) : `+${formatPrice(Number(variant.price))}`) 
+                                 : (product.variantBehavior === 'replace' ? formatPrice(Number(product.price)) : 'Base')}
+                             </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Footer con Precio y Botón */}
+              <div className="flex items-center justify-between gap-4 pt-4">
+                 <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] mb-1 pl-1">Total Pack</span>
+                    <span className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
+                      {formatPrice(displayPrice)}
+                    </span>
+                 </div>
+                 
+                 <Button 
+                  onClick={(e) => { e.stopPropagation(); onAdd(); }}
+                  disabled={added}
+                  className={`h-16 px-10 rounded-[2rem] transition-all duration-300 active:scale-95 flex items-center gap-4 border-none shadow-2xl ${
+                    added 
+                     ? 'bg-emerald-500 hover:bg-emerald-500' 
+                     : 'bg-black hover:bg-slate-800 text-white'
+                  }`}
+                 >
+                   <span className="text-[12px] font-black uppercase tracking-[0.2em]">
+                      {added ? '¡Hecho!' : 'Añadir'}
+                   </span>
+                   <div className={`h-8 w-8 rounded-full flex items-center justify-center ${added ? 'bg-white text-emerald-500' : 'bg-white/20 text-white'}`}>
+                      {added ? <Check className="h-5 w-5" strokeWidth={4} /> : <ShoppingCart className="h-4 w-4" strokeWidth={3} />}
+                   </div>
+                 </Button>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
+           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

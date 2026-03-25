@@ -714,7 +714,7 @@ Mi email: ${formData.email}`
                 <p className="text-muted-foreground">Estamos actualizando nuestro catálogo. ¡Vuelve pronto!</p>
               </div>
             ) : config.showImages ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8">
                 {filteredProducts.filter(p => p.active).map((product) => (
                   <ProductCard 
                     key={product.id} 
