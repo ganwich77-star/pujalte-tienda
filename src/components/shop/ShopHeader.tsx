@@ -47,11 +47,7 @@ export function ShopHeader({
   const fixPath = (path: string) => {
     if (!path) return ''
     if (path.startsWith('http') || path.startsWith('data:')) return path
-    const basePath = '/'
-    let cleanPath = path
-    if (cleanPath.startsWith(basePath)) cleanPath = cleanPath.slice(basePath.length)
-    if (!cleanPath.startsWith('/')) cleanPath = `/${cleanPath}`
-    return `${basePath}${cleanPath}`
+    return path.startsWith('/') ? path : `/${path}`
   }
 
   const handleAdminCheck = () => {

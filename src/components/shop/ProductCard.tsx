@@ -25,13 +25,11 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
   const displayPrice = selectedVariant ? (Number(product.price) + Number(selectedVariant.price)) : product.price
   const displayStock = selectedVariant ? selectedVariant.stock : product.stock
 
-  // Helper para arreglar rutas con el basePath de Hostinger
+  // Helper para arreglar rutas
   const fixPath = (path: string) => {
     if (!path) return ''
     if (path.startsWith('http') || path.startsWith('data:')) return path
-    let cleanPath = path.replace('/', '')
-    if (!cleanPath.startsWith('/')) cleanPath = `/${cleanPath}`
-    return `/pujaltefotografia${cleanPath}`
+    return path.startsWith('/') ? path : `/${path}`
   }
 
   const [showFullDescription, setShowFullDescription] = useState(false)
@@ -91,9 +89,9 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-border/40 shadow-2xl">
                   {product.variants.map(variant => (
-                    <SelectItem key={variant.id} value={variant.id} className="text-xs font-medium rounded-lg">
-                      {variant.name} — {formatPrice(Number(product.price) + Number(variant.price))}
-                    </SelectItem>
+                    <SelectItem key={variant.id} value={variant.id} className="text-xs uppercase font-medium rounded-lg">
+                  {variant.name}{Number(variant.price) > 0 ? ` (+${formatPrice(Number(variant.price))})` : ''}
+                </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

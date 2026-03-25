@@ -75,7 +75,7 @@ export default function SplashScreen({ onComplete, logo, storeName }: SplashScre
             
             {/* Logo */}
             <motion.img
-              src={logo || "/logo.png"}
+              src={logo || "/logo_ia.png"}
               alt="Cargando tienda..."
               className="relative z-10 w-48 h-48 md:w-64 md:h-64 object-contain"
               animate={{

@@ -5,7 +5,8 @@ import {
   addDoc, 
   updateDoc, 
   doc, 
-  serverTimestamp
+  serverTimestamp,
+  setDoc
 } from "firebase/firestore";
 import { generatePaycometData } from '@/lib/payments/server'
 import { sendOrderEmails } from '@/lib/mail'
@@ -21,7 +22,8 @@ export async function POST(request: NextRequest) {
       notes, 
       items, 
       paymentMethod,
-      gateway = 'paycomet' // Default to our main gateway
+      customFields,
+      gateway = 'paycomet'
     } = body
 
     // 1. Calculate total
@@ -109,6 +111,22 @@ export async function POST(request: NextRequest) {
           paymentId: paymentOrderRef,
           updatedAt: serverTimestamp()
         });
+
+        // PERSISTIR CLIENTE EN FIREBASE si hay DNI
+        const cf = (customFields || {}) as Record<string, any>
+        const dni = (cf.dni || '').trim().toUpperCase()
+        if (dni) {
+          try {
+            const clientRef = doc(db, 'clients', dni)
+            await setDoc(clientRef, {
+              dni,
+              name: customerName || '',
+              email: customerEmail || '',
+              phone: customerPhone || '',
+              updatedAt: new Date().toISOString()
+            }, { merge: true })
+          } catch (e) { console.error('[CHECKOUT] Error guardando cliente:', e) }
+        }
 
         // 4. Send order confirmations (don't await - fast response)
         const orderForEmail = { id: orderId, ...newOrder };

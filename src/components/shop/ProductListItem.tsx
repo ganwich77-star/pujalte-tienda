@@ -65,7 +65,7 @@ export function ProductListItem({ product, config, formatPrice, handleAddToCart 
             <SelectContent className="rounded-xl border-border/40 shadow-xl">
               {product.variants.map(variant => (
                 <SelectItem key={variant.id} value={variant.id} className="text-xs uppercase font-medium rounded-lg">
-                  {variant.name} — {formatPrice(Number(product.price) + Number(variant.price))}
+                  {variant.name}{Number(variant.price) > 0 ? ` (+${formatPrice(Number(variant.price))})` : ''}
                 </SelectItem>
               ))}
             </SelectContent>

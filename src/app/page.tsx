@@ -70,6 +70,7 @@ const defaultConfig: StoreConfig = {
   enableCard: true,
   formFields: [
     { id: 'name', label: 'Nombre completo', placeholder: 'Tu nombre', type: 'text', required: true, active: true },
+    { id: 'dni', label: 'DNI / NIE', placeholder: '12345678X', type: 'text', required: true, active: true },
     { id: 'phone', label: 'Teléfono / WhatsApp', placeholder: '+34 600 000 000', type: 'tel', required: true, active: true },
     { id: 'email', label: 'Email', placeholder: 'tu@email.com', type: 'email', required: false, active: true },
     { id: 'address', label: 'Dirección de envío', placeholder: 'Calle, número, ciudad...', type: 'text', required: false, active: true },
@@ -97,8 +98,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   
-  // Cart state
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [isPostAddDialogOpen, setIsPostAddDialogOpen] = useState(false)
   
   // Admin state
   const [categories, setCategories] = useState<Category[]>([])
@@ -292,6 +293,9 @@ Mi email: ${formData.email}`
       })
       setItemWithNote(null)
       setTempNote('')
+      
+      // Abrir diálogo de confirmación tras un breve delay para dejar ver el toast
+      setTimeout(() => setIsPostAddDialogOpen(true), 500)
     }
   }
 
@@ -651,7 +655,7 @@ Mi email: ${formData.email}`
                 {config.slogan || "La tecnología al servicio de los recuerdos."}
               </h1>
               <p className="text-muted-foreground uppercase tracking-[0.3em] text-xs font-bold opacity-60">
-                Tu tienda premium de comuniones
+                Tu tienda premium by Creative Pujalte Studio
               </p>
             </div>
 
@@ -1079,7 +1083,7 @@ Mi email: ${formData.email}`
                 ¿Planeando una boda o evento especial? Me encantaría conocer tu historia.
               </p>
               <button 
-                onClick={() => window.open(`https://wa.me/${config.whatsappNumber || '34650494728'}`, '_blank')}
+                onClick={() => window.open(`https://wa.me/${config.whatsappNumber}?text=${encodeURIComponent('¡Hola! Me gustaría obtener más información sobre vuestros servicios.')}`)}
                 className="bg-[#4A7C59] text-white px-10 py-5 rounded-full font-bold shadow-xl hover:bg-[#3d664a] transition-all hover:scale-105"
               >
                 Contactar por WhatsApp
@@ -1139,13 +1143,49 @@ Mi email: ${formData.email}`
                     <p className="text-muted-foreground">{editingProduct.description}</p>
                     <div className="flex justify-between items-center pt-4 border-t">
                       <span className="text-2xl font-bold text-primary">{formatPrice(Number(editingProduct.price))}</span>
-                      <Button onClick={() => { addItem({ ...editingProduct, quantity: 1, price: Number(editingProduct.price) }); setIsProductDialogOpen(false); }}>
+                      <Button onClick={() => { 
+                        addItem({ ...editingProduct, quantity: 1, price: Number(editingProduct.price) }); 
+                        setIsProductDialogOpen(false); 
+                        setTimeout(() => setIsPostAddDialogOpen(true), 500);
+                      }}>
                         Añadir al Carrito
                       </Button>
                     </div>
                   </div>
                 </div>
               )}
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isPostAddDialogOpen} onOpenChange={setIsPostAddDialogOpen}>
+            <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] p-8">
+              <DialogHeader className="space-y-4">
+                <div className="h-16 w-16 bg-[#4A7C59]/10 rounded-3xl flex items-center justify-center mx-auto mb-2">
+                  <ShoppingBag className="h-8 w-8 text-[#4A7C59]" />
+                </div>
+                <DialogTitle className="text-2xl font-black text-center text-gray-900">¡Añadido con éxito!</DialogTitle>
+                <div className="text-center text-gray-600 font-medium leading-relaxed">
+                  ¿Qué te gustaría hacer ahora? Puedes seguir explorando o revisar tu carrito para finalizar el pedido.
+                </div>
+              </DialogHeader>
+              <div className="flex flex-col gap-3 pt-6">
+                <Button 
+                  onClick={() => {
+                    setIsPostAddDialogOpen(false);
+                    setIsCartOpen(true);
+                  }}
+                  className="h-14 rounded-2xl bg-[#4A7C59] hover:bg-[#3d664a] text-white font-bold uppercase tracking-widest text-xs shadow-xl shadow-[#4A7C59]/20"
+                >
+                  Ir al Carrito
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsPostAddDialogOpen(false)}
+                  className="h-14 rounded-2xl border-2 border-gray-100 font-bold uppercase tracking-widest text-xs text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all"
+                >
+                  Seguir Comprando
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
 

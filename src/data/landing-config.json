@@ -1,5 +1,5 @@
 {
-  "nombre": "Pujalte Fotografía",
+  "nombre": "Fotodetalles y Recordatorios",
   "logo": "/logo_ia.png",
   "slogan": "La tecnología al servicio de los recuerdos",
   "subtitulo": "Más que fotografía, tus mejores recuerdos",
@@ -136,8 +136,8 @@
   ],
   "storeUrl": "http://localhost:3001",
   "seo": {
-    "titulo": "Pujalte Fotografía | Fotógrafo en Las Torres de Cotillas, Murcia",
-    "descripcion": "Fotógrafo profesional en Murcia. Especializado en bodas, fotografía infantil, corporativa y de producto. La tecnología al servicio de tus recuerdos.",
-    "keywords": "fotógrafo murcia, fotografía bodas murcia, fotografía infantil, fotografía producto, fotógrafo las torres de cotillas"
+    "titulo": "Fotodetalles y Recordatorios - Tu tienda de premium",
+    "descripcion": "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. La tecnología al servicio de los recuerdos.",
+    "keywords": "fotografía, cuadros, posters, láminas, impresiones, regalos personalizados, fotógrafo murcia"
   }
 }

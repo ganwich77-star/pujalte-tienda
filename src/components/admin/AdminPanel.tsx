@@ -20,7 +20,8 @@ import {
   ShoppingCart,
   Trash2,
   Upload,
-  User
+  User,
+  Users
 } from 'lucide-react'
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -32,6 +33,7 @@ import { ImportTab } from './ImportTab'
 import { ConfigTab } from './ConfigTab'
 import { CheckoutTab } from './CheckoutTab'
 import { CategoriesTab } from './CategoriesTab'
+import { CustomersTab } from './CustomersTab'
 import { Product, Category, Order, StoreConfig } from '@/types'
 import { Button } from '@/components/ui/button'
 
@@ -90,6 +92,7 @@ export function AdminPanel(props: AdminPanelProps) {
     { id: 'products', label: 'Productos', icon: Package },
     { id: 'categories', label: 'Categorías', icon: Layers },
     { id: 'orders', label: 'Pedidos', icon: ShoppingCart },
+    { id: 'customers', label: 'Clientes', icon: Users },
     { id: 'upload', label: 'Importar', icon: Upload },
     { id: 'checkout', label: 'Formulario', icon: ClipboardList },
     { id: 'config', label: 'Ajustes', icon: Settings },
@@ -155,9 +158,16 @@ export function AdminPanel(props: AdminPanelProps) {
                 <div className="p-2 rounded-lg bg-slate-50">
                   <ExternalLink className="h-4 w-4" />
                 </div>
-                <span className="text-xs uppercase tracking-widest">Ver Tienda</span>
+                <span className="text-xs uppercase tracking-widest">Ir a la tienda</span>
               </Button>
             )}
+
+            <div className="mt-8 pt-8 flex flex-col items-center gap-4 border-t border-slate-100 opacity-60">
+              <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Powered by</span>
+                <img src="/logo_ia.png" alt="IA Logo" className="h-4 object-contain brightness-0 opacity-40 hover:opacity-100 transition-opacity cursor-help" />
+              </div>
+            </div>
             {onLogout && (
               <Button
                 variant="ghost"
@@ -224,6 +234,13 @@ export function AdminPanel(props: AdminPanelProps) {
                   formatPrice={formatPrice}
                   onUpdateStatus={onUpdateStatus}
                   onDeleteOrder={onDeleteOrder}
+                />
+              )}
+
+              {activeTab === 'customers' && (
+                <CustomersTab
+                  orders={orders}
+                  formatPrice={formatPrice}
                 />
               )}
 

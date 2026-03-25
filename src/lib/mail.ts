@@ -95,20 +95,33 @@ export const sendOrderEmails = async (order: any) => {
     </div>
   `
 
-  // 2. CORREO PARA PUJALTE (NOTIFICACIÓN INTERNA)
-  const adminEmailHtml = `
-    <div style="font-family: sans-serif; padding: 30px; border: 4px solid #4A7C59; border-radius: 12px; background: #f9fffb;">
-      <h2 style="color: #4A7C59; margin: 0 0 20px 0;">🚀 ¡NUEVO PEDIDO RECIBIDO!</h2>
-      <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
-        <p><strong>👤 Cliente:</strong> ${customerName}</p>
-        <p><strong>📧 Email:</strong> ${customerEmail}</p>
-        <p><strong>🔢 Seguimiento:</strong> <span style="color: #4A7C59; font-weight: bold;">${trackingNumber || 'N/A'}</span></p>
-        <p><strong>💰 Total:</strong> ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(total)}</p>
+    const customFields = order.customFields || {}
+    const dni = customFields.dni || ""
+
+    const adminEmailHtml = `
+      <div style="font-family: sans-serif; padding: 30px; border: 4px solid #4A7C59; border-radius: 12px; background: #f9fffb;">
+        <h2 style="color: #4A7C59; margin: 0 0 20px 0;">🚀 ¡NUEVO PEDIDO RECIBIDO!</h2>
+        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
+          <p><strong>👤 Cliente:</strong> ${customerName}</p>
+          <p><strong>🆔 DNI:</strong> ${dni}</p>
+          <p><strong>📧 Email:</strong> ${customerEmail}</p>
+          <p><strong>🔢 Seguimiento:</strong> <span style="color: #4A7C59; font-weight: bold;">${trackingNumber || 'N/A'}</span></p>
+          <p><strong>💰 Total:</strong> ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(total)}</p>
+        </div>
+        
+        <div style="margin-top: 25px; background: #fff4e5; padding: 20px; border-radius: 12px; border: 1px solid #ffcc80;">
+          <h4 style="margin: 0 0 10px 0; color: #e65100;">💰 Gestión de Pagos:</h4>
+          <p style="font-size: 13px; color: #5d4037;">Si deseas que este cliente pueda pagar en <strong>Efectivo</strong> en sus próximas compras, pulsa el botón:</p>
+          <a href="${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/enable-cash?dni=${encodeURIComponent(dni)}&email=${encodeURIComponent(customerEmail)}" 
+             style="display: inline-block; background: #e65100; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 10px;">
+             ✅ HABILITAR PAGO EN EFECTIVO
+          </a>
+        </div>
+
+        <p style="margin-top: 25px;">Accede al panel de administración para ver detalles:</p>
+        <a href="${process.env.NEXT_PUBLIC_BASE_URL}/admin" style="display: inline-block; background: #4A7C59; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">ABRIR PANEL DE CONTROL</a>
       </div>
-      <p style="margin-top: 20px;">Accede al panel de administración para gestionar el envío y ver los archivos:</p>
-      <a href="${process.env.NEXT_PUBLIC_BASE_URL}/admin" style="display: inline-block; background: #4A7C59; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">ABRIR PANEL DE CONTROL</a>
-    </div>
-  `
+    `
 
   try {
     // Para el cliente
@@ -119,10 +132,10 @@ export const sendOrderEmails = async (order: any) => {
       html: customerEmailHtml,
     })
 
-    // Para Pujalte
+    // Para Pujalte (Admin + Apps)
     await transporter.sendMail({
       from: '"Tienda Online" <hola@pujaltefotografia.es>',
-      to: 'hola@pujaltefotografia.es',
+      to: 'hola@pujaltefotografia.es, apps@pujaltefotografia.es',
       subject: `🚀 NUEVO PEDIDO: ${customerName} (${trackingNumber || id.slice(-6)})`,
       html: adminEmailHtml,
     })

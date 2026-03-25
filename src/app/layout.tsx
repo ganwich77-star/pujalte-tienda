@@ -14,12 +14,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fotodetalles y Recordatorios 2026 - Tu tienda premium de comuniones",
-  description: "Tu tienda de fotografía y productos personalizados. Cuadros, posters, láminas y más. La tecnología al servicio de los recuerdos.",
+  title: "Fotodetalles y Recordatorios - Tu tienda de premium",
+  description: "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. La tecnología al servicio de los recuerdos.",
   keywords: ["fotografía", "cuadros", "posters", "láminas", "impresiones", "regalos personalizados"],
   authors: [{ name: "Fotodetalles y Recordatorios" }],
   icons: {
-    icon: "/logo.png",
+    icon: "/logo_ia.png",
+    shortcut: "/logo_ia.png",
+    apple: "/logo_ia.png",
+  },
+  openGraph: {
+    title: "Fotodetalles y Recordatorios - Tu tienda de premium",
+    description: "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. La tecnología al servicio de los recuerdos.",
+    images: ["/logo_ia.png"],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Fotodetalles y Recordatorios - Tu tienda de premium",
+    description: "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. La tecnología al servicio de los recuerdos.",
+    images: ["/logo_ia.png"],
   },
 };
 

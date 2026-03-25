@@ -9,7 +9,8 @@ import {
   serverTimestamp,
   doc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  setDoc
 } from "firebase/firestore";
 import { sendOrderEmails } from '@/lib/mail';
 
@@ -74,6 +75,22 @@ export async function POST(request: NextRequest) {
 
     const docRef = await addDoc(ordersRef, newOrder);
     
+    // PERSISTIR CLIENTE EN FIREBASE si hay DNI en customFields
+    const cf = (customFields || {}) as Record<string, any>
+    const dni = (cf.dni || '').trim().toUpperCase()
+    if (dni) {
+      try {
+        const clientRef = doc(db, 'clients', dni)
+        await setDoc(clientRef, {
+          dni,
+          name: customerName || '',
+          email: customerEmail || '',
+          phone: customerPhone || '',
+          updatedAt: new Date().toISOString()
+        }, { merge: true })
+      } catch (e) { console.error('[ORDERS] Error guardando cliente en Firebase:', e) }
+    }
+
     // ENVIAR CORREOS (CLIENTE Y ADMINISTRACIÓN) - No bloqueamos el proceso si falla el email
     const orderForEmail = { id: docRef.id, ...newOrder }
     sendOrderEmails(orderForEmail).catch(err => console.error("Error asíncrono enviando correos:", err));

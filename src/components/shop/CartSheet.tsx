@@ -24,8 +24,20 @@ import {
   ShieldCheck,
   PackageCheck,
   Upload,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Fingerprint,
+  LogIn,
+  Search,
+  Users
 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -96,6 +108,61 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bizum' | 'card'>('card')
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [trackingCode, setTrackingCode] = useState<string | null>(null)
+  
+  // Persistence state
+  const [isReturning, setIsReturning] = useState(false)
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [dniLogin, setDniLogin] = useState('')
+  const [showDniInput, setShowDniInput] = useState(false)
+  const [cashEnabled, setCashEnabled] = useState(false)
+  const checkCashEnabled = async (dni: string) => {
+    try {
+      const res = await fetch(`/api/clients/check-cash?dni=${dni.toUpperCase().trim()}`)
+      if (res.ok) {
+        const data = await res.json()
+        setCashEnabled(data.cashEnabled)
+      }
+    } catch (e) { console.error(e) }
+  }
+
+  // Buscar cliente por DNI: si existe, salta al pago directo
+  const handleDniLogin = () => {
+    if (!dniLogin.trim()) return
+
+    const savedData = localStorage.getItem(`pujalte_customer_${dniLogin.toUpperCase().trim()}`)
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData)
+        setFormData(parsed)
+        setIsReturning(true)
+        setIsAuthModalOpen(false)
+        setCheckoutStep('payment') // Cliente registrado → salta el formulario, va directo al pago
+        checkCashEnabled(dniLogin)
+        toast({
+          title: `¡Bienvenido de nuevo, ${parsed.name}!`,
+          description: "Hemos cargado tus datos. Ve directo a elegir tu método de pago.",
+        })
+      } catch (e) {
+        toast({ title: "Error", description: "No se pudieron recuperar los datos.", variant: "destructive" })
+      }
+    } else {
+      toast({
+        title: "No encontrado",
+        description: "No encontramos ningún cliente con ese DNI. Por favor, regístrate como nuevo cliente.",
+        variant: "destructive"
+      })
+      setShowDniInput(false)
+    }
+  }
+
+  // Guardar datos automáticamente SÓLO si se ha iniciado sesión por DNI 
+  // (para que esté disponible la próxima vez que ponga su DNI, pero no al recargar sin DNI)
+  useEffect(() => {
+    const dni = formData.dni?.toUpperCase().trim()
+    if (dni && Object.keys(formData).length > 2) { // Más de DNI y algo más
+      localStorage.setItem(`pujalte_customer_${dni}`, JSON.stringify(formData))
+    }
+  }, [formData])
 
   // Capturar tracking de la URL
   useEffect(() => {
@@ -293,7 +360,8 @@ _Pago: ${paymentMethodText}_`
   }
 
   return (
-    <SheetContent className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden border-l-0 bg-[#FCFDFE]">
+    <>
+      <SheetContent className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden border-l-0 bg-[#FCFDFE]">
       {/* Progress Header - Now more vibrant */}
       {checkoutStep !== 'success' && (
         <div className="bg-white border-b px-8 py-6 sticky top-0 z-10 shadow-sm">
@@ -425,11 +493,11 @@ _Pago: ${paymentMethodText}_`
                                 <button 
                                   className="px-3 py-1.5 rounded-xl border-2 border-dashed border-slate-200 text-[10px] font-bold text-slate-400 hover:border-[#4A7C59] hover:text-[#4A7C59] hover:bg-[#4A7C59]/5 transition-all flex items-center gap-2 mt-1"
                                   onClick={() => {
-                                    const note = prompt('Añadir nota o personalización (Nombre, talla, etc):')
+                                    const note = prompt('Indica personalización (nombre, curso, etc) o notas para este producto:')
                                     if (note) updateItem(item.id, item.variantId, item.notes, { notes: note })
                                   }}
                                 >
-                                  <Plus className="h-3 w-3" /> PERSONALIZAR ARTÍCULO
+                                  <Plus className="h-3 w-3" /> AÑADIR PERSONALIZACIÓN
                                 </button>
                               )}
                             </div>
@@ -550,7 +618,7 @@ _Pago: ${paymentMethodText}_`
                     </div>
                     <Button 
                       className="w-full h-16 rounded-3xl text-lg font-black uppercase tracking-[0.1em] shadow-2xl shadow-[#4A7C59]/30 bg-[#4A7C59] hover:bg-[#3D6649] hover:scale-[1.02] active:scale-95 transition-all duration-300" 
-                      onClick={() => setCheckoutStep('checkout')}
+                      onClick={() => setIsAuthModalOpen(true)}
                     >
                       Continuar Pedido <ChevronRight className="ml-2 h-6 w-6" />
                     </Button>
@@ -592,8 +660,49 @@ _Pago: ${paymentMethodText}_`
                 </div>
               </div>
 
+              {isReturning && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-[#4A7C59]/10 to-[#4A7C59]/5 border border-[#4A7C59]/20 flex items-center gap-4 shadow-sm"
+                >
+                  <div className="h-12 w-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-[#4A7C59]/20">
+                    <CheckCircle2 className="h-6 w-6 text-[#4A7C59]" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-slate-900">¡Hola de nuevo, {formData.name || 'cliente'}!</p>
+                    <p className="text-xs text-slate-500">Hemos recordado tus datos. Si tienes cualquier duda, no dudes en ponerte en contacto con nosotros.</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      setFormData({})
+                      setIsReturning(false)
+                    }}
+                    className="text-[10px] font-black uppercase text-slate-400 hover:text-red-500 hover:bg-transparent"
+                  >
+                    Borrar
+                  </Button>
+                </motion.div>
+              )}
+
               <div className="flex-1 overflow-y-auto pr-3 space-y-6 custom-scrollbar pb-6">
-                {(config.formFields || []).filter(f => f.active).map((field) => (
+                {/* Campo DNI añadido manualmente al inicio */}
+                <div className="space-y-2 group">
+                  <div className="flex items-center gap-2 mb-1 px-1">
+                    <Fingerprint className="h-4 w-4 text-[#4A7C59]" />
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">DNI / NIE *</Label>
+                  </div>
+                  <Input 
+                    value={formData.dni || ''} 
+                    onChange={(e) => handleFieldChange('dni', e.target.value)} 
+                    placeholder="Tu DNI/NIE para identificarte" 
+                    className="pl-4 h-14 rounded-2xl bg-white border-slate-100 shadow-[0_4px_12px_rgb(0,0,0,0.02)] focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] transition-all font-bold"
+                  />
+                </div>
+
+                {(config.formFields || []).filter(f => f.active && f.id !== 'dni').map((field) => (
                   <div key={field.id} className="space-y-2 group">
                     <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 group-focus-within:text-[#4A7C59] transition-colors ml-1">
                       {field.label} {field.required && <span className="text-[#4A7C59]">*</span>}
@@ -632,7 +741,27 @@ _Pago: ${paymentMethodText}_`
                     </div>
                   </div>
                 ))}
-
+                
+                <div className="pt-4 flex items-start gap-3 bg-[#4A7C59]/5 p-4 rounded-2xl border border-[#4A7C59]/10">
+                    <Checkbox 
+                      id="marketing" 
+                      checked={formData.marketing === 'true'}
+                      onCheckedChange={(checked) => handleFieldChange('marketing', checked ? 'true' : 'false')}
+                      className="mt-1 border-[#4A7C59]/20 data-[state=checked]:bg-[#4A7C59]"
+                    />
+                  <div className="grid gap-1.5 leading-none">
+                    <label
+                      htmlFor="marketing"
+                      className="text-xs font-bold text-slate-700 leading-tight cursor-pointer"
+                    >
+                      Deseo recibir información de campañas y ofertas especiales.
+                    </label>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Te prometemos que serán avisos muy puntuales (¡no te vamos a agobiar!).
+                    </p>
+                  </div>
+                </div>
+                
                 <motion.div 
                   whileHover={{ scale: 1.01 }}
                   className="p-6 rounded-3xl bg-slate-50 border border-slate-100 shadow-inner mt-4 relative overflow-hidden"
@@ -658,6 +787,8 @@ _Pago: ${paymentMethodText}_`
                     </div>
                   </div>
                 </motion.div>
+
+                {/* Checkbox de recordar eliminado según petición: ya hay DNI */}
               </div>
 
               <div className="pt-8 mt-auto grid grid-cols-5 gap-4">
@@ -670,14 +801,16 @@ _Pago: ${paymentMethodText}_`
                 </Button>
                 <Button 
                   className={`rounded-[2rem] h-16 font-black text-base uppercase tracking-[0.1em] col-span-4 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] active:scale-95 transition-all duration-500 text-white ${(() => {
-                    const requiredFields = (config.formFields || []).filter(f => f.active && f.required);
                     const email = formData['email']?.trim() || "";
                     const name = formData['name']?.trim() || "";
+                    const dni = formData['dni']?.trim() || "";
                     const phone = formData['phone']?.trim() || "";
                     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+                    const isDniValid = dni.length >= 8;
                     const isPhoneValid = phone.replace(/\D/g, '').length >= 9;
+                    const requiredFields = (config.formFields || []).filter(f => f.active && f.required && f.id !== 'dni');
                     const areAllRequiredFilled = requiredFields.every(f => !!formData[f.id]?.trim());
-                    const isValid = name.length >= 3 && isEmailValid && isPhoneValid && areAllRequiredFilled && acceptTerms;
+                    const isValid = name.length >= 3 && isEmailValid && isDniValid && isPhoneValid && areAllRequiredFilled && acceptTerms;
                     return !isValid ? 'opacity-30 pointer-events-none' : 'bg-[#4A7C59] hover:bg-[#3D6649] shadow-[#4A7C59]/30';
                   })()}`}
                   onClick={() => setCheckoutStep('payment')}
@@ -754,7 +887,7 @@ _Pago: ${paymentMethodText}_`
                     </motion.div>
                   )}
 
-                  {config.enableCash && (
+                  {config.enableCash && cashEnabled && (
                     <motion.div 
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -833,16 +966,16 @@ _Pago: ${paymentMethodText}_`
                 </div>
               </div>
 
-              <div className="pt-8 mt-auto grid grid-cols-5 gap-4">
+              <div className="pt-8 mt-auto relative">
                 <Button 
                   variant="ghost" 
                   onClick={() => setCheckoutStep('checkout')} 
-                  className="rounded-3xl h-16 col-span-1 p-0 hover:bg-slate-50 text-slate-300 hover:text-slate-600 transition-all border-2 border-transparent"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 rounded-3xl h-16 w-14 p-0 hover:bg-slate-50 text-slate-300 hover:text-slate-600 transition-all border-2 border-transparent z-10"
                 >
                   <ChevronLeft className="h-8 w-8" />
                 </Button>
                 <Button 
-                  className={`rounded-[2rem] h-16 font-black text-base uppercase tracking-[0.1em] col-span-4 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] active:scale-95 transition-all duration-500 text-white ${paymentMethod === 'cash' ? 'bg-slate-900 hover:bg-black shadow-slate-400/20' : paymentMethod === 'bizum' ? 'bg-[#00AACB] hover:bg-[#008BA5] shadow-[#00AACB]/30' : 'bg-[#4A7C59] hover:bg-[#3D6649] shadow-[#4A7C59]/30'}`} 
+                  className={`w-full h-16 font-black text-base uppercase tracking-[0.1em] rounded-[2rem] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] active:scale-95 transition-all duration-500 text-white ${paymentMethod === 'cash' ? 'bg-slate-900 hover:bg-black shadow-slate-400/20' : paymentMethod === 'bizum' ? 'bg-[#00AACB] hover:bg-[#008BA5] shadow-[#00AACB]/30' : 'bg-[#4A7C59] hover:bg-[#3D6649] shadow-[#4A7C59]/30'}`} 
                   onClick={paymentMethod === 'cash' ? handleWhatsAppOrder : handleCardPayment} 
                   disabled={processingPayment}
                 >
@@ -953,6 +1086,87 @@ _Pago: ${paymentMethodText}_`
           </motion.div>
         </div>
       )}
-    </SheetContent>
+      </SheetContent>
+
+      <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
+        <DialogContent className="sm:max-w-[500px] rounded-[40px] p-0 border-none bg-white overflow-hidden shadow-2xl">
+          <div className="p-8 pt-10">
+            <div className="mb-8 text-center">
+              <div className="h-20 w-20 rounded-[28px] bg-gradient-to-br from-[#4A7C59] to-[#3D664A] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#4A7C59]/20 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                <Users className="h-10 w-10 text-white" />
+              </div>
+              <DialogTitle className="text-3xl font-black text-slate-900 leading-tight mb-2 text-center">
+                ¡Bienvenido a Fotodetalles!
+              </DialogTitle>
+              <DialogDescription className="text-slate-500 text-sm font-medium leading-relaxed max-w-[320px] mx-auto text-center">
+                Para tu comodidad, el registro solo será necesario la primera vez que compres con nosotros.
+              </DialogDescription>
+            </div>
+
+            <div className="space-y-4">
+              {!showDniInput ? (
+                <>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setIsAuthModalOpen(false)
+                      setCheckoutStep('checkout')
+                    }}
+                    className="w-full h-16 rounded-[24px] border-2 border-orange-100 hover:border-orange-500 hover:bg-orange-50 text-lg font-black uppercase text-orange-600 transition-all flex items-center justify-center px-8"
+                  >
+                    <span>Soy nuevo cliente</span>
+                  </Button>
+
+                  <Button 
+                    onClick={() => setShowDniInput(true)}
+                    className="w-full h-16 rounded-[24px] bg-[#4A7C59] hover:bg-[#3D664A] text-white text-lg font-black uppercase transition-all flex items-center justify-center px-8 shadow-lg shadow-[#4A7C59]/20"
+                  >
+                    <span>Ya he comprado antes</span>
+                  </Button>
+                </>
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="relative group">
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-2 block">Introduce tu DNI/NIE</Label>
+                    <div className="relative">
+                      <Fingerprint className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors" />
+                      <Input 
+                        autoFocus
+                        value={dniLogin}
+                        onChange={(e) => setDniLogin(e.target.value)}
+                        placeholder="12345678X"
+                        className="pl-14 h-16 rounded-[24px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] text-lg font-bold transition-all"
+                        onKeyDown={(e) => e.key === 'Enter' && handleDniLogin()}
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleDniLogin}
+                    className="w-full h-16 rounded-[24px] bg-[#4A7C59] hover:bg-[#3D664A] text-white text-lg font-black uppercase transition-all shadow-[0_15px_30px_-10px_rgba(74,124,89,0.3)]"
+                  >
+                    Acceder
+                  </Button>
+                  <button 
+                    onClick={() => setShowDniInput(false)}
+                    className="w-full text-center text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    Volver atrás
+                  </button>
+                </motion.div>
+              )}
+            </div>
+            
+            <p className="mt-8 text-[11px] text-center text-slate-400 font-medium leading-relaxed px-4">
+              Si tienes algún problema para acceder, no dudes en <span className="text-[#4A7C59] font-bold">ponerte en contacto</span> con nosotros por WhatsApp.
+            </p>
+          </div>
+          <div className="h-1.5 w-full bg-gradient-to-r from-[#4A7C59]/0 via-[#4A7C59]/30 to-[#4A7C59]/0" />
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
