@@ -15,3 +15,10 @@ export function fixPath(path: string) {
   
   return cleanPath
 }
+
+export function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+  }).format(amount)
+}

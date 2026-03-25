@@ -51,7 +51,8 @@ export function ShopHeader({
   }
 
   const handleAdminCheck = () => {
-    if (adminPassword === 'admin123') {
+    const validPassword = config.adminPassword || 'admin123';
+    if (adminPassword === validPassword) {
       setIsAdmin(true)
       setIsAdminDialogOpen(false)
       setAdminPassword('')

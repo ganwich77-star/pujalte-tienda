@@ -19,10 +19,25 @@ export async function GET() {
     const categoriesRef = collection(db, COLLECTIONS.CATEGORIES);
     const q = query(categoriesRef, orderBy("name", "asc"));
     const querySnapshot = await getDocs(q);
+
+    const productsRef = collection(db, COLLECTIONS.PRODUCTS);
+    const productsSnapshot = await getDocs(productsRef);
+    const productCounts: Record<string, number> = {};
     
+    productsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const catId = data.categoryId;
+      if (catId) {
+        productCounts[catId] = (productCounts[catId] || 0) + 1;
+      }
+    });
+
     const categories = querySnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
+      _count: {
+        products: productCounts[doc.id] || 0
+      }
     }));
     
     return NextResponse.json(categories)

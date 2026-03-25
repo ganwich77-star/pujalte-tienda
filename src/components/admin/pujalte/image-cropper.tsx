@@ -18,6 +18,7 @@ interface ImageCropperProps {
   onClose: () => void
   onCropComplete: (file: File) => void
   aspect?: number
+  fileType?: string
 }
 
 const createImage = (url: string): Promise<HTMLImageElement> =>
@@ -32,7 +33,8 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
 async function getCroppedImg(
   imageSrc: string,
   pixelCrop: Area,
-  rotation = 0
+  rotation = 0,
+  fileType = 'image/jpeg'
 ): Promise<Blob | null> {
   const image = await createImage(imageSrc)
   const canvas = document.createElement('canvas')
@@ -60,7 +62,7 @@ async function getCroppedImg(
   return new Promise((resolve) => {
     canvas.toBlob((blob) => {
       resolve(blob)
-    }, 'image/jpeg')
+    }, fileType)
   })
 }
 
@@ -70,6 +72,7 @@ export function ImageCropper({
   onClose,
   onCropComplete,
   aspect = 16 / 9,
+  fileType = 'image/jpeg',
 }: ImageCropperProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -91,9 +94,10 @@ export function ImageCropper({
     if (!image || !croppedAreaPixels) return
 
     try {
-      const croppedBlob = await getCroppedImg(image, croppedAreaPixels)
+      const croppedBlob = await getCroppedImg(image, croppedAreaPixels, 0, fileType)
       if (croppedBlob) {
-        const file = new File([croppedBlob], 'cropped-image.jpg', { type: 'image/jpeg' })
+        const extension = fileType.split('/')[1] || 'jpg'
+        const file = new File([croppedBlob], `cropped-image.${extension}`, { type: fileType })
         onCropComplete(file)
         onClose()
       }

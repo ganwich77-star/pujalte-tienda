@@ -10,14 +10,27 @@ export interface Service {
 }
 
 export interface GalleryImage {
-  id: number;
+  id: string | number;
   src: string;
   alt: string;
   categoria: string;
   precio?: number;
   stock?: number;
+  mostrarPrecio?: boolean;
   activa?: boolean;
   descripcion?: string;
+  isPack?: boolean;
+  packItems?: (string | number)[];
+  hasVariants?: boolean;
+  variantType?: string;
+  variantBehavior?: 'add' | 'replace';
+  variants?: {
+    id: string;
+    name: string;
+    price: number;
+    stock?: number;
+    sortOrder?: number;
+  }[];
 }
 
 export interface Testimonial {
@@ -61,6 +74,7 @@ export interface LandingConfig {
     descripcion: string;
     keywords: string;
   };
+  adminPassword?: string;
 }
 
 export const landingConfig = landingData as LandingConfig;

@@ -35,7 +35,7 @@
       "descripcion": "Imagen profesional para empresas, retratos ejecutivos, eventos de empresa y contenido para redes corporativas.",
       "icono": "briefcase",
       "foto": "/uploads/1774307041814-cropped-image.jpg",
-      "activa": true
+      "activa": false
     },
     {
       "id": "infantil",
@@ -62,42 +62,48 @@
       "categoria": "social",
       "activa": true,
       "precio": 150,
-      "stock": 10
+      "stock": 10,
+      "mostrarPrecio": false
     },
     {
       "id": "2",
       "src": "/uploads/1774306747869-cropped-image.jpg",
       "alt": "Fotografía infantil",
       "categoria": "infantil",
-      "activa": true
+      "activa": true,
+      "mostrarPrecio": false
     },
     {
       "id": "5",
       "src": "/uploads/1774306831789-cropped-image.jpg",
       "alt": "Fotografía de estudio",
       "categoria": "infantil",
-      "activa": true
+      "activa": true,
+      "mostrarPrecio": false
     },
     {
       "id": "6",
       "src": "/uploads/1774306921429-cropped-image.jpg",
       "alt": "Fotografía de producto",
       "categoria": "producto",
-      "activa": true
+      "activa": true,
+      "mostrarPrecio": false
     },
     {
       "id": "3",
       "src": "/uploads/1774306941134-cropped-image.jpg",
       "alt": "Fotografía de producto",
       "categoria": "producto",
-      "activa": true
+      "activa": true,
+      "mostrarPrecio": false
     },
     {
       "id": "4",
       "src": "/uploads/1774306885285-cropped-image.jpg",
       "alt": "Fotografía de boda",
       "categoria": "social",
-      "activa": true
+      "activa": true,
+      "mostrarPrecio": false
     }
   ],
   "testimonios": [

@@ -11,6 +11,7 @@ import {
   FileText,
   LayoutDashboard,
   Layers,
+  LayoutGrid,
   LogOut,
   Mail,
   MapPin,
@@ -36,6 +37,7 @@ import { CategoriesTab } from './CategoriesTab'
 import { CustomersTab } from './CustomersTab'
 import { Product, Category, Order, StoreConfig } from '@/types'
 import { Button } from '@/components/ui/button'
+import { PacksTab } from './PacksTab'
 
 interface AdminPanelProps {
   stats: {
@@ -60,6 +62,7 @@ interface AdminPanelProps {
   onToggleActive: (product: Product) => void
   onDeleteProduct: (id: string) => void
   onReorderProducts: (products: Product[]) => void
+  onAddProduct: () => void
   onEditProduct: (product: Product) => void
   onUpdateProductField: (id: string, field: string, value: any) => void
   onUpdateStatus: (id: string, status: string) => void
@@ -91,6 +94,7 @@ export function AdminPanel(props: AdminPanelProps) {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'products', label: 'Productos', icon: Package },
     { id: 'categories', label: 'Categorías', icon: Layers },
+    { id: 'packs', label: 'Packs', icon: LayoutGrid },
     { id: 'orders', label: 'Pedidos', icon: ShoppingCart },
     { id: 'customers', label: 'Clientes', icon: Users },
     { id: 'upload', label: 'Importar', icon: Upload },
@@ -162,11 +166,8 @@ export function AdminPanel(props: AdminPanelProps) {
               </Button>
             )}
 
-            <div className="mt-8 pt-8 flex flex-col items-center gap-4 border-t border-slate-100 opacity-60">
-              <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Powered by</span>
-                <img src="/logo_ia.png" alt="IA Logo" className="h-4 object-contain brightness-0 opacity-40 hover:opacity-100 transition-opacity cursor-help" />
-              </div>
+            <div className="mt-8 pt-4 flex flex-col items-center gap-4 opacity-60">
+               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">powered by pujalte creative studio</span>
             </div>
             {onLogout && (
               <Button
@@ -212,6 +213,7 @@ export function AdminPanel(props: AdminPanelProps) {
                   onToggleActive={props.onToggleActive}
                   onDeleteProduct={props.onDeleteProduct}
                   onReorderProducts={props.onReorderProducts}
+                  onAddProduct={props.onAddProduct}
                   onEditProduct={props.onEditProduct}
                   onUpdateProductField={props.onUpdateProductField}
                   addVariant={props.addVariant}
@@ -224,9 +226,18 @@ export function AdminPanel(props: AdminPanelProps) {
               {activeTab === 'categories' && (
                 <CategoriesTab
                   categories={categories}
+                  products={products}
                   onRefresh={onRefreshCategories}
                 />
               )}
+
+              {activeTab === 'packs' && (
+                <PacksTab
+                   products={products}
+                   categories={categories}
+                />
+              )}
+
 
               {activeTab === 'orders' && (
                 <OrdersTab

@@ -100,6 +100,24 @@ export function ConfigTab({ config, onUpdateConfig, onSave }: ConfigTabProps) {
           </div>
         </div>
         <Separator />
+ 
+         <div className="space-y-4">
+           <Label className="text-base font-semibold">Seguridad</Label>
+           <div className="grid sm:grid-cols-2 gap-6">
+             <div className="space-y-2">
+               <Label>Contraseña de Administrador</Label>
+               <Input 
+                 type="password"
+                 value={config.adminPassword || ''} 
+                 onChange={(e) => onUpdateConfig({ ...config, adminPassword: e.target.value })} 
+                 placeholder="Dejar vacío para admin123" 
+               />
+               <p className="text-xs text-muted-foreground italic">Esta contraseña se usa para acceder al panel de la tienda.</p>
+             </div>
+           </div>
+         </div>
+ 
+         <Separator />
         <div className="flex justify-end">
           <Button onClick={onSave} className="gap-2 px-8">
             <Save className="h-4 w-4" /> Guardar Cambios

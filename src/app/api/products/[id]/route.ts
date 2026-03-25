@@ -49,6 +49,7 @@ export async function PUT(
     if (categoryId !== undefined) updateData.categoryId = categoryId;
     if (image !== undefined) updateData.image = image;
     if (active !== undefined) updateData.active = active;
+    if (body.showPrice !== undefined) updateData.showPrice = body.showPrice;
     if (hasVariants !== undefined) updateData.hasVariants = hasVariants;
     if (variantType !== undefined) updateData.variantType = variantType;
     if (sortOrder !== undefined) updateData.sortOrder = parseInt(String(sortOrder));

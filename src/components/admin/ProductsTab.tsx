@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { 
   Plus, Package, Edit, Trash2, Eye, EyeOff, Save, ImageIcon, 
   ImageOff, Upload, MoreVertical, GripVertical, Check, X as CloseIcon, ZoomIn, ZoomOut,
-  ArrowUpDown, ArrowUp, ArrowDown, Info, AlertCircle
+  ArrowUpDown, ArrowUp, ArrowDown, Info, AlertCircle, Banknote
 } from 'lucide-react'
 import { Checkbox } from "@/components/ui/checkbox"
 import Cropper from 'react-easy-crop'
@@ -73,6 +73,7 @@ import {
 interface ProductsTabProps {
   products: Product[]
   categories: Category[]
+  onAddProduct: () => void
   onEditProduct: (product: Product) => void
   onUpdateProductField: (id: string, field: string, value: any) => void
   onToggleActive: (product: Product) => void
@@ -169,21 +170,28 @@ function SortableProductRow({
         </div>
       </TableCell>
       <TableCell className="min-w-[200px]">
-        <div className="flex flex-col">
-          <span className="font-black text-sm uppercase tracking-tight line-clamp-1">{product.name}</span>
+        <div className="flex flex-col gap-1 py-1">
+          <input 
+            value={product.name} 
+            onChange={(e) => onUpdateProductField(product.id, 'name', e.target.value)}
+            className="font-black text-sm uppercase tracking-tight bg-transparent border-none focus:ring-0 p-0 w-full outline-none placeholder:opacity-20"
+            placeholder="Nombre..."
+          />
           <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-black opacity-30 px-1">#{product.id.slice(0, 8)}</span>
         </div>
       </TableCell>
       <TableCell className="w-28 text-right">
-        <div className="flex items-center gap-1 group/price justify-end pr-6">
-          <input 
-            type="number"
-            step="0.01"
-            value={product.price} 
-            onChange={(e) => onUpdateProductField(product.id, 'price', parseFloat(e.target.value) || 0)}
-            className="font-black tabular-nums text-base bg-transparent border-none focus:ring-0 p-0 w-16 text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-          />
-          <span className="text-[10px] font-black opacity-30">€</span>
+        <div className="flex flex-col items-end gap-1.5 pr-6">
+          <div className="flex items-center gap-1 group/price justify-end">
+            <input 
+              type="number"
+              step="0.01"
+              value={product.price} 
+              onChange={(e) => onUpdateProductField(product.id, 'price', parseFloat(e.target.value) || 0)}
+              className="font-black tabular-nums text-base bg-transparent border-none focus:ring-0 p-0 w-16 text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="text-[10px] font-black opacity-30">€</span>
+          </div>
         </div>
       </TableCell>
       <TableCell className="w-48 text-center">
@@ -202,26 +210,46 @@ function SortableProductRow({
           </SelectContent>
         </Select>
       </TableCell>
+
+      <TableCell className="w-48 text-center h-24">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => onToggleActive(product)}
+          className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+            product.active 
+              ? 'bg-green-50 text-green-600 hover:bg-green-100' 
+              : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+          }`}
+        >
+          {product.active ? 'Habilitado' : 'Oculto'}
+        </Button>
+      </TableCell>
+
       <TableCell className="w-48 text-center h-24">
         <div className="flex items-center justify-center gap-2">
-          {/* Toggle Active */}
+          {/* Edit */}
           <Button 
+            size="icon" 
             variant="ghost" 
-            size="icon"
-            onClick={() => onToggleActive(product)}
-            className={`h-9 w-9 rounded-xl transition-all ${
-              product.active 
-                ? 'text-green-500 bg-green-50 hover:bg-green-100' 
-                : 'text-muted-foreground/30 bg-muted/20 hover:bg-red-50 hover:text-red-500'
-            }`}
-            title={product.active ? 'Visible en tienda' : 'Oculto en tienda'}
+            onClick={() => onEditProduct(product)} 
+            className="h-9 w-9 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
           >
-            {product.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            <Edit className="h-4 w-4" />
           </Button>
 
-          {/* Edit */}
-          <Button size="icon" variant="ghost" onClick={() => onEditProduct(product)} className="h-9 w-9 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-900 hover:text-white transition-all shadow-sm">
-            <Edit className="h-4 w-4" />
+          {/* Price visibility */}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onUpdateProductField(product.id, 'showPrice', !(product.showPrice ?? true))}
+            className={`h-9 w-9 rounded-xl border transition-all shadow-sm ${
+              (product.showPrice ?? true)
+                ? 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100'
+                : 'bg-slate-50 text-slate-300 border-slate-100 hover:bg-slate-100'
+            }`}
+          >
+            <Banknote className="h-4 w-4" />
           </Button>
 
           {/* Delete */}
@@ -261,6 +289,7 @@ function SortableProductRow({
 export function ProductsTab({ 
   products, 
   categories,
+  onAddProduct,
   onEditProduct, 
   onUpdateProductField, 
   onToggleActive, 
@@ -448,7 +477,7 @@ export function ProductsTab({
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button onClick={() => setIsProductDialogOpen(true)} className="rounded-2xl gap-2 font-bold uppercase tracking-widest text-[10px] px-6 h-11 bg-black hover:bg-black/90 text-white shadow-xl shadow-black/10">
+          <Button onClick={onAddProduct} className="rounded-2xl gap-2 font-bold uppercase tracking-widest text-[10px] px-6 h-11 bg-black hover:bg-black/90 text-white shadow-xl shadow-black/10">
             <Plus className="h-4 w-4" />
             Añadir Producto
           </Button>
@@ -505,9 +534,13 @@ export function ProductsTab({
                     </TableHead>
 
                     <TableHead 
-                      className="w-48 text-center h-14 uppercase text-[10px] font-black tracking-widest opacity-50 cursor-pointer hover:text-black transition-colors"
+                      className="w-32 text-center h-14 uppercase text-[10px] font-black tracking-widest opacity-50 cursor-pointer hover:text-black transition-colors"
                       onClick={() => toggleSort('active')}
                     >
+                      Estado
+                    </TableHead>
+
+                    <TableHead className="w-48 text-center h-14 uppercase text-[10px] font-black tracking-widest opacity-50">
                       Acciones
                     </TableHead>
                   </TableRow>
@@ -552,14 +585,14 @@ export function ProductsTab({
         type="file" 
         ref={imageInputRef} 
         className="hidden" 
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/*"
         onChange={handleImageFileChange}
       />
       <input 
         type="file" 
         ref={formImageInputRef} 
         className="hidden" 
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/*"
         onChange={handleFormImageFileChange}
       />
 
@@ -767,9 +800,32 @@ export function ProductsTab({
                 </div>
 
                 {productForm.hasVariants && (
-                  <div className="space-y-3 pt-3 border-t border-slate-100 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="flex items-center justify-between">
-                       <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A7C59] bg-[#4A7C59]/5 px-3 py-1 rounded-full">Suplementos</Label>
+                  <div className="space-y-4 pt-3 border-t border-slate-100 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                       <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A7C59] bg-[#4A7C59]/5 px-3 py-1 rounded-full">Gestión de Opciones</Label>
+                       
+                       <div className="flex bg-slate-100 p-1 rounded-xl">
+                         <button
+                           onClick={() => setProductForm({...productForm, variantBehavior: 'add'})}
+                           className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all ${
+                             productForm.variantBehavior === 'add'
+                             ? 'bg-white shadow-sm text-black'
+                             : 'text-slate-400 hover:text-slate-600'
+                           }`}
+                         >
+                           Es Suplemento (+)
+                         </button>
+                         <button
+                           onClick={() => setProductForm({...productForm, variantBehavior: 'replace'})}
+                           className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all ${
+                             productForm.variantBehavior === 'replace'
+                             ? 'bg-white shadow-sm text-black'
+                             : 'text-slate-400 hover:text-slate-600'
+                           }`}
+                         >
+                           Es Precio Final (=)
+                         </button>
+                       </div>
                     </div>
                     
                     <div className="space-y-2">
@@ -823,7 +879,10 @@ export function ProductsTab({
                       <div className="p-3 rounded-xl bg-orange-50/30 border border-orange-100 flex gap-3 mt-2 items-start">
                         <AlertCircle className="h-3.5 w-3.5 text-orange-400 mt-0.5" />
                         <p className="text-[9px] text-orange-900/60 leading-tight font-medium">
-                          <span className="font-bold uppercase tracking-wider text-orange-700/60">Nota:</span> Se sumará el importe del suplemento al precio base del producto.
+                          <span className="font-bold uppercase tracking-wider text-orange-700/60">Nota:</span>{' '}
+                          {productForm.variantBehavior === 'replace' 
+                            ? 'Al seleccionar esta opción, el precio base se IGNORARÁ y se usará el de la opción.' 
+                            : 'Se sumará el importe del suplemento al precio base del producto.'}
                         </p>
                       </div>
                     </div>

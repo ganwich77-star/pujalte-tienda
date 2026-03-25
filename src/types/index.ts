@@ -18,8 +18,12 @@ export interface Product {
   categoryId: string | null
   category: { id: string; name: string } | null
   active: boolean
+  showPrice: boolean
+  isPack: boolean
+  packItems: string | null
   hasVariants: boolean
   variantType: string | null
+  variantBehavior?: 'add' | 'replace'
   variants: ProductVariant[]
 }
 
@@ -79,5 +83,6 @@ export interface StoreConfig {
   enableCash: boolean
   enableBizum: boolean
   enableCard: boolean
+  adminPassword?: string
   formFields: FormField[]
 }

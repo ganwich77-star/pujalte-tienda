@@ -112,12 +112,16 @@ export default function Home() {
     name: '',
     description: '',
     price: '',
-    stock: '',
+    stock: '0',
     categoryId: '',
     image: '',
     imagePosition: 'center',
     hasVariants: false,
+    showPrice: true,
+    isPack: false,
+    packItems: '[]',
     variantType: '',
+    variantBehavior: 'add',
     variants: [] as { id?: string; name: string; price: string; stock: string; sortOrder: number }[]
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -272,7 +276,9 @@ Mi email: ${formData.email}`
     const cartItem: CartItem = {
       id: product.id,
       name: product.name,
-      price: variant ? (Number(product.price) + Number(variant.price)) : product.price,
+      price: variant 
+        ? (product.variantBehavior === 'replace' ? Number(variant.price) : Number(product.price) + Number(variant.price))
+        : Number(product.price),
       quantity: 1,
       image: product.image,
       variantId: variant?.id,
@@ -326,6 +332,9 @@ Mi email: ${formData.email}`
         image: productForm.image || null,
         imagePosition: (productForm as any).imagePosition || 'center',
         hasVariants: productForm.hasVariants,
+        showPrice: (productForm as any).showPrice ?? true,
+        isPack: (productForm as any).isPack ?? false,
+        packItems: (productForm as any).packItems ?? '[]',
         variantType: productForm.hasVariants ? productForm.variantType : null
       }
       
@@ -440,8 +449,8 @@ Mi email: ${formData.email}`
 
   const resetProductForm = () => {
     setProductForm({ 
-      name: '', description: '', price: '', stock: '', categoryId: '', image: '', imagePosition: 'center',
-      hasVariants: false, variantType: '', variants: [] 
+      name: '', description: '', price: '', stock: '0', categoryId: '', image: '', imagePosition: 'center',
+      hasVariants: false, showPrice: true, isPack: false, packItems: '[]', variantType: '', variantBehavior: 'add', variants: [] 
     })
     setEditingProduct(null)
   }
@@ -449,21 +458,25 @@ Mi email: ${formData.email}`
   const openEditProduct = (product: Product) => {
     setEditingProduct(product)
     setProductForm({
-      name: product.name,
+      name: product.name || '',
       description: product.description || '',
-      price: product.price.toString(),
-      stock: product.stock.toString(),
+      price: (product.price ?? 0).toString(),
+      stock: (product.stock ?? 0).toString(),
       categoryId: product.categoryId || '',
       image: product.image || '',
       imagePosition: (product as any).imagePosition || 'center',
-      hasVariants: product.hasVariants,
+      hasVariants: !!product.hasVariants,
+      showPrice: product.showPrice ?? true,
+      isPack: product.isPack ?? false,
+      packItems: product.packItems || '[]',
       variantType: product.variantType || '',
-      variants: product.variants.map(v => ({
-        id: v.id,
-        name: v.name,
-        price: v.price.toString(),
-        stock: v.stock.toString(),
-        sortOrder: v.sortOrder
+      variantBehavior: product.variantBehavior || 'add',
+      variants: (product.variants || []).map(v => ({
+        id: v.id || Math.random().toString(36).substr(2, 9),
+        name: v.name || '',
+        price: (v.price ?? 0).toString(),
+        stock: (v.stock ?? 0).toString(),
+        sortOrder: v.sortOrder ?? 0
       }))
     })
     setIsProductDialogOpen(true)
@@ -616,6 +629,10 @@ Mi email: ${formData.email}`
           onToggleActive={handleToggleActive}
           onDeleteProduct={handleDeleteProduct}
           onReorderProducts={handleReorderProducts}
+          onAddProduct={() => {
+            resetProductForm()
+            setIsProductDialogOpen(true)
+          }}
           onEditProduct={openEditProduct}
           onUpdateProductField={handleUpdateProductField}
           onUpdateStatus={handleUpdateOrderStatus}
@@ -976,6 +993,11 @@ Mi email: ${formData.email}`
                           <div>
                             <span className="text-white/60 text-[10px] uppercase tracking-widest font-bold mb-2 block">{img.categoria}</span>
                             <p className="text-white text-lg font-light leading-tight">{img.alt}</p>
+                            {(img.mostrarPrecio ?? true) && img.precio > 0 && (
+                              <p className="text-white mt-2 font-black text-xl tracking-tighter">
+                                {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(img.precio)}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </motion.div>

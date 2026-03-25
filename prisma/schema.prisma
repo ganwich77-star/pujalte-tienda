@@ -27,6 +27,9 @@ model Product {
   stock       Int              @default(0)
   categoryId  String?
   active      Boolean          @default(true)
+  showPrice   Boolean?         @default(true)
+  isPack      Boolean?         @default(false)
+  packItems   String?          @db.Text
   hasVariants Boolean          @default(false)
   variantType String?
   sortOrder   Int              @default(0)

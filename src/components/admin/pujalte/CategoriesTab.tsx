@@ -4,6 +4,8 @@ import React, { useState } from 'react'
 import { Plus, Trash2, GripVertical, Save, X, Edit2, Layers, Tag as TagIcon } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { GalleryImage } from '@/lib/landing-config'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
   DndContext,
@@ -28,9 +30,10 @@ interface CategoryItemProps {
   name: string
   onDelete: (name: string) => void
   onEdit: (oldName: string, newName: string) => void
+  count: number
 }
 
-const SortableCategoryItem = ({ id, name, onDelete, onEdit }: CategoryItemProps) => {
+const SortableCategoryItem = ({ id, name, onDelete, onEdit, count }: CategoryItemProps) => {
   const {
     attributes,
     listeners,
@@ -88,7 +91,12 @@ const SortableCategoryItem = ({ id, name, onDelete, onEdit }: CategoryItemProps)
             <div className="h-8 w-8 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-[#4A7C59] shadow-sm">
                 <TagIcon className="h-3.5 w-3.5" />
             </div>
-            <span className="text-sm font-bold text-slate-700 uppercase tracking-tight">{name}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-700 uppercase tracking-tight">{name}</span>
+              <Badge variant="secondary" className="bg-[#4A7C59]/5 text-[#4A7C59] border-none text-[10px] font-bold px-2 py-0 h-5">
+                {count} {count === 1 ? 'producto' : 'productos'}
+              </Badge>
+            </div>
             <Button size="icon" variant="ghost" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl hover:bg-white" onClick={() => {
               setTempName(name)
               setIsEditing(true)
@@ -113,10 +121,11 @@ const SortableCategoryItem = ({ id, name, onDelete, onEdit }: CategoryItemProps)
 
 interface CategoriesTabProps {
   categories: string[]
+  products: GalleryImage[]
   onUpdate: (newCategories: string[]) => void
 }
 
-export default function CategoriesTab({ categories, onUpdate }: CategoriesTabProps) {
+export default function CategoriesTab({ categories, products, onUpdate }: CategoriesTabProps) {
   const [newCategory, setNewCategory] = useState('')
 
   const sensors = useSensors(
@@ -205,9 +214,31 @@ export default function CategoriesTab({ categories, onUpdate }: CategoriesTabPro
                                 name={cat}
                                 onDelete={handleDelete}
                                 onEdit={handleEdit}
+                                count={products.filter(p => p.categoria === cat).length}
                             />
                         ))}
-                        {categories.length === 0 && (
+                        
+                        {(() => {
+                            const orphanCount = products.filter(p => !categories.includes(p.categoria)).length
+                            if (orphanCount > 0) {
+                                return (
+                                    <div className="flex items-center gap-3 p-3 mb-2 bg-amber-50 rounded-2xl border border-amber-100/50">
+                                        <div className="h-8 w-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm">
+                                            <TagIcon className="h-3.5 w-3.5" />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold text-amber-900 uppercase tracking-tight italic">SIN CATEGORÍA</span>
+                                            <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-none text-[10px] font-bold px-2 py-0 h-5">
+                                                {orphanCount} productos
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                )
+                            }
+                            return null
+                        })()}
+
+                        {categories.length === 0 && products.length === 0 && (
                             <div className="col-span-2 py-12 text-center text-slate-400 uppercase tracking-widest text-xs font-bold">
                                 No hay categorías definidas
                             </div>

@@ -10,6 +10,7 @@ import {
 import { ImageCropper } from '@/components/admin/pujalte/image-cropper'
 import ProductsTab from '@/components/admin/pujalte/ProductsTab'
 import CategoriesTab from '@/components/admin/pujalte/CategoriesTab'
+import PacksTab from '@/components/admin/pujalte/PacksTab'
 import { LandingConfig, Service, GalleryImage, Testimonial } from '@/lib/landing-config'
 import { fixPath } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -89,7 +90,7 @@ export default function AdminPage() {
 
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !config) return
     const reader = new FileReader()
     reader.onload = (event) => {
       const text = event.target?.result as string
@@ -108,7 +109,7 @@ export default function AdminPage() {
           activa: true
         }
       })
-      if (config) setConfig({ ...config, galeria: [...config.galeria, ...newItems] })
+      setConfig({ ...config, galeria: [...config.galeria, ...newItems] })
     }
     reader.readAsText(file)
   }
@@ -118,25 +119,26 @@ export default function AdminPage() {
     open: boolean,
     image: string | null,
     aspect: number,
-    callback: (file: File) => void
+    callback: (file: File) => void,
+    fileType: string
   }>({
     open: false,
     image: null,
     aspect: 16 / 9,
-    callback: () => {}
+    callback: () => {},
+    fileType: 'image/jpeg'
   })
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetch('/api/admin/config')
-        .then(res => res.json())
-        .then(data => setConfig(data))
-    }
-  }, [isAuthenticated])
+    fetch('/api/admin/config')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+  }, [])
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD || password === 'admin123') {
+    const validPassword = config?.adminPassword || process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123';
+    if (password === validPassword) {
       setIsAuthenticated(true)
     } else {
       setLoginError(true)
@@ -199,7 +201,8 @@ export default function AdminPage() {
         open: true,
         image: reader.result as string,
         aspect,
-        callback: (croppedFile) => uploadFile(croppedFile, callback)
+        callback: (croppedFile) => uploadFile(croppedFile, callback),
+        fileType: file.type
       })
       // Reset input value to allow selecting the same file again
       e.target.value = ''
@@ -264,9 +267,12 @@ export default function AdminPage() {
               <Camera className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 leading-tight">Admin</h1>
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Pujalte Fotografía</p>
-            </div>
+               <h1 className="text-lg font-bold text-gray-900 leading-tight">Admin</h1>
+               <div className="flex flex-col">
+                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Pujalte Fotografía</p>
+                 <p className="text-[8px] text-gray-400 font-medium">powered by pujalte creative studio</p>
+               </div>
+             </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -314,6 +320,7 @@ export default function AdminPage() {
             <TabsTrigger value="categorias" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">Categorías</TabsTrigger>
             <TabsTrigger value="servicios" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">Servicios</TabsTrigger>
             <TabsTrigger value="testimonios" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">Testimonios</TabsTrigger>
+            <TabsTrigger value="packs" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase bg-emerald-50 text-emerald-700 data-[state=active]:text-emerald-900 shadow-emerald-100">Packs</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-8">
@@ -436,6 +443,25 @@ export default function AdminPage() {
               </Card>
             </div>
 
+            <Card className="border-0 shadow-sm rounded-3xl overflow-hidden mt-8">
+               <CardHeader className="bg-white border-b border-gray-50 uppercase tracking-widest text-[10px] font-bold text-gray-400">
+                 Seguridad
+               </CardHeader>
+               <CardContent className="p-8 space-y-4">
+                 <div className="space-y-2 max-w-md">
+                   <Label className="text-xs font-bold tracking-widest uppercase text-gray-400">Contraseña Administrador</Label>
+                   <Input 
+                     type="password"
+                     value={config.adminPassword || ''}
+                     onChange={(e) => setConfig({...config, adminPassword: e.target.value})}
+                     placeholder="Dejar vacío para el valor por defecto (admin123)"
+                     className="bg-gray-50/50"
+                   />
+                   <p className="text-[10px] text-gray-400 italic">Esta contraseña se sincroniza con el panel de la tienda.</p>
+                 </div>
+               </CardContent>
+             </Card>
+
             <Card className="border-0 shadow-sm rounded-3xl overflow-hidden">
               <CardHeader className="bg-white border-b border-gray-50">
                 <CardTitle className="text-xl flex items-center gap-3">
@@ -523,6 +549,7 @@ export default function AdminPage() {
           <TabsContent value="categorias" className="mt-8 transition-all duration-300">
             <CategoriesTab
               categories={config.categorias || []}
+              products={config.galeria || []}
               onUpdate={(newCategories) => setConfig({ ...config, categorias: newCategories })}
             />
           </TabsContent>
@@ -697,6 +724,14 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="packs" className="space-y-8 min-h-[600px]">
+            <PacksTab 
+              products={config.galeria} 
+              categories={config.categorias}
+              onUpdate={(newItems) => setConfig({...config, galeria: newItems})}
+            />
+          </TabsContent>
         </Tabs>
       </main>
       {cropper.open && (
@@ -704,6 +739,7 @@ export default function AdminPage() {
           image={cropper.image}
           open={cropper.open}
           aspect={cropper.aspect}
+          fileType={cropper.fileType}
           onCropComplete={handleCropComplete}
           onClose={() => setCropper({ ...cropper, open: false })}
         />

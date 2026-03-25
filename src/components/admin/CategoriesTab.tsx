@@ -5,7 +5,9 @@ import { Plus, Pencil, Trash2, FolderPlus, LayoutGrid, List, GripVertical } from
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Category } from '@/types'
+import { Category, Product } from '@/types'
+import { Badge } from '@/components/ui/badge'
+import { Info } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import {
   Dialog,
@@ -192,10 +194,11 @@ function SortableCategory({ category, viewMode, handleOpen, handleDelete }: Sort
 
 interface CategoriesTabProps {
   categories: Category[]
+  products?: Product[]
   onRefresh: () => void
 }
 
-export function CategoriesTab({ categories, onRefresh }: CategoriesTabProps) {
+export function CategoriesTab({ categories, products = [], onRefresh }: CategoriesTabProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [loading, setLoading] = useState(false)
@@ -210,6 +213,18 @@ export function CategoriesTab({ categories, onRefresh }: CategoriesTabProps) {
   useEffect(() => {
     setLocalCategories(categories)
   }, [categories])
+
+  // Calcular productos sin categoría
+  const orphanedProducts = products.filter(p => !p.categoryId)
+  const orphanedCount = orphanedProducts.length
+
+  // Enriquecer categorías con conteos reales si se proporcionan productos
+  const enrichedCategories = localCategories.map(cat => ({
+    ...cat,
+    _count: {
+      products: products.filter(p => p.categoryId === cat.id).length
+    }
+  }))
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -354,7 +369,7 @@ export function CategoriesTab({ categories, onRefresh }: CategoriesTabProps) {
             ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" 
             : "flex flex-col gap-2"
           }>
-            {localCategories.map((category) => (
+            {enrichedCategories.map((category) => (
               <SortableCategory 
                 key={category.id} 
                 category={category} 
@@ -363,6 +378,25 @@ export function CategoriesTab({ categories, onRefresh }: CategoriesTabProps) {
                 handleDelete={handleDelete}
               />
             ))}
+
+            {orphanedCount > 0 && (
+              <div className={`flex items-center justify-between p-4 bg-amber-50/50 border border-amber-100 rounded-xl group transition-all`}>
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 bg-amber-100 rounded-lg flex items-center justify-center border border-amber-200 text-xs font-bold text-amber-600">
+                    <Info className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-amber-900 italic">Sin Categoría (Miscelánea)</h3>
+                    <p className="text-xs text-amber-600 font-medium">{orphanedCount} productos sin clasificar</p>
+                  </div>
+                </div>
+                <div className="pr-2">
+                  <Badge variant="outline" className="bg-white border-amber-200 text-amber-700 font-bold px-3 py-1">
+                    HUÉRFANOS
+                  </Badge>
+                </div>
+              </div>
+            )}
 
             {localCategories.length === 0 && (
               <div className="col-span-full py-12 text-center bg-muted/20 rounded-xl border-2 border-dashed">
