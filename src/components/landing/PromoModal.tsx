@@ -90,7 +90,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                   className="w-full h-full object-cover transition-all duration-[10s] ease-out"
                   style={{ 
                     transform: current.zoom ? `scale(${current.zoomScale || 1.25})` : 'scale(1)',
-                    objectPosition: `center ${current.zoomY ?? 50}%`
+                    transformOrigin: `center ${current.zoomY ?? 50}%`
                   }}
                 />
               ) : (
@@ -100,7 +100,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                   className="w-full h-full object-cover transition-all duration-[10s] ease-out"
                   style={{ 
                     transform: current.zoom ? `scale(${current.zoomScale || 1.25})` : 'scale(1)',
-                    objectPosition: `center ${current.zoomY ?? 50}%`
+                    transformOrigin: `center ${current.zoomY ?? 50}%`
                   }}
                 />
               )}

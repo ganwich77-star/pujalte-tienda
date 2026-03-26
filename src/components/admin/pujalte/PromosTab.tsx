@@ -492,25 +492,38 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                         <Label className="text-[10px] font-black uppercase text-slate-500/80 mb-2 tracking-wider flex items-center gap-2">
                           Zoom & Audio
                         </Label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {/* Control de Zoom */}
-                          <div className="flex flex-col gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm min-h-[50px]">
-                            <div className="flex items-center gap-3">
-                              <Maximize2 className={cn("h-4 w-4 transition-colors", promo.zoom ? "text-[#4A7C59]" : "text-slate-300")} />
-                              <span className="text-xs font-bold text-slate-600 flex-1">Efecto Zoom</span>
+                        <div className="flex flex-col gap-4">
+                          {/* CONTROL DE ZOOM - PANEL PRINCIPAL */}
+                          <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-4 shadow-inner">
+                            <div className="flex items-center justify-between pb-3 border-b border-white">
+                              <div className="flex items-center gap-3">
+                                <div className={cn(
+                                  "p-2 rounded-xl transition-all duration-300",
+                                  promo.zoom ? "bg-[#4A7C59]/10 shadow-sm" : "bg-slate-200/50"
+                                )}>
+                                  <Maximize2 className={cn("h-4 w-4", promo.zoom ? "text-[#4A7C59]" : "text-slate-400")} />
+                                </div>
+                                <div>
+                                  <span className="block text-xs font-black text-slate-700 uppercase tracking-tight">Efecto Zoom</span>
+                                  <span className="text-[10px] text-slate-400 font-medium">Auto-animar entrada de media</span>
+                                </div>
+                              </div>
                               <Switch 
                                 checked={promo.zoom || false} 
                                 onCheckedChange={(checked) => handleUpdatePromo(promo.id, 'zoom', checked)}
                                 className="data-[state=checked]:bg-[#4A7C59]"
                               />
                             </div>
+
                             {promo.zoom && (
-                              <div className="px-1 py-1 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                {/* Escala */}
-                                <div className="space-y-2">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Intensidad Zoom</span>
-                                    <span className="text-[10px] font-black text-[#4A7C59]">{(promo.zoomScale || 1.25).toFixed(2)}x</span>
+                              <div className="pt-4 space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                                {/* Intensidad */}
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-end">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Intensidad del Zoom</label>
+                                    <span className="text-xs font-black text-[#4A7C59] bg-white px-3 py-1 rounded-lg border border-[#4A7C59]/20 shadow-sm">
+                                      {(promo.zoomScale || 1.25).toFixed(2)}x
+                                    </span>
                                   </div>
                                   <Slider
                                     defaultValue={[promo.zoomScale || 1.25]}
@@ -518,43 +531,52 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                                     min={1.05}
                                     step={0.01}
                                     onValueChange={([val]) => handleUpdatePromo(promo.id, 'zoomScale', val)}
-                                    className="py-1"
+                                    className="py-1 cursor-pointer"
                                   />
                                 </div>
 
-                                {/* Posición Y */}
-                                <div className="space-y-2">
-                                  <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-1">
-                                      <MoveVertical className="h-2 w-2 text-slate-400" />
-                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Posición Vertical</span>
+                                {/* Posición Vertical */}
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-end">
+                                    <div className="flex items-center gap-2 pl-1">
+                                      <MoveVertical className="h-3 w-3 text-slate-400" />
+                                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Punto de Enfoque (Eje Y)</label>
                                     </div>
-                                    <span className="text-[10px] font-black text-[#4A7C59]">{Math.round(promo.zoomY ?? 50)}%</span>
+                                    <span className="text-xs font-black text-[#4A7C59] bg-white px-3 py-1 rounded-lg border border-[#4A7C59]/20 shadow-sm">
+                                      {Math.round(promo.zoomY ?? 50)}%
+                                    </span>
                                   </div>
-                                  <Slider
-                                    defaultValue={[promo.zoomY ?? 50]}
-                                    max={100}
-                                    min={0}
-                                    step={1}
-                                    onValueChange={([val]) => handleUpdatePromo(promo.id, 'zoomY', val)}
-                                    className="py-1"
-                                  />
+                                  <div className="flex items-center gap-3 bg-white/50 p-2 rounded-xl border border-white/80">
+                                    <span className="text-[9px] font-black text-slate-400 tracking-tighter w-8 text-center bg-slate-100 py-1 rounded">SUPERIOR</span>
+                                    <Slider
+                                      defaultValue={[promo.zoomY ?? 50]}
+                                      max={100}
+                                      min={0}
+                                      step={1}
+                                      onValueChange={([val]) => handleUpdatePromo(promo.id, 'zoomY', val)}
+                                      className="flex-1 py-1 cursor-pointer"
+                                    />
+                                    <span className="text-[9px] font-black text-slate-400 tracking-tighter w-8 text-center bg-slate-100 py-1 rounded">INFERIOR</span>
+                                  </div>
                                 </div>
                               </div>
                             )}
                           </div>
 
-                          {/* Control de Audio (Solo Video) */}
-                          {promo.type === 'video' && (
-                            <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 h-full shadow-sm">
-                              {promo.muted ? (
-                                <VolumeX className="h-4 w-4 text-amber-500" />
-                              ) : (
-                                <Volume2 className="h-4 w-4 text-[#4A7C59]" />
-                              )}
-                              <div className="flex flex-col flex-1">
-                                <span className="text-xs font-bold text-slate-600">Silenciar Video</span>
-                                <span className="text-[9px] font-medium text-slate-400">Inicio sin sonido</span>
+                          {/* CONTROL DE AUDIO (SOLO SI ES VIDEO) */}
+                          {(promo.type === 'video' || promo.url?.match(/\.(mp4|mov|webm|m4v)/i)) && (
+                            <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl shadow-sm transition-all hover:border-[#4A7C59]/30 group">
+                              <div className="flex items-center gap-4">
+                                <div className={cn(
+                                  "p-3 rounded-xl transition-all duration-300",
+                                  promo.muted ? "bg-slate-100 group-hover:bg-slate-200" : "bg-amber-50 group-hover:bg-amber-100 shadow-sm"
+                                )}>
+                                  {promo.muted ? <VolumeX className="h-4 w-4 text-slate-400 text-slate-500" /> : <Volume2 className="h-4 w-4 text-amber-500" />}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-bold text-slate-800">Silenciar Video</span>
+                                  <span className="text-[10px] text-slate-500 font-medium">El vídeo empezará sin sonido</span>
+                                </div>
                               </div>
                               <Switch 
                                 checked={promo.muted ?? true} 
