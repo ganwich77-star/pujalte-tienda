@@ -272,14 +272,14 @@ Mi email: ${formData.email}`
     }
   }, [orders])
 
-  const handleAddToCart = (product: Product, variant?: ProductVariant) => {
+  const handleAddToCart = (product: Product, variant?: ProductVariant, quantity: number = 1) => {
     const cartItem: CartItem = {
       id: product.id,
       name: product.name,
       price: variant 
         ? (product.variantBehavior === 'replace' ? Number(variant.price) : Number(product.price) + Number(variant.price))
         : Number(product.price),
-      quantity: 1,
+      quantity: quantity,
       image: product.image,
       variantId: variant?.id,
       variantName: variant?.name,
@@ -335,7 +335,8 @@ Mi email: ${formData.email}`
         showPrice: (productForm as any).showPrice ?? true,
         isPack: (productForm as any).isPack ?? false,
         packItems: (productForm as any).packItems ?? '[]',
-        variantType: productForm.hasVariants ? productForm.variantType : null
+        variantType: productForm.hasVariants ? productForm.variantType : null,
+        variantBehavior: productForm.variantBehavior || 'add'
       }
       
       const res = await fetch(url, {

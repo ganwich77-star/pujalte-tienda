@@ -20,26 +20,26 @@ interface ProductCardProps {
   product: Product
   config: StoreConfig
   formatPrice: (price: number) => string
-  handleAddToCart: (product: Product, variant?: ProductVariant) => void
+  handleAddToCart: (product: Product, variant?: ProductVariant, quantity?: number) => void
 }
 
 export function ProductCard({ product, config, formatPrice, handleAddToCart }: ProductCardProps) {
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    product.hasVariants && product.variants.length > 0 ? product.variants[0] : null
-  )
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [added, setAdded] = useState(false)
   const [open, setOpen] = useState(false)
+  const [quantity, setQuantity] = useState(1)
 
-  const displayPrice = selectedVariant 
+  const displayPrice = (selectedVariant 
     ? (product.variantBehavior === 'replace' ? Number(selectedVariant.price) : Number(product.price) + Number(selectedVariant.price)) 
-    : Number(product.price)
+    : Number(product.price)) * quantity
 
   const onAdd = () => {
-    handleAddToCart(product, selectedVariant || undefined)
+    handleAddToCart(product, selectedVariant || undefined, quantity)
     setAdded(true)
     setTimeout(() => {
       setAdded(false)
       setOpen(false)
+      setQuantity(1)
     }, 1500)
   }
 
@@ -69,10 +69,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                <Info className="h-4 w-4 text-slate-800" />
             </div>
 
-            {/* Badge de Precio */}
-            <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-sm text-white text-[10px] font-black px-2.5 py-1 rounded-xl border border-white/10">
-               {formatPrice(displayPrice)}
-            </div>
+
           </div>
 
           {/* Nombre Corto */}
@@ -91,15 +88,14 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
       <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden bg-white/95 backdrop-blur-xl border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] rounded-[3rem]">
         <div className="relative">
            {/* Imagen en el Modal */}
-           <div className="aspect-[4/3] w-full overflow-hidden bg-slate-50 relative">
+            <div className="aspect-[4/3] w-full overflow-hidden bg-slate-50 relative">
               <img 
-                src={fixPath(product.image)} 
+                src={fixPath(product.image || '')} 
                 alt={product.name} 
                 className="w-full h-full object-cover" 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-6 left-6 right-6">
-                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 block mb-1">Detalles del artículo</span>
                  <DialogTitle className="text-2xl font-black text-white leading-none tracking-tight">
                     {product.name}
                  </DialogTitle>
@@ -110,7 +106,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
               {/* Descripción */}
               {product.description && (
                 <div className="bg-slate-50/80 p-5 rounded-3xl border border-slate-100 relative">
-                   <p className="text-[13px] leading-relaxed text-slate-600 font-medium italic">
+                   <p className="text-[13px] leading-relaxed text-slate-600 font-bold uppercase text-center opacity-70">
                      &ldquo;{product.description}&rdquo;
                    </p>
                 </div>
@@ -119,44 +115,77 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
               {/* Variantes */}
               {product.hasVariants && product.variants.length > 0 && (
                 <div className="space-y-3">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] pl-1">
-                    {product.variantType || 'Elige una opción'}
-                  </Label>
+                  {/* El selector de variantes */}
                   <Select
-                    value={selectedVariant?.id || ''}
+                    value={selectedVariant?.id || 'base'}
                     onValueChange={(v) => {
-                      const variant = product.variants.find(vr => vr.id === v)
-                      setSelectedVariant(variant || null)
+                      if (v === 'base') {
+                        setSelectedVariant(null)
+                      } else {
+                        const variant = product.variants.find(vr => vr.id === v)
+                        setSelectedVariant(variant || null)
+                      }
                     }}
                   >
                     <SelectTrigger className="w-full h-14 rounded-3xl border-none bg-slate-900 text-white hover:bg-black transition-all text-[14px] font-bold px-6 shadow-xl">
                       <SelectValue placeholder="Seleccionar..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-3xl border-none shadow-2xl p-2 bg-slate-900 text-white">
-                      {product.variants.sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0)).map(variant => (
-                        <SelectItem key={variant.id} value={variant.id} className="text-[13px] font-bold rounded-2xl py-3.5 cursor-pointer focus:bg-white/10 focus:text-emerald-400">
-                          <div className="flex items-center justify-between w-full min-w-[200px]">
-                             <span className="mr-8">{variant.name}</span>
-                             <span className="font-black tabular-nums">
-                               {Number(variant.price) > 0 
-                                 ? (product.variantBehavior === 'replace' ? formatPrice(Number(variant.price)) : `+${formatPrice(Number(variant.price))}`) 
-                                 : (product.variantBehavior === 'replace' ? formatPrice(Number(product.price)) : 'Base')}
-                             </span>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {/* Opción Base */}
+                      <SelectItem value="base" className="text-[13px] font-bold rounded-2xl py-3.5 cursor-pointer focus:bg-white/10 focus:text-emerald-400">
+                        <div className="flex items-center justify-between w-full min-w-[200px]">
+                           <span className="mr-8">{product.name}</span>
+                        </div>
+                      </SelectItem>
+
+                      {/* Variantes - Solo mostrar las que tienen nombre */}
+                      {product.variants
+                        .filter(v => v.name && v.name.trim() !== '')
+                        .sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+                        .map(variant => {
+                        const finalVariantPrice = product.variantBehavior === 'replace' 
+                          ? Number(variant.price) 
+                          : Number(product.price) + Number(variant.price);
+                          
+                        return (
+                          <SelectItem key={variant.id} value={variant.id} className="text-[13px] font-bold rounded-2xl py-3.5 cursor-pointer focus:bg-white/10 focus:text-emerald-400">
+                            <div className="flex items-center justify-between w-full min-w-[200px]">
+                               <span className="mr-8">{variant.name}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
               )}
 
-              {/* Footer con Precio y Botón */}
-              <div className="flex items-center justify-between gap-4 pt-4">
-                 <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] mb-1 pl-1">Total Pack</span>
-                    <span className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
-                      {formatPrice(displayPrice)}
-                    </span>
+              {/* Footer con Cantidad, Precio y Botón */}
+              <div className="flex flex-col gap-6 pt-4 w-full">
+                 <div className="flex items-center justify-between bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
+                    <div className="flex items-center gap-4 bg-white rounded-2xl p-1 shadow-sm border border-slate-100">
+                       <button 
+                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                         className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-slate-50 text-slate-400 hover:text-black transition-all font-black text-xl"
+                       >
+                         -
+                       </button>
+                       <span className="w-8 text-center font-black tabular-nums text-sm">
+                         {quantity}
+                       </span>
+                       <button 
+                         onClick={() => setQuantity(quantity + 1)}
+                         className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-slate-50 text-slate-400 hover:text-black transition-all font-black text-xl"
+                       >
+                         +
+                       </button>
+                    </div>
+                    <div className="flex flex-col items-end">
+                       <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] mb-0.5 pr-1">Subtotal</span>
+                       <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none tabular-nums">
+                         {formatPrice(displayPrice)}
+                       </span>
+                    </div>
                  </div>
                  
                  <Button 

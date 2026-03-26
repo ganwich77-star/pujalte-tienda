@@ -211,23 +211,25 @@ function SortableProductRow({
         </Select>
       </TableCell>
 
-      <TableCell className="w-48 text-center h-24">
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={() => onToggleActive(product)}
-          className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-            product.active 
-              ? 'bg-green-50 text-green-600 hover:bg-green-100' 
-              : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-          }`}
-        >
-          {product.active ? 'Habilitado' : 'Oculto'}
-        </Button>
-      </TableCell>
 
-      <TableCell className="w-48 text-center h-24">
+
+      <TableCell className="w-52 text-center h-24">
         <div className="flex items-center justify-center gap-2">
+          {/* Toggle Active (Estado) */}
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={() => onToggleActive(product)}
+            className={`h-9 w-9 rounded-xl border transition-all shadow-sm ${
+              product.active 
+                ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' 
+                : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200'
+            }`}
+            title={product.active ? 'Habilitado' : 'Oculto'}
+          >
+            {product.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          </Button>
+
           {/* Edit */}
           <Button 
             size="icon" 
@@ -501,7 +503,7 @@ export function ProductsTab({
                         />
                       </div>
                     </TableHead>
-                    <TableHead className="w-20 h-14 uppercase text-[10px] font-black tracking-widest opacity-50 pl-4">Vista</TableHead>
+                    <TableHead className="w-20 h-14 uppercase text-[10px] font-black tracking-widest opacity-50 pl-4"></TableHead>
                     
                     <TableHead 
                       className="min-w-[200px] h-14 uppercase text-[10px] font-black tracking-widest opacity-50 cursor-pointer hover:text-black transition-colors"
@@ -533,14 +535,7 @@ export function ProductsTab({
                       </div>
                     </TableHead>
 
-                    <TableHead 
-                      className="w-32 text-center h-14 uppercase text-[10px] font-black tracking-widest opacity-50 cursor-pointer hover:text-black transition-colors"
-                      onClick={() => toggleSort('active')}
-                    >
-                      Estado
-                    </TableHead>
-
-                    <TableHead className="w-48 text-center h-14 uppercase text-[10px] font-black tracking-widest opacity-50">
+                    <TableHead className="w-52 text-center h-14 uppercase text-[10px] font-black tracking-widest opacity-50">
                       Acciones
                     </TableHead>
                   </TableRow>
@@ -738,7 +733,7 @@ export function ProductsTab({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="productPrice" className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1">Precio Base</Label>
+                  <Label htmlFor="productPrice" className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1">Precio</Label>
                   <div className="relative">
                     <Input 
                       id="productPrice" 

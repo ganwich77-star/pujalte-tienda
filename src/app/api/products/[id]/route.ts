@@ -35,7 +35,11 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, description, price, categoryId, image, active, hasVariants, variantType, sortOrder, variants } = body
+    const { 
+      name, description, price, categoryId, image, active, 
+      hasVariants, variantType, sortOrder, variants,
+      variantBehavior 
+    } = body
     
     const docRef = doc(db, COLLECTIONS.PRODUCTS, id);
     
@@ -53,6 +57,7 @@ export async function PUT(
     if (hasVariants !== undefined) updateData.hasVariants = hasVariants;
     if (variantType !== undefined) updateData.variantType = variantType;
     if (sortOrder !== undefined) updateData.sortOrder = parseInt(String(sortOrder));
+    if (variantBehavior !== undefined) updateData.variantBehavior = variantBehavior;
     if (variants !== undefined) updateData.variants = variants;
 
     await updateDoc(docRef, updateData);

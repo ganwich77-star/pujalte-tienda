@@ -44,7 +44,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, description, price, categoryId, image, hasVariants, variantType, variants, sortOrder } = body
+    const { 
+      name, description, price, categoryId, image, 
+      hasVariants, variantType, variants, sortOrder,
+      variantBehavior 
+    } = body
     
     const productsRef = collection(db, COLLECTIONS.PRODUCTS);
     
@@ -61,6 +65,7 @@ export async function POST(request: NextRequest) {
       packItems: body.packItems || "[]",
       hasVariants: hasVariants || false,
       variantType: variantType || null,
+      variantBehavior: variantBehavior || 'add',
       sortOrder: sortOrder || 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
