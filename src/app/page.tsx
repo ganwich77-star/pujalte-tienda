@@ -55,6 +55,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 // Default config merging landing data and shop defaults
 const defaultConfig: StoreConfig = {
@@ -1297,13 +1298,55 @@ Mi email: ${formData.email}`
             </DialogContent>
           </Dialog>
 
-          <motion.a
-            href={`https://wa.me/${config.whatsappNumber}?text=${encodeURIComponent('¡Hola! Me gustaría obtener más información sobre vuestros servicios.')}`}
-            target="_blank"
-            className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
-          >
-            <MessageCircle className="h-8 w-8" />
-          </motion.a>
+          <div className="fixed bottom-6 right-6 z-50">
+            <Popover>
+              <PopoverTrigger asChild>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="bg-[#25D366] text-white w-16 h-16 rounded-full shadow-[0_10px_40px_rgba(37,211,102,0.4)] flex items-center justify-center relative overflow-hidden group"
+                >
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <MessageCircle className="h-9 w-9 relative z-10" />
+                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold animate-pulse">1</span>
+                </motion.button>
+              </PopoverTrigger>
+              <PopoverContent align="end" side="top" className="w-80 p-0 rounded-[2rem] border-none shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden bg-white mb-4">
+                <div className="bg-[#25D366] p-6 text-white">
+                  <h3 className="text-xl font-black italic">¿Cómo podemos ayudarte?</h3>
+                  <p className="text-xs font-medium opacity-90 mt-1">El equipo de Pujalte te responderá en breve.</p>
+                </div>
+                <div className="p-3 bg-slate-50/50 flex flex-col gap-2">
+                  {[
+                    { label: 'Información General', msg: '¡Hola! Me gustaría obtener más información sobre vuestros servicios.', icon: '✨' },
+                    { label: 'Packs Comunión', msg: 'Hola, me gustaría información sobre los packs de Comunión 2026/2027.', icon: '📸' },
+                    { label: 'Estado de mi Pedido', msg: 'Hola, tengo una duda sobre un pedido realizado en la tienda.', icon: '🛍️' },
+                    { label: 'Solicitar Cita Previa', msg: 'Hola, me gustaría solicitar una cita para visitar el estudio.', icon: '📅' }
+                  ].map((opt, i) => (
+                    <motion.a
+                      key={i}
+                      initial={{ x: 20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      href={`https://wa.me/${config.whatsappNumber}?text=${encodeURIComponent(opt.msg)}`}
+                      target="_blank"
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-100 hover:border-[#25D366]/30 hover:shadow-md transition-all group"
+                    >
+                      <span className="text-2xl group-hover:scale-125 transition-transform">{opt.icon}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-slate-800 tracking-tight">{opt.label}</span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Enviar Mensaje</span>
+                      </div>
+                      <ArrowRight className="h-4 w-4 ml-auto text-slate-300 group-hover:text-[#25D366] transition-colors" />
+                    </motion.a>
+                  ))}
+                </div>
+                <div className="p-4 text-center border-t border-slate-100">
+                  <span className="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase">Pujalte Fotografía © 2026</span>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
           <SizeGuide 
             isOpen={isSizeGuideOpen} 
             onClose={() => setIsSizeGuideOpen(false)} 
