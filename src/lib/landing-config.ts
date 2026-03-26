@@ -49,7 +49,8 @@ export interface Promo {
   buttonText: string;
   action: 'shop' | 'contact' | 'none';
   activa: boolean;
-  contentPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+  contentPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'bottom-center' | 'top';
+  zoom?: boolean;
 }
 
 export interface LandingConfig {

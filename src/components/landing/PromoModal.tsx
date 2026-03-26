@@ -80,13 +80,19 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                   loop 
                   muted={isMuted}
                   playsInline
-                  className="w-full h-full object-cover"
+                  className={cn(
+                    "w-full h-full object-cover transition-transform duration-[10s] ease-out",
+                    current.zoom && "scale-125"
+                  )}
                 />
               ) : (
                 <img 
                   src={fixPath(current.url)} 
                   alt={current.title}
-                  className="w-full h-full object-cover"
+                  className={cn(
+                    "w-full h-full object-cover transition-transform duration-[10s] ease-out",
+                    current.zoom && "scale-125"
+                  )}
                 />
               )}
 
@@ -106,8 +112,10 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
             <div className={cn(
               "absolute inset-0 p-10 md:p-20 flex flex-col z-20",
               current.contentPosition === 'top-left' && "justify-start items-start text-left",
+              current.contentPosition === 'top' && "justify-start items-center text-center",
               current.contentPosition === 'top-right' && "justify-start items-end text-right",
               current.contentPosition === 'bottom-left' && "justify-end items-start text-left",
+              current.contentPosition === 'bottom-center' && "justify-end items-center text-center",
               current.contentPosition === 'bottom-right' && "justify-end items-end text-right",
               current.contentPosition === 'center' && "justify-center items-center text-center",
               !current.contentPosition && "justify-end items-start text-left"
@@ -116,7 +124,8 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
-                  "max-w-xl space-y-6",
+                  "space-y-6",
+                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center' || current.contentPosition === 'center') ? "max-w-4xl px-4" : "max-w-xl",
                   (current.contentPosition === 'top-right' || current.contentPosition === 'bottom-right') && "flex flex-col items-end"
                 )}
               >
@@ -129,7 +138,12 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                   {current.badge}
                 </div>
                 
-                <h2 className="text-5xl md:text-7xl font-black text-white leading-[1] tracking-tighter drop-shadow-2xl italic">
+                <h2 className={cn(
+                  "font-black text-white leading-[1] tracking-tighter drop-shadow-2xl italic transition-all",
+                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center') 
+                    ? "text-4xl md:text-5xl" 
+                    : "text-5xl md:text-7xl"
+                )}>
                   {current.title}
                 </h2>
                 

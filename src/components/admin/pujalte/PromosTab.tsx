@@ -17,7 +17,8 @@ import {
   MoreVertical,
   Copy,
   Download,
-  ExternalLink
+  ExternalLink,
+  Maximize2
 } from 'lucide-react'
 import { 
   DropdownMenu, 
@@ -34,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { LandingConfig, Promo } from '@/lib/landing-config'
 import { fixPath, cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
+import { Switch } from '@/components/ui/switch'
 import { 
   Accordion,
   AccordionContent,
@@ -237,12 +239,19 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                 <div className="flex flex-col items-start gap-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-black uppercase tracking-widest text-[#4A7C59]">Banner #{idx + 1}</span>
-                    <span className={cn(
-                      "px-2 py-0.5 rounded-full text-[8px] font-black text-white uppercase",
-                      promo.color || 'bg-slate-400'
-                    )}>
-                      {promo.badge}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[8px] font-black text-white uppercase",
+                        promo.color || 'bg-slate-400'
+                      )}>
+                        {promo.badge}
+                      </span>
+                      {promo.zoom && (
+                        <div className="h-4 w-4 rounded-md bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500">
+                          <Maximize2 className="h-2.5 w-2.5" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <span className="text-sm font-bold text-slate-700">{promo.title || 'Sin Título'}</span>
                 </div>
@@ -464,12 +473,29 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-slate-200 shadow-xl">
                           <SelectItem value="top-left" className="font-semibold py-2">↖️ Arriba Izq</SelectItem>
+                          <SelectItem value="top" className="font-semibold py-2">⬆️ Arriba Centro</SelectItem>
                           <SelectItem value="top-right" className="font-semibold py-2">↗️ Arriba Der</SelectItem>
                           <SelectItem value="bottom-left" className="font-semibold py-2">↙️ Abajo Izq</SelectItem>
+                          <SelectItem value="bottom-center" className="font-semibold py-2">⬇️ Abajo Centro</SelectItem>
                           <SelectItem value="bottom-right" className="font-semibold py-2">↘️ Abajo Der</SelectItem>
                           <SelectItem value="center" className="font-semibold py-2">🎯 Centro</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div className="space-y-2 flex flex-col justify-end">
+                      <Label className="text-[10px] font-black uppercase text-slate-500/80 mb-2 tracking-wider flex items-center gap-2">
+                        Zoom Media
+                      </Label>
+                      <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 h-12 shadow-sm">
+                        <Maximize2 className={cn("h-4 w-4 transition-colors", promo.zoom ? "text-[#4A7C59]" : "text-slate-300")} />
+                        <span className="text-xs font-bold text-slate-600 flex-1">Efecto Zoom</span>
+                        <Switch 
+                          checked={promo.zoom || false} 
+                          onCheckedChange={(checked) => handleUpdatePromo(promo.id, 'zoom', checked)}
+                          className="data-[state=checked]:bg-[#4A7C59]"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
