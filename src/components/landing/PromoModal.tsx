@@ -119,7 +119,10 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
 
             {/* CONTENT WITH POSITIONING */}
             <div className={cn(
-              "absolute inset-0 p-10 md:p-20 flex flex-col z-20",
+              "absolute inset-0 flex flex-col z-20 transition-all",
+              (current.contentPosition === 'top' || current.contentPosition === 'bottom-center') 
+                ? "p-6 md:p-10" 
+                : "p-10 md:p-20",
               current.contentPosition === 'top-left' && "justify-start items-start text-left",
               current.contentPosition === 'top' && "justify-start items-center text-center",
               current.contentPosition === 'top-right' && "justify-start items-end text-right",
@@ -133,37 +136,53 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
-                  "space-y-6",
-                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center' || current.contentPosition === 'center') ? "max-w-4xl px-4" : "max-w-xl",
-                  (current.contentPosition === 'top-right' || current.contentPosition === 'bottom-right') && "flex flex-col items-end"
+                  "flex flex-col",
+                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center' || current.contentPosition === 'center') 
+                    ? "max-w-6xl w-full px-4 space-y-3" 
+                    : "max-w-xl space-y-6",
+                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center' || current.contentPosition === 'center') && "items-center",
+                  (current.contentPosition === 'top-right' || current.contentPosition === 'bottom-right') && "items-end text-right"
                 )}
               >
                 <div className={cn(
-                  "inline-flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] text-white shadow-2xl",
+                  "inline-flex items-center gap-2 rounded-full font-black uppercase tracking-[0.3em] text-white shadow-2xl transition-all",
+                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center') 
+                    ? "px-3 py-1 text-[8px]" 
+                    : "px-5 py-2 text-[10px]",
                   current.color || 'from-amber-400 to-orange-500',
                   "bg-gradient-to-r"
                 )}>
-                  <Sparkles className="h-3 w-3" />
+                  <Sparkles className="h-2 w-2" />
                   {current.badge}
                 </div>
                 
                 <h2 className={cn(
                   "font-black text-white leading-[1] tracking-tighter drop-shadow-2xl italic transition-all",
                   (current.contentPosition === 'top' || current.contentPosition === 'bottom-center') 
-                    ? "text-4xl md:text-5xl" 
+                    ? "text-3xl md:text-5xl" 
                     : "text-5xl md:text-7xl"
                 )}>
                   {current.title}
                 </h2>
                 
-                <p className="text-xl md:text-2xl text-white/90 font-medium leading-relaxed drop-shadow-lg max-w-lg">
+                <p className={cn(
+                  "text-white/90 font-medium leading-tight drop-shadow-lg transition-all",
+                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center')
+                    ? "text-sm md:text-lg max-w-2xl px-10"
+                    : "text-xl md:text-2xl max-w-lg"
+                )}>
                   {current.subtitle}
                 </p>
 
                 {current.action !== 'none' && (
                   <button 
                     onClick={() => handleAction(current.action)}
-                    className="group relative flex items-center gap-4 bg-white text-black px-10 py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-xs transition-all duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.4)] active:scale-95 overflow-hidden"
+                    className={cn(
+                      "group relative flex items-center gap-4 bg-white text-black rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] transition-all duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.4)] active:scale-95 overflow-hidden",
+                      (current.contentPosition === 'top' || current.contentPosition === 'bottom-center')
+                        ? "px-8 py-4 mt-2"
+                        : "px-10 py-6 mt-4 text-xs"
+                    )}
                   >
                     <div className="absolute inset-0 bg-[#4A7C59]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <span className="relative z-10">{current.buttonText || '¡Me interesa!'}</span>
