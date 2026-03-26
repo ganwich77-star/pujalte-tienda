@@ -24,7 +24,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
     if (promos.length <= 1) return
     const timer = setInterval(() => {
       setIndex((prev) => (prev + 1) % promos.length)
-    }, 8000)
+    }, 6000)
     return () => clearInterval(timer)
   }, [index, promos.length])
 
@@ -121,8 +121,8 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
             <div className={cn(
               "absolute inset-0 flex flex-col z-20 transition-all",
               (current.contentPosition === 'top' || current.contentPosition === 'bottom-center') 
-                ? "p-4 md:p-8" 
-                : "p-8 md:p-12",
+                ? "p-6 md:p-10" 
+                : "p-10 md:p-20",
               current.contentPosition === 'top-left' && "justify-start items-start text-left",
               current.contentPosition === 'top' && "justify-start items-center text-center",
               current.contentPosition === 'top-right' && "justify-start items-end text-right",
@@ -137,54 +137,39 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
                   "flex flex-col",
-                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center') 
-                    ? "max-w-7xl w-full space-y-2" 
-                    : "max-w-xl space-y-4",
+                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center' || current.contentPosition === 'center') 
+                    ? "max-w-6xl w-full px-4 space-y-3" 
+                    : "max-w-xl space-y-6",
                   (current.contentPosition === 'top' || current.contentPosition === 'bottom-center' || current.contentPosition === 'center') && "items-center",
-                  (current.contentPosition === 'top-left' || current.contentPosition === 'bottom-left') && "items-start text-left",
                   (current.contentPosition === 'top-right' || current.contentPosition === 'bottom-right') && "items-end text-right"
                 )}
               >
-                {/* LINE 1: BADGE + TITLE for CENTER TOP/BOTTOM, OR STACKED for CORNERS */}
-                {(current.contentPosition === 'top' || current.contentPosition === 'bottom-center') ? (
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "inline-flex items-center gap-2 rounded-full font-black uppercase tracking-[0.3em] text-white shadow-lg transition-all px-3 py-1 text-[8px]",
-                      current.color || 'from-amber-400 to-orange-500',
-                      "bg-gradient-to-r shrink-0"
-                    )}>
-                      <Sparkles className="h-2 w-2" />
-                      {current.badge}
-                    </div>
-                    <h2 className="font-black text-white leading-none tracking-tighter drop-shadow-2xl italic text-2xl md:text-4xl">
-                      {current.title}
-                    </h2>
-                  </div>
-                ) : (
-                  <>
-                    <div className={cn(
-                      "inline-flex items-center gap-2 rounded-full font-black uppercase tracking-[0.3em] text-white shadow-2xl transition-all px-4 py-1.5 text-[9px]",
-                      current.color || 'from-amber-400 to-orange-500',
-                      "bg-gradient-to-r"
-                    )}>
-                      <Sparkles className="h-2.5 w-2.5" />
-                      {current.badge}
-                    </div>
-                    <h2 className={cn(
-                      "font-black text-white leading-[1] tracking-tighter drop-shadow-2xl italic transition-all",
-                      current.contentPosition === 'center' ? "text-5xl md:text-7xl" : "text-4xl md:text-5xl"
-                    )}>
-                      {current.title}
-                    </h2>
-                  </>
-                )}
+                <div className={cn(
+                  "inline-flex items-center gap-2 rounded-full font-black uppercase tracking-[0.3em] text-white shadow-2xl transition-all",
+                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center') 
+                    ? "px-3 py-1 text-[8px]" 
+                    : "px-5 py-2 text-[10px]",
+                  current.color || 'from-amber-400 to-orange-500',
+                  "bg-gradient-to-r"
+                )}>
+                  <Sparkles className="h-2 w-2" />
+                  {current.badge}
+                </div>
                 
-                {/* LINE 2: SUBTITLE */}
+                <h2 className={cn(
+                  "font-black text-white leading-[1] tracking-tighter drop-shadow-2xl italic transition-all",
+                  (current.contentPosition === 'top' || current.contentPosition === 'bottom-center') 
+                    ? "text-3xl md:text-5xl" 
+                    : "text-5xl md:text-7xl"
+                )}>
+                  {current.title}
+                </h2>
+                
                 <p className={cn(
                   "text-white/90 font-medium leading-tight drop-shadow-lg transition-all",
                   (current.contentPosition === 'top' || current.contentPosition === 'bottom-center')
-                    ? "text-xs md:text-base max-w-3xl"
-                    : "text-lg md:text-xl max-w-lg"
+                    ? "text-sm md:text-lg max-w-2xl px-10"
+                    : "text-xl md:text-2xl max-w-lg"
                 )}>
                   {current.subtitle}
                 </p>
@@ -193,15 +178,15 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                   <button 
                     onClick={() => handleAction(current.action)}
                     className={cn(
-                      "group relative flex items-center gap-3 bg-white text-black rounded-2xl font-black uppercase tracking-[0.2em] text-[9px] transition-all duration-300 shadow-xl hover:shadow-2xl active:scale-95 overflow-hidden",
+                      "group relative flex items-center gap-4 bg-white text-black rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] transition-all duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.4)] active:scale-95 overflow-hidden",
                       (current.contentPosition === 'top' || current.contentPosition === 'bottom-center')
-                        ? "px-6 py-3 mt-1"
-                        : "px-8 py-5 mt-2"
+                        ? "px-8 py-4 mt-2"
+                        : "px-10 py-6 mt-4 text-xs"
                     )}
                   >
                     <div className="absolute inset-0 bg-[#4A7C59]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <span className="relative z-10">{current.buttonText || '¡Me interesa!'}</span>
-                    <div className="relative z-10 p-1.5 bg-black text-white rounded-lg group-hover:bg-[#4A7C59] transition-colors">
+                    <div className="relative z-10 p-2 bg-black text-white rounded-xl group-hover:bg-[#4A7C59] transition-colors">
                       {getActionIcon(current.action)}
                     </div>
                   </button>
@@ -215,54 +200,32 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
         {/* Botón de cierre eliminado a petición del usuario */}
 
         {/* Navigation - Only show if more than 1 promo */}
-        {promos.length > 1 ? (
+        {promos.length > 1 && (
           <>
-            <div className="absolute bottom-10 right-8 md:right-20 z-50 flex items-center gap-4">
-              {current.type === 'video' && (
-                <button 
-                  onClick={() => setIsMuted(!isMuted)}
-                  className="h-14 w-14 rounded-full border border-white/20 bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90 shadow-2xl mr-4"
-                >
-                  {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
-                </button>
-              )}
-              <button 
-                onClick={prev}
-                className="h-14 w-14 rounded-2xl border border-white/20 bg-black/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90 shadow-2xl"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </button>
-              <button 
-                onClick={next}
-                className="h-14 w-14 rounded-2xl border border-white/20 bg-black/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90 shadow-2xl"
-              >
-                <ChevronRight className="h-6 w-6" />
-              </button>
-            </div>
+            <button 
+              onClick={prev}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 md:h-12 md:w-12 rounded-full border border-white/10 bg-black/10 backdrop-blur-sm text-white/50 flex items-center justify-center hover:bg-black/40 hover:text-white transition-all active:scale-90"
+            >
+              <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
+            </button>
+            <button 
+              onClick={next}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 md:h-12 md:w-12 rounded-full border border-white/10 bg-black/10 backdrop-blur-sm text-white/50 flex items-center justify-center hover:bg-black/40 hover:text-white transition-all active:scale-90"
+            >
+              <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
+            </button>
 
             {/* Indicators */}
-            <div className="absolute bottom-10 left-8 md:left-20 z-50 flex gap-3">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-2">
               {promos.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setIndex(i)}
-                  className={`h-1.5 transition-all duration-500 rounded-full ${index === i ? 'w-16 bg-white' : 'w-6 bg-white/20'}`}
+                  className={`h-1 transition-all duration-500 rounded-full ${index === i ? 'w-8 bg-white' : 'w-2 bg-white/20'}`}
                 />
               ))}
             </div>
           </>
-        ) : (
-          /* Case for single promo with video - Sound button needs to stay */
-          current.type === 'video' && (
-            <div className="absolute bottom-10 right-8 md:right-20 z-50">
-              <button 
-                onClick={() => setIsMuted(!isMuted)}
-                className="h-14 w-14 rounded-full border border-white/20 bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90 shadow-2xl"
-              >
-                {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
-              </button>
-            </div>
-          )
         )}
       </motion.div>
       
