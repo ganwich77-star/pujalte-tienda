@@ -330,10 +330,29 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
             <AccordionContent className="p-8 pt-0 border-t border-slate-100 bg-white">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
                 <div className="relative aspect-video rounded-3xl bg-slate-900 overflow-hidden shadow-inner group">
-                  {promo.type === 'video' ? (
-                    <video src={promo.url} className="w-full h-full object-cover opacity-60" />
+                  {promo.type === 'video' || promo.url?.match(/\.(mp4|mov|webm|m4v)/i) ? (
+                    <video 
+                      src={fixPath(promo.url)} 
+                      muted 
+                      playsInline 
+                      autoPlay 
+                      loop
+                      className="w-full h-full object-cover opacity-80 transition-all duration-300" 
+                      style={{ 
+                        transform: promo.zoom ? `scale(${promo.zoomScale || 1.1})` : 'scale(1)',
+                        transformOrigin: `center ${promo.zoomY ?? 50}%`
+                      }}
+                    />
                   ) : (
-                    <img src={fixPath(promo.url)} alt="" className="w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-105" />
+                    <img 
+                      src={fixPath(promo.url)} 
+                      alt="" 
+                      className="w-full h-full object-cover opacity-80 transition-all duration-300" 
+                      style={{ 
+                        transform: promo.zoom ? `scale(${promo.zoomScale || 1.1})` : 'scale(1)',
+                        transformOrigin: `center ${promo.zoomY ?? 50}%`
+                      }}
+                    />
                   )}
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
                     <div className={cn(
