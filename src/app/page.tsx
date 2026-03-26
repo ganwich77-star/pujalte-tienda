@@ -42,6 +42,7 @@ import { ProductCard } from '@/components/shop/ProductCard'
 import { ProductListItem } from '@/components/shop/ProductListItem'
 import { LegalDialogs } from '@/components/shop/LegalDialogs'
 import { PromoModal } from '@/components/landing/PromoModal'
+import { CookieBanner } from '@/components/landing/CookieBanner'
 import { cn, fixPath } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -275,12 +276,14 @@ Mi email: ${formData.email}`
   }, [orders])
 
   const handleAddToCart = (product: Product, variant?: ProductVariant, quantity: number = 1) => {
+    const activeBasePrice = product.salePrice ? Number(product.salePrice) : Number(product.price)
+    
     const cartItem: CartItem = {
       id: product.id,
       name: product.name,
       price: variant 
-        ? (product.variantBehavior === 'replace' ? Number(variant.price) : Number(product.price) + Number(variant.price))
-        : Number(product.price),
+        ? (product.variantBehavior === 'replace' ? Number(variant.price) : activeBasePrice + Number(variant.price))
+        : activeBasePrice,
       quantity: quantity,
       image: product.image,
       variantId: variant?.id,
@@ -583,10 +586,64 @@ Mi email: ${formData.email}`
     link.click()
   }
 
-  const filteredProducts = products.filter(product => {
+  const allCombinedProducts = useMemo(() => {
+    // Productos de MySQL
+    const mysqlProds = products.map(p => ({ ...p, source: 'mysql' }));
+    
+    // Productos de JSON (catálogo configurado en admin) que tengan precio > 0
+    const jsonProds = (config.galeria || [])
+      .filter(g => (g.precio && g.precio > 0) || (g.variants && g.variants.length > 0))
+      .map(g => {
+        const mysqlCategory = categories.find(c => c.name.toLowerCase() === g.categoria?.toLowerCase());
+        return {
+          id: g.id.toString(),
+          name: g.alt,
+          description: g.descripcion || '',
+          price: Number(g.precio) || 0,
+          image: g.src,
+          stock: g.stock ?? 99,
+          categoryId: mysqlCategory ? mysqlCategory.id : g.categoria,
+          category: mysqlCategory ? { id: mysqlCategory.id, name: mysqlCategory.name } : (g.categoria ? { id: g.categoria, name: g.categoria } : null),
+          active: g.activa !== false,
+          showPrice: true,
+          isPack: false,
+          packItems: null,
+          hasVariants: g.hasVariants || (g.variants && g.variants.length > 0),
+          variantType: 'Opción',
+          variants: (g.variants || []).map((v: any) => ({
+            ...v,
+            id: v.id?.toString() || Math.random().toString(),
+            price: Number(v.price) || 0,
+            stock: v.stock ?? 99,
+            active: v.active ?? true,
+            sortOrder: v.sortOrder ?? 0
+          })),
+          variantBehavior: g.variantBehavior || 'add',
+          source: 'json'
+        } as Product;
+      });
+
+    return [...mysqlProds, ...jsonProds];
+  }, [products, config.galeria]);
+
+  const filteredProducts = allCombinedProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          product.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategoryId ? product.categoryId === selectedCategoryId : true
+    
+    // Filtrado por categoría: 
+    // - Si es MySQL, comparamos IDs
+    // - Si es JSON, comparamos el campo categoria (string) con el nombre de la categoría seleccionada
+    let matchesCategory = true;
+    if (selectedCategoryId) {
+      const selectedCat = categories.find(c => c.id === selectedCategoryId);
+      if (selectedCat) {
+        matchesCategory = product.categoryId === selectedCategoryId || 
+                         product.categoryId?.toString().toLowerCase() === selectedCat.name.toLowerCase();
+      } else {
+        matchesCategory = product.categoryId === selectedCategoryId;
+      }
+    }
+    
     return matchesSearch && matchesCategory
   })
 
@@ -766,7 +823,7 @@ Mi email: ${formData.email}`
               
               <div className="hidden md:flex items-center gap-8">
                 <a href="#servicios" className="text-gray-600 hover:text-[#4A7C59] transition-colors">Servicios</a>
-                <a href="#galeria" className="text-gray-600 hover:text-[#4A7C59] transition-colors">Galería</a>
+                <a href="#productos" className="text-gray-600 hover:text-[#4A7C59] transition-colors">Productos</a>
                 <a href="#sobre-mi" className="text-gray-600 hover:text-[#4A7C59] transition-colors">Sobre Mí</a>
                 <a href="#contacto" className="text-gray-600 hover:text-[#4A7C59] transition-colors">Contacto</a>
                 <button 
@@ -786,9 +843,9 @@ Mi email: ${formData.email}`
           </nav>
           
           <AnimatePresence>
-            {showPromo && config.promos && config.promos.length > 0 && (
+            {showPromo && Array.isArray(config?.promos) && config.promos.filter((p: any) => p.activa).length > 0 && (
               <PromoModal 
-                promos={config.promos.filter(p => p.activa)}
+                promos={config.promos.filter((p: any) => p.activa)}
                 onClose={() => setShowPromo(false)}
                 onOpenStore={() => { 
                   setShowPromo(false); 
@@ -944,7 +1001,7 @@ Mi email: ${formData.email}`
                           whileTap={{ scale: 0.95 }}
                           onClick={() => {
                             setActiveLandingCategory(cat)
-                            document.getElementById('portfolio')?.scrollIntoView({ behavior: 'smooth' })
+                            document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })
                           }}
                           className={`p-6 rounded-[2rem] border transition-all duration-500 flex flex-col items-center gap-4 group ${
                             activeLandingCategory === cat 
@@ -967,7 +1024,7 @@ Mi email: ${formData.email}`
 
               {/* Portfolio Section */}
           {(config.visibilidad?.galeria ?? true) && (
-            <section id="portfolio" className="py-24 md:py-32 bg-gray-50/50">
+            <section id="productos" className="py-24 md:py-32 bg-gray-50/50">
               <div className="container mx-auto px-4">
                 <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
                   <motion.div
@@ -976,7 +1033,7 @@ Mi email: ${formData.email}`
                     viewport={{ once: true }}
                     className="max-w-lg"
                   >
-                    <p className="text-[#4A7C59] font-bold tracking-widest uppercase text-xs mb-4">Portfolio</p>
+                    <p className="text-[#4A7C59] font-bold tracking-widest uppercase text-xs mb-4">Productos</p>
                     <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-6">Capturando la esencia de cada historia</h2>
                   </motion.div>
                   
@@ -1023,15 +1080,6 @@ Mi email: ${formData.email}`
                           className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110" 
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-8">
-                          <div>
-                            <span className="text-white/60 text-[10px] uppercase tracking-widest font-bold mb-2 block">{img.categoria}</span>
-                            <p className="text-white text-lg font-light leading-tight">{img.alt}</p>
-                            {(img.mostrarPrecio ?? true) && img.precio > 0 && (
-                              <p className="text-white mt-2 font-black text-xl tracking-tighter">
-                                {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(img.precio)}
-                              </p>
-                            )}
-                          </div>
                         </div>
                       </motion.div>
                     ))}
@@ -1255,6 +1303,7 @@ Mi email: ${formData.email}`
             isOpen={isSizeGuideOpen} 
             onClose={() => setIsSizeGuideOpen(false)} 
           />
+          <CookieBanner />
         </>
       )}
     </div>

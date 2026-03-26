@@ -16,6 +16,17 @@ export interface GalleryImage {
   categoria: string;
   activa?: boolean;
   descripcion?: string;
+  precio?: number;
+  hasVariants?: boolean;
+  variantBehavior?: 'add' | 'replace';
+  variants?: {
+    id: string;
+    name: string;
+    price: number;
+    stock?: number;
+  }[];
+  isPack?: boolean;
+  packItems?: string;
 }
 
 export interface Testimonial {
@@ -38,6 +49,7 @@ export interface Promo {
   buttonText: string;
   action: 'shop' | 'contact' | 'none';
   activa: boolean;
+  contentPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
 }
 
 export interface LandingConfig {

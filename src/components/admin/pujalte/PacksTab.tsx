@@ -204,7 +204,7 @@ export default function PacksTab({ products, categories, onUpdate }: PacksTabPro
                    <div className="relative">
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A7C59]" />
                       <Input 
-                        placeholder="Buscar en el catálogo..." 
+                        placeholder="Buscar productos..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-12 h-14 rounded-2xl border-none bg-slate-50 shadow-sm focus:ring-2 focus:ring-[#4A7C59]/10 font-bold" 

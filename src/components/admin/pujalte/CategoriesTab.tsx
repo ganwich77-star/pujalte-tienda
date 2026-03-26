@@ -253,7 +253,7 @@ export default function CategoriesTab({ categories, products, onUpdate }: Catego
                 <X className="h-4 w-4" />
              </div>
              <p className="text-[11px] text-amber-800 leading-relaxed font-bold uppercase tracking-tight">
-                <strong>Importante:</strong> Al renombrar o eliminar una categoría, los productos antiguos mantendrán su etiqueta original hasta que los edites manualmente en la pestaña de galería.
+                <strong>Importante:</strong> Al renombrar o eliminar una categoría, los productos antiguos mantendrán su etiqueta original hasta que los edites manualmente en la pestaña de PRODUCTOS.
              </p>
         </div>
     </div>

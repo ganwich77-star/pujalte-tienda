@@ -2,13 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, X, Sparkles, Tag, ShoppingBag, Volume2, VolumeX } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, Sparkles, ShoppingBag, MessageCircle, ArrowRight, Volume2, VolumeX } from 'lucide-react'
 import { Promo } from '@/lib/landing-config'
-import { fixPath } from '@/lib/utils'
-
-// MEDIDAS RECOMENDADAS:
-// Fotos: 1920x1080px (16:9) en formato .webp (calidad 80) para optimización máxima.
-// Videos: MP4 (H.264) o WebM, resolución 720p, bitrate < 2Mbps para fluidez total.
+import { cn, fixPath } from '@/lib/utils'
 
 interface PromoModalProps {
   promos: Promo[]
@@ -24,7 +20,6 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
 
   useEffect(() => {
     if (promos.length <= 1) return
-    
     const timer = setInterval(() => {
       setIndex((prev) => (prev + 1) % promos.length)
     }, 8000)
@@ -43,33 +38,28 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
   const current = promos[index]
   if (!current) return null
 
-  // Icono dinámico simplificado basado en el badge
-  const getIcon = (badge: string) => {
-    const b = badge.toLowerCase()
-    if (b.includes('oferta') || b.includes('descuento')) return Tag
-    if (b.includes('tienda') || b.includes('comprar')) return ShoppingBag
-    return Sparkles
+  const getActionIcon = (action: string) => {
+    if (action === 'shop') return <ShoppingBag className="w-5 h-5" />
+    if (action === 'contact') return <MessageCircle className="w-5 h-5" />
+    return <ArrowRight className="w-5 h-5" />
   }
-  
-  const Icon = getIcon(current.badge)
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-10">
-      {/* Background Overlay con desenfoque */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-black/80 backdrop-blur-md"
+        className="absolute inset-0 bg-[#0a0f0d]/90 backdrop-blur-xl"
       />
 
-      {/* Modal Container */}
       <motion.div
+        layoutId="promo-container"
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-6xl aspect-[16/9] bg-slate-900 rounded-[2rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] border border-white/10"
+        className="relative w-full max-w-6xl aspect-[16/9] bg-white rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] border border-white/20 pointer-events-auto"
       >
         <AnimatePresence mode="wait">
           <motion.div
@@ -77,80 +67,99 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6 }}
             className="absolute inset-0"
           >
-            {current.type === 'video' ? (
-              <video
-                ref={videoRef}
-                src={current.url}
-                autoPlay
-                muted={isMuted}
-                loop
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <img 
-                src={fixPath(current.url)} 
-                alt={current.title}
-                className="w-full h-full object-cover"
-              />
-            )}
+            {/* BACKGROUND MEDIA (HORIZONTAL FULL) */}
+            <div className="absolute inset-0 w-full h-full">
+              {current.type === 'video' ? (
+                <video 
+                  ref={videoRef}
+                  src={fixPath(current.url)} 
+                  autoPlay 
+                  loop 
+                  muted={isMuted}
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <img 
+                  src={fixPath(current.url)} 
+                  alt={current.title}
+                  className="w-full h-full object-cover"
+                />
+              )}
 
-            {/* Overlay Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
+              {/* REFINED OVERLAY (NOT TOO BLACK) */}
+              <div className={cn(
+                "absolute inset-0 pointer-events-none transition-all duration-700",
+                current.contentPosition === 'top-left' && "bg-gradient-to-br from-black/80 via-black/40 to-transparent",
+                current.contentPosition === 'top-right' && "bg-gradient-to-bl from-black/80 via-black/40 to-transparent",
+                current.contentPosition === 'bottom-left' && "bg-gradient-to-tr from-black/80 via-black/40 to-transparent",
+                current.contentPosition === 'bottom-right' && "bg-gradient-to-tl from-black/80 via-black/40 to-transparent",
+                current.contentPosition === 'center' && "bg-black/40",
+                !current.contentPosition && "bg-gradient-to-tr from-black/80 via-black/40 to-transparent"
+              )} />
+            </div>
 
-            {/* Content */}
-            <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-20">
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="max-w-xl"
+            {/* CONTENT WITH POSITIONING */}
+            <div className={cn(
+              "absolute inset-0 p-10 md:p-20 flex flex-col z-20",
+              current.contentPosition === 'top-left' && "justify-start items-start text-left",
+              current.contentPosition === 'top-right' && "justify-start items-end text-right",
+              current.contentPosition === 'bottom-left' && "justify-end items-start text-left",
+              current.contentPosition === 'bottom-right' && "justify-end items-end text-right",
+              current.contentPosition === 'center' && "justify-center items-center text-center",
+              !current.contentPosition && "justify-end items-start text-left"
+            )}>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  "max-w-xl space-y-6",
+                  (current.contentPosition === 'top-right' || current.contentPosition === 'bottom-right') && "flex flex-col items-end"
+                )}
               >
-                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r ${current.color || 'from-amber-400 to-orange-500'} text-white text-[10px] font-black uppercase tracking-[0.3em] mb-6 shadow-xl`}>
-                  <Icon className="h-3 w-3" />
+                <div className={cn(
+                  "inline-flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] text-white shadow-2xl",
+                  current.color || 'from-amber-400 to-orange-500',
+                  "bg-gradient-to-r"
+                )}>
+                  <Sparkles className="h-3 w-3" />
                   {current.badge}
                 </div>
                 
-                <h2 className="text-4xl md:text-6xl font-black text-white mb-6 leading-[1.05] tracking-tight">
+                <h2 className="text-5xl md:text-7xl font-black text-white leading-[1] tracking-tighter drop-shadow-2xl italic">
                   {current.title}
                 </h2>
                 
-                <p className="text-lg md:text-xl text-white font-black mb-10 leading-relaxed uppercase tracking-widest bg-black/20 backdrop-blur-sm p-4 rounded-xl border border-white/10 inline-block">
+                <p className="text-xl md:text-2xl text-white/90 font-medium leading-relaxed drop-shadow-lg max-w-lg">
                   {current.subtitle}
                 </p>
-                
-                <div className="flex items-center gap-4">
+
+                {current.action !== 'none' && (
                   <button 
                     onClick={() => handleAction(current.action)}
-                    className="bg-white text-black px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 hover:bg-[#4A7C59] hover:text-white transition-all duration-300 shadow-2xl active:scale-95 group"
+                    className="group relative flex items-center gap-4 bg-white text-black px-10 py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-xs transition-all duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.4)] active:scale-95 overflow-hidden"
                   >
-                    {current.buttonText}
-                    <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    <div className="absolute inset-0 bg-[#4A7C59]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="relative z-10">{current.buttonText || '¡Me interesa!'}</span>
+                    <div className="relative z-10 p-2 bg-black text-white rounded-xl group-hover:bg-[#4A7C59] transition-colors">
+                      {getActionIcon(current.action)}
+                    </div>
                   </button>
-                  
-                  {current.type === 'video' && (
-                    <button
-                      onClick={() => setIsMuted(!isMuted)}
-                      className="h-14 w-14 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90"
-                    >
-                      {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
-                    </button>
-                  )}
-                </div>
+                )}
               </motion.div>
             </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Close Button */}
+        {/* REFINED CLOSE BUTTON */}
         <button 
           onClick={onClose}
-          className="absolute top-6 right-6 md:top-10 md:right-10 z-50 h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90"
+          className="absolute top-8 right-8 z-50 h-16 w-16 rounded-[1.5rem] bg-white/10 backdrop-blur-xl border border-white/20 text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90 group"
         >
-          <X className="h-8 w-8" />
+          <X className="h-8 w-8 group-hover:rotate-90 transition-transform" />
         </button>
 
         {/* Navigation - Only show if more than 1 promo */}

@@ -257,7 +257,7 @@ function SortableProductRow({
                 </div>
                 <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">¿Eliminar producto?</AlertDialogTitle>
                 <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
-                  Estás a punto de eliminar <span className="font-extrabold text-slate-900">&quot;{product.name}&quot;</span>. Esta acción no se puede deshacer y desaparecerá de la galería.
+                  Estás a punto de eliminar <span className="font-extrabold text-slate-900">&quot;{product.name}&quot;</span>. Esta acción no se puede deshacer y desaparecerá de la tienda.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="gap-3 sm:gap-4 mt-2">
@@ -429,10 +429,20 @@ export function ProductsTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black uppercase tracking-tighter">Galería de Fotos</h2>
-          <p className="text-sm text-muted-foreground font-medium">Gestiona las imágenes de tu portafolio</p>
+      {/* Header Premium Unificado */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-16 bg-black/5 rounded-full blur-3xl -mr-12 -mt-12 transition-all group-hover:bg-black/10" />
+        
+        <div className="flex flex-col gap-2 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-black flex items-center justify-center text-white shadow-2xl shadow-black/20 transform transition-transform group-hover:scale-110">
+              <Package className="h-6 w-6" />
+            </div>
+            <div className="flex flex-col">
+              <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">PRODUCTOS</h2>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-0.5">Gestiona los productos de tu tienda</p>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {selectedIds.length > 0 && (
@@ -472,6 +482,20 @@ export function ProductsTab({
             <Plus className="h-4 w-4" />
             Añadir Elemento
           </Button>
+        </div>
+      </div>
+      {/* Guía de Optimización */}
+      <div className="bg-slate-50/50 border border-slate-100 p-6 rounded-[2.5rem] flex items-start gap-5 shadow-sm">
+        <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+          <ImageIcon className="h-6 w-6 text-slate-400" />
+        </div>
+        <div className="space-y-1">
+          <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest italic">Guía de imágenes de producto</h4>
+          <p className="text-xs text-slate-500 font-medium leading-relaxed">
+            Para una visualización óptima, utiliza imágenes con relación de aspecto <span className="text-black font-bold">1:1 (Cuadrado)</span>. 
+            Tamaño recomendado: <span className="text-black font-bold">1080x1080px</span>. 
+            Formatos ideales: <span className="text-black font-bold">.webp</span> para mayor velocidad.
+          </p>
         </div>
       </div>
 
@@ -645,7 +669,7 @@ export function ProductsTab({
               <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">
                 {editingProduct ? 'Editar Elemento' : 'Nuevo Elemento'}
               </DialogTitle>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Gestión de galería</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Gestiona los productos de tu tienda</p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setIsProductDialogOpen(false)} className="h-8 w-8 rounded-xl hover:bg-slate-100">
               <CloseIcon className="h-4 w-4" />

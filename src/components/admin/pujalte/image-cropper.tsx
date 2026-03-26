@@ -34,7 +34,8 @@ async function getCroppedImg(
   imageSrc: string,
   pixelCrop: Area,
   rotation = 0,
-  fileType = 'image/jpeg'
+  fileType = 'image/webp',
+  quality = 0.8
 ): Promise<Blob | null> {
   const image = await createImage(imageSrc)
   const canvas = document.createElement('canvas')
@@ -44,8 +45,12 @@ async function getCroppedImg(
     return null
   }
 
-  canvas.width = pixelCrop.width
-  canvas.height = pixelCrop.height
+  // Limitamos el ancho a 1200px para banners para no tener archivos gigantes
+  const maxWidth = 1200
+  const scale = Math.min(1, maxWidth / pixelCrop.width)
+  
+  canvas.width = pixelCrop.width * scale
+  canvas.height = pixelCrop.height * scale
 
   ctx.drawImage(
     image,
@@ -55,14 +60,14 @@ async function getCroppedImg(
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    canvas.width,
+    canvas.height
   )
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => {
       resolve(blob)
-    }, fileType)
+    }, fileType, quality)
   })
 }
 
@@ -72,7 +77,7 @@ export function ImageCropper({
   onClose,
   onCropComplete,
   aspect = 16 / 9,
-  fileType = 'image/jpeg',
+  fileType = 'image/webp',
 }: ImageCropperProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)

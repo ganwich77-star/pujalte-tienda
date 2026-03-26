@@ -94,7 +94,7 @@ export function AdminPanel(props: AdminPanelProps) {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'products', label: 'Galería', icon: LayoutGrid },
+    { id: 'products', label: 'Productos', icon: LayoutGrid },
     { id: 'categories', label: 'Categorías', icon: Layers },
     { id: 'promos', label: 'Banners', icon: Sparkles },
     { id: 'orders', label: 'Pedidos', icon: ShoppingCart },
@@ -195,6 +195,7 @@ export function AdminPanel(props: AdminPanelProps) {
                   stats={stats}
                   orders={orders}
                   categories={categories}
+                  products={products}
                   formatPrice={formatPrice}
                 />
               )}

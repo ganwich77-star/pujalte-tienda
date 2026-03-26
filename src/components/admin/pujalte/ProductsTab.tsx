@@ -66,7 +66,7 @@ function DeleteConfirmModal({ open, productName, onConfirm, onCancel }: {
             <Trash2 className="h-7 w-7 text-red-500" />
           </div>
           <div className="space-y-1.5">
-            <h3 className="text-lg font-black text-slate-800 tracking-tight">¿Eliminar de la galería?</h3>
+            <h3 className="text-lg font-black text-slate-800 tracking-tight">¿Eliminar producto?</h3>
             <p className="text-sm text-slate-500">
               Se borrará <span className="font-bold text-slate-700">&ldquo;{productName}&rdquo;</span> de forma permanente.
             </p>
@@ -204,36 +204,138 @@ function SortableProductRow({
               </div>
            </div>
 
-           {/* Acciones */}
-           <div className="flex flex-col gap-4 justify-end">
-              <div className="flex items-center justify-between bg-slate-50/50 p-3 rounded-xl border border-transparent hover:bg-white transition-colors shadow-inner">
-                 <div className="flex flex-col">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Visible en Web</Label>
-                    <p className="text-[9px] text-slate-400">{img.activa ? 'La foto se muestra' : 'Foto oculta'}</p>
+            {/* Precio y Variantes */}
+            <div className="space-y-4 border-l border-slate-100 pl-6">
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Precio Base (€)</Label>
+                     <Input 
+                       type="number"
+                       value={img.precio || ''} 
+                       onChange={(e) => updateImg({ precio: parseFloat(e.target.value) || 0 })}
+                       className="h-10 bg-slate-50/50 border-none rounded-xl font-bold text-sm focus:bg-white transition-all shadow-inner"
+                       placeholder="0.00"
+                     />
+                  </div>
+                  <div className="flex items-center justify-between bg-slate-50/50 p-3 rounded-xl border border-transparent hover:bg-white transition-colors shadow-inner self-end mb-0.5">
+                     <div className="flex flex-col">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Variantes</Label>
+                        <p className="text-[9px] text-slate-400">{img.hasVariants ? 'Activadas' : 'Desactivadas'}</p>
+                     </div>
+                     <Switch checked={img.hasVariants || false} onCheckedChange={(c) => updateImg({ hasVariants: c })} />
+                  </div>
+               </div>
+
+               {img.hasVariants && (
+                 <div className="space-y-4 animate-in slide-in-from-top-1 duration-200">
+                    <div className="space-y-1.5">
+                       <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Tipo de Variantes</Label>
+                       <Select 
+                         value={img.variantBehavior || 'replace'} 
+                         onValueChange={(val: any) => updateImg({ variantBehavior: val })}
+                       >
+                          <SelectTrigger className="h-10 bg-black text-white border-none rounded-xl font-bold text-[10px] uppercase tracking-wider shadow-lg">
+                             <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl shadow-2xl border-slate-100">
+                             <SelectItem value="replace" className="text-xs py-2">Precio de Variante (Sustituye al base)</SelectItem>
+                             <SelectItem value="add" className="text-xs py-2">Suplemento (Se suma al base)</SelectItem>
+                          </SelectContent>
+                       </Select>
+                    </div>
+
+                    <div className="space-y-3">
+                       <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Listado de Variantes/Suplementos</Label>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 text-[9px] font-bold uppercase tracking-widest bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg"
+                            onClick={() => {
+                              const newVariants = [...(img.variants || []), { id: Date.now().toString(), name: '', price: 0 }];
+                              updateImg({ variants: newVariants });
+                            }}
+                          >
+                             <Plus className="h-3 w-3 mr-1" /> Añadir
+                          </Button>
+                       </div>
+
+                       <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 no-scrollbar">
+                          {(img.variants || []).map((variant, vIdx) => (
+                            <div key={variant.id} className="flex gap-2 items-center bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
+                               <Input 
+                                 placeholder="Nombre (ej: XL, Tapa dura...)" 
+                                 value={variant.name}
+                                 onChange={(e) => {
+                                   const newVariants = [...(img.variants || [])];
+                                   newVariants[vIdx].name = e.target.value;
+                                   updateImg({ variants: newVariants });
+                                 }}
+                                 className="h-8 text-[11px] border-none bg-slate-50 focus:bg-white flex-1"
+                               />
+                               <div className="flex items-center bg-slate-50 rounded-lg px-2 border border-slate-100">
+                                  <span className="text-[10px] text-slate-400 font-bold">€</span>
+                                  <Input 
+                                    type="number" 
+                                    placeholder="0" 
+                                    value={variant.price || ''}
+                                    onChange={(e) => {
+                                      const newVariants = [...(img.variants || [])];
+                                      newVariants[vIdx].price = parseFloat(e.target.value) || 0;
+                                      updateImg({ variants: newVariants });
+                                    }}
+                                    className="h-8 w-16 text-[11px] border-none bg-transparent font-bold focus:ring-0"
+                                  />
+                               </div>
+                               <Button 
+                                 variant="ghost" 
+                                 size="icon" 
+                                 className="h-8 w-8 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                                 onClick={() => {
+                                   const newVariants = (img.variants || []).filter((_, i) => i !== vIdx);
+                                   updateImg({ variants: newVariants });
+                                 }}
+                               >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                               </Button>
+                            </div>
+                          ))}
+                          {(img.variants || []).length === 0 && (
+                            <p className="text-[10px] text-slate-300 italic text-center py-2">No hay variantes añadidas</p>
+                          )}
+                       </div>
+                    </div>
                  </div>
-                 <Switch checked={img.activa} onCheckedChange={(c) => updateImg({ activa: c })} />
-              </div>
+               )}
 
-              <div className="flex gap-2">
-                 <label className="flex-1 h-12 bg-black text-white hover:bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer transition-all shadow-lg shadow-black/5">
-                    <Upload className="h-4 w-4 mr-2" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Cambiar Foto</span>
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      onChange={(e) => handleFileUpload(e, 1/1, (url: string) => updateImg({ src: url }))}
-                    />
-                 </label>
+               {/* Acciones */}
+               <div className="pt-4 flex items-center justify-between border-t border-slate-50">
+                  <div className="flex flex-col">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Visible en Web</Label>
+                      <Switch className="mt-1" checked={img.activa} onCheckedChange={(c) => updateImg({ activa: c })} />
+                  </div>
 
-                 <Button 
-                   variant="ghost" 
-                   className="h-12 w-12 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-red-100"
-                   onClick={() => setConfirmDelete(true)}
-                 >
-                    <Trash2 className="h-5 w-5" />
-                 </Button>
-              </div>
-           </div>
+                  <div className="flex gap-2">
+                     <label className="h-10 bg-black text-white hover:bg-slate-800 rounded-xl px-4 flex items-center justify-center cursor-pointer transition-all shadow-lg shadow-black/5">
+                        <Upload className="h-3.5 w-3.5 mr-2" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Cambiar</span>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          onChange={(e) => handleFileUpload(e, 1/1, (url: string) => updateImg({ src: url }))}
+                        />
+                     </label>
+
+                     <Button 
+                       variant="ghost" 
+                       className="h-10 w-10 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-red-100"
+                       onClick={() => setConfirmDelete(true)}
+                     >
+                        <Trash2 className="h-4 w-4" />
+                     </Button>
+                  </div>
+               </div>
+            </div>
         </div>
       )}
 
@@ -297,7 +399,10 @@ export default function ProductsTab({
               <div className="h-10 w-10 rounded-2xl bg-black flex items-center justify-center text-white shadow-xl shadow-black/10">
                  <ImageIcon className="h-5 w-5" />
               </div>
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight text-center md:text-left">Galería de Portafolio</h2>
+              <div className="flex flex-col">
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">PRODUCTOS</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mt-0.5">Gestiona los productos de tu tienda</p>
+              </div>
            </div>
 
            <div className="flex bg-slate-100/50 p-1.5 rounded-2xl border border-slate-100 w-fit no-scrollbar overflow-x-auto">
@@ -364,7 +469,7 @@ export default function ProductsTab({
         </div>
       </div>
 
-      {/* LISTADO DE FOTOS */}
+      {/* LISTADO DE PRODUCTOS */}
       <div className="space-y-3">
         <DndContext 
           sensors={sensors}
@@ -394,8 +499,8 @@ export default function ProductsTab({
                <ImageIcon className="h-8 w-8 text-slate-300" />
             </div>
             <div className="space-y-1">
-               <p className="text-lg font-black text-slate-800">No hay fotos en esta categoría</p>
-               <p className="text-sm text-slate-400">Escoge otra categoría o sube una foto nueva arriba.</p>
+               <p className="text-lg font-black text-slate-800">No hay productos en esta categoría</p>
+               <p className="text-sm text-slate-400">Escoge otra categoría o sube un producto nuevo arriba.</p>
             </div>
           </div>
         )}
