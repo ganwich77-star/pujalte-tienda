@@ -56,6 +56,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 
 // Default config merging landing data and shop defaults
 const defaultConfig: StoreConfig = {
@@ -845,6 +851,62 @@ Mi email: ${formData.email}`
                   Tienda Online
                 </button>
               </div>
+
+              {/* Botón Menú Móvil */}
+              <div className="md:hidden flex items-center gap-3">
+                <button 
+                  onClick={() => { 
+                    setShowSplash(true); 
+                    setTimeout(() => {
+                      setView('shop');
+                      window.scrollTo(0, 0);
+                    }, 100);
+                  }}
+                  className="bg-[#4A7C59] text-white p-2 rounded-full font-medium hover:bg-[#3d664a] transition-colors shadow-sm"
+                  title="Tienda"
+                >
+                  <ShoppingBag className="w-5 h-5" />
+                </button>
+                
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <button className="p-2 text-gray-600 hover:text-[#4A7C59] transition-colors">
+                      <Menu className="w-7 h-7" />
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[300px] border-none p-0 flex flex-col">
+                    <div className="p-8 pb-4">
+                      <img src={fixPath(config.logo || landingData.logo)} alt={config.storeName} className="h-10 w-auto mb-8" />
+                      <SheetTitle className="text-2xl font-black uppercase tracking-tighter text-slate-900 border-none mb-2">
+                        MENÚ
+                      </SheetTitle>
+                    </div>
+                    
+                    <div className="flex-1 flex flex-col p-8 gap-6">
+                      <a href="#servicios" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Servicios</a>
+                      <a href="#productos" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Productos</a>
+                      <a href="#sobre-mi" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Sobre Mí</a>
+                      <a href="#contacto" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Contacto</a>
+                      
+                      <div className="mt-auto pt-8 border-t border-slate-100">
+                        <button 
+                          onClick={() => { 
+                            setShowSplash(true); 
+                            setTimeout(() => {
+                              setView('shop');
+                              window.scrollTo(0, 0);
+                            }, 100);
+                          }}
+                          className="w-full bg-[#4A7C59] text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-lg shadow-[#4A7C59]/20"
+                        >
+                          <ShoppingBag className="w-4 h-4" />
+                          Tienda Online
+                        </button>
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
             </div>
           </nav>
           
@@ -1204,7 +1266,7 @@ Mi email: ${formData.email}`
           <footer className="py-12 bg-white border-t border-gray-50">
             <div className="container mx-auto px-4 text-center">
               <img src={fixPath(config.logo || landingData.logo)} alt="Logo" className="h-8 mx-auto mb-8 opacity-40 hover:opacity-100 transition-opacity" />
-              <p className="text-gray-400 text-xs tracking-widest uppercase font-medium">
+              <p className="text-gray-400 text-xs tracking-widest uppercase font-medium" suppressHydrationWarning>
                 © {new Date().getFullYear()} {config.storeName}. Todos los derechos reservados.
               </p>
             </div>

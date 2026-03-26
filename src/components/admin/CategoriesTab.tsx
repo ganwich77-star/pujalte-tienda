@@ -1,13 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, FolderPlus, LayoutGrid, List, GripVertical } from 'lucide-react'
+import { 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  FolderPlus, 
+  LayoutGrid, 
+  List, 
+  GripVertical, 
+  Layers, 
+  Info 
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Category, Product } from '@/types'
 import { Badge } from '@/components/ui/badge'
-import { Info } from 'lucide-react'
+import { Category, Product } from '@/types'
 import { toast } from '@/hooks/use-toast'
 import {
   Dialog,
@@ -71,29 +80,29 @@ function SortableCategory({ category, viewMode, handleOpen, handleDelete }: Sort
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} className="touch-none">
       {viewMode === 'grid' ? (
-        <Card className="overflow-hidden border-none shadow-sm bg-muted/30 hover:bg-muted/50 transition-colors relative group">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start gap-4">
-              <div className="flex-1">
+        <Card className="overflow-hidden border-none shadow-sm bg-muted/30 hover:bg-muted/50 transition-colors relative group rounded-2xl sm:rounded-3xl">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex justify-between items-start gap-3 sm:gap-4">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 hover:bg-white rounded transition-opacity">
+                  <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1.5 hover:bg-white rounded-lg transition-all shrink-0">
                     <GripVertical className="h-4 w-4 text-muted-foreground/30" />
                   </button>
-                  <h3 className="font-bold text-lg">{category.name}</h3>
+                  <h3 className="font-bold text-base sm:text-lg truncate">{category.name}</h3>
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-1 pl-7">{category.description || 'Sin descripción'}</p>
-                <div className="mt-2 flex items-center gap-2 pl-7">
-                  <span className="text-xs bg-white px-2 py-0.5 rounded-full border">
-                    {category._count?.products || 0} productos
+                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1 pl-8 sm:pl-9 mt-0.5">{category.description || 'Sin descripción'}</p>
+                <div className="mt-2.5 flex items-center gap-2 pl-8 sm:pl-9 text-[10px] sm:text-xs">
+                  <span className="bg-white px-2.5 py-1 rounded-full border border-slate-100 font-bold text-slate-500 shadow-sm">
+                    {category._count?.products || 0} PRODUCTOS
                   </span>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                 <button 
                   onClick={() => handleOpen(category)}
-                  className="p-2 bg-white rounded-lg transition-all text-slate-400 hover:text-slate-900 shadow-sm border border-slate-100/50"
+                  className="p-2.5 sm:p-2 bg-white rounded-xl transition-all text-slate-400 hover:text-slate-900 shadow-sm border border-slate-100/50 active:scale-90"
                   title="Editar"
                 >
                   <Pencil className="h-4 w-4" />
@@ -102,27 +111,27 @@ function SortableCategory({ category, viewMode, handleOpen, handleDelete }: Sort
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <button 
-                      className="p-2 bg-white rounded-lg transition-all text-red-400 hover:text-red-600 shadow-sm border border-slate-100/50"
+                      className="p-2.5 sm:p-2 bg-white rounded-xl transition-all text-red-400 hover:text-red-600 shadow-sm border border-slate-100/50 active:scale-90"
                       title="Eliminar"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="rounded-[2.5rem] border-none p-8 gap-6 shadow-2xl">
+                  <AlertDialogContent className="w-[95vw] sm:max-w-md rounded-[2rem] sm:rounded-[2.5rem] border-none p-6 sm:p-8 gap-6 shadow-2xl">
                     <AlertDialogHeader className="gap-3">
-                      <div className="h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center mb-2">
-                        <Trash2 className="h-7 w-7 text-red-500" />
+                      <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-red-50 flex items-center justify-center mb-2">
+                        <Trash2 className="h-6 w-6 sm:h-7 sm:w-7 text-red-500" />
                       </div>
-                      <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">¿Eliminar categoría?</AlertDialogTitle>
-                      <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
+                      <AlertDialogTitle className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">¿Eliminar categoría?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
                         Estás a punto de borrar la categoría <span className="font-extrabold text-slate-900">&quot;{category.name}&quot;</span>. Esta acción es permanente.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="gap-3 sm:gap-4 mt-2">
-                      <AlertDialogCancel className="h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50">Cancelar</AlertDialogCancel>
+                    <AlertDialogFooter className="flex flex-col sm:flex-row gap-3 mt-2">
+                      <AlertDialogCancel className="h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 order-2 sm:order-1">Cancelar</AlertDialogCancel>
                       <AlertDialogAction 
                         onClick={() => handleDelete(category.id, category._count?.products || 0, true)}
-                        className="h-12 px-6 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-lg shadow-red-200 border-none"
+                        className="h-12 px-6 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-lg shadow-red-200 border-none order-1 sm:order-2"
                       >
                         Sí, eliminar
                       </AlertDialogAction>
@@ -134,51 +143,51 @@ function SortableCategory({ category, viewMode, handleOpen, handleDelete }: Sort
           </CardContent>
         </Card>
       ) : (
-        <div className="flex items-center justify-between p-4 bg-muted/20 border-b hover:bg-muted/40 transition-colors rounded-xl group">
-          <div className="flex items-center gap-4">
-            <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 hover:bg-white rounded transition-opacity">
+        <div className="flex items-center justify-between p-3 sm:p-4 bg-muted/20 border-b hover:bg-muted/40 transition-colors rounded-xl sm:rounded-2xl group">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1.5 hover:bg-white rounded-lg transition-all shrink-0">
               <GripVertical className="h-4 w-4 text-muted-foreground/30" />
             </button>
-            <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center border text-xs font-bold text-muted-foreground">
+            <div className="h-9 w-9 sm:h-11 sm:w-11 bg-white rounded-xl flex items-center justify-center border text-[10px] sm:text-xs font-black text-slate-400 shrink-0 shadow-sm">
               {category.name.substring(0, 2).toUpperCase()}
             </div>
-            <div>
-              <h3 className="font-bold">{category.name}</h3>
-              <p className="text-xs text-muted-foreground">{category._count?.products || 0} productos activos</p>
+            <div className="min-w-0">
+              <h3 className="font-bold text-sm sm:text-base truncate">{category.name}</h3>
+              <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-tight">{category._count?.products || 0} PRODUCTOS</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2 shrink-0">
              <button 
               onClick={() => handleOpen(category)}
-              className="p-2 bg-white rounded-xl transition-all text-slate-400 hover:text-slate-900 shadow-sm border border-slate-100/50"
+              className="p-2 sm:p-2.5 bg-white rounded-xl transition-all text-slate-400 hover:text-slate-900 shadow-sm border border-slate-100/50 active:scale-90"
               title="Editar"
             >
-              <Pencil className="h-4 w-4" />
+              <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button 
-                  className="p-2 bg-white rounded-xl transition-all text-red-400 hover:text-red-600 shadow-sm border border-slate-100/50"
+                  className="p-2 sm:p-2.5 bg-white rounded-xl transition-all text-red-400 hover:text-red-600 shadow-sm border border-slate-100/50 active:scale-90"
                   title="Eliminar"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="rounded-[2.5rem] border-none p-8 gap-6 shadow-2xl">
+              <AlertDialogContent className="w-[95vw] sm:max-w-md rounded-[2.5rem] border-none p-6 sm:p-8 gap-6 shadow-2xl">
                 <AlertDialogHeader className="gap-3">
                   <div className="h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center mb-2">
                     <Trash2 className="h-7 w-7 text-red-500" />
                   </div>
-                  <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">¿Eliminar categoría?</AlertDialogTitle>
-                  <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
+                  <AlertDialogTitle className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">¿Eliminar categoría?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed text-sm">
                     Vas a borrar <span className="font-extrabold text-slate-900">&quot;{category.name}&quot;</span>. Los productos asociados no se borrarán, pero quedarán sin categoría.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter className="gap-3 sm:gap-4 mt-2">
-                  <AlertDialogCancel className="h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50">Cancelar</AlertDialogCancel>
+                <AlertDialogFooter className="flex flex-col sm:flex-row gap-3 mt-2">
+                  <AlertDialogCancel className="h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 order-2 sm:order-1">Cancelar</AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={() => handleDelete(category.id, category._count?.products || 0, true)}
-                    className="h-12 px-6 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-lg shadow-red-200 border-none"
+                    className="h-12 px-6 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-lg shadow-red-200 border-none order-1 sm:order-2"
                   >
                     Sí, eliminar
                   </AlertDialogAction>
@@ -280,7 +289,6 @@ export function CategoriesTab({ categories, products = [], onRefresh }: Categori
   }
 
   const handleDelete = async (id: string, count: number, confirmed = false) => {
-    // El servidor ya no bloquea esto, y el aviso del diálogo confirma que se pueden borrar.
     if (!confirmed) return;
 
     try {
@@ -318,105 +326,152 @@ export function CategoriesTab({ categories, products = [], onRefresh }: Categori
           body: JSON.stringify({ type: 'category', items: itemsToUpdate })
         })
       } catch (error) {
-        console.error('Failed to update order:', error)
+        console.error('Error reordering categories:', error)
         toast({ title: 'Error', description: 'No se pudo guardar el nuevo orden', variant: 'destructive' })
+      } finally {
         onRefresh() // reset to server state
       }
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-2xl border shadow-sm">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold">Gestionar Categorías</h2>
-          <div className="flex bg-muted p-1 rounded-xl">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+      {/* Botones de acción flotantes para móvil si es necesario, o integrados arriba */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white p-6 rounded-[2.5rem] border shadow-sm relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#4A7C59]/5 rounded-full -mr-16 -mt-16 blur-3xl transition-transform group-hover:scale-110" />
+        
+        <div className="flex-1 space-y-1">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+             <div className="h-10 w-10 rounded-2xl bg-[#4A7C59]/10 flex items-center justify-center">
+               <Layers className="h-5 w-5 text-[#4A7C59]" />
+             </div>
+             Inventario Global
+          </h2>
+          <p className="text-xs sm:text-sm font-medium text-slate-400 mt-1 ml-12">Organiza tu catálogo por categorías dinámicas.</p>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0 relative z-10">
+          <div className="flex bg-slate-100/80 p-1.5 rounded-2xl sm:rounded-[1.5rem] backdrop-blur-sm">
             <button 
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-black' : 'text-muted-foreground hover:text-black'}`}
+              className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all duration-300 ${viewMode === 'grid' ? 'bg-white shadow-lg text-black scale-105' : 'text-slate-400 hover:text-black'}`}
             >
-              <LayoutGrid className="h-4 w-4" />
+              <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
             <button 
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-black' : 'text-muted-foreground hover:text-black'}`}
+              className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all duration-300 ${viewMode === 'list' ? 'bg-white shadow-lg text-black scale-105' : 'text-slate-400 hover:text-black'}`}
             >
-              <List className="h-4 w-4" />
+              <List className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
-          <p className="text-xs text-muted-foreground bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100">
-            Arrastra para reordenar
-          </p>
+          <button 
+            onClick={() => handleOpen()}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-black text-white px-8 py-4 sm:py-3.5 rounded-2xl sm:rounded-[1.5rem] hover:bg-black/90 transition-all shadow-xl shadow-black/10 active:scale-95 text-xs font-black uppercase tracking-widest leading-none h-14"
+          >
+            <Plus className="h-5 w-5" /> Nueva Categoría
+          </button>
         </div>
-        <button 
-          onClick={() => handleOpen()}
-          className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl hover:bg-black/90 transition-all shadow-md active:scale-95"
-        >
-          <Plus className="h-4 w-4" /> Nueva Categoría
-        </button>
       </div>
 
-      <DndContext 
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext 
-          items={localCategories.map(c => c.id)}
-          strategy={viewMode === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
-        >
-          <div className={viewMode === 'grid' 
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" 
-            : "flex flex-col gap-2"
-          }>
-            {enrichedCategories.map((category) => (
-              <SortableCategory 
-                key={category.id} 
-                category={category} 
-                viewMode={viewMode}
-                handleOpen={handleOpen}
-                handleDelete={handleDelete}
-              />
-            ))}
-
-            {orphanedCount > 0 && (
-              <div className={`flex items-center justify-between p-4 bg-amber-50/50 border border-amber-100 rounded-xl group transition-all`}>
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 bg-amber-100 rounded-lg flex items-center justify-center border border-amber-200 text-xs font-bold text-amber-600">
-                    <Info className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-amber-900 italic">Sin Categoría (Miscelánea)</h3>
-                    <p className="text-xs text-amber-600 font-medium">{orphanedCount} productos sin clasificar</p>
-                  </div>
+      <div className="bg-slate-50/40 rounded-[3.5rem] p-3 sm:p-8 border border-slate-100/50 min-h-[500px] relative">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-6">
+             <div className="relative">
+                <div className="h-20 w-20 rounded-[2rem] bg-white border border-slate-100 flex items-center justify-center shadow-xl animate-pulse">
+                  <Layers className="h-8 w-8 text-[#4A7C59]" />
                 </div>
-                <div className="pr-2">
-                  <Badge variant="outline" className="bg-white border-amber-200 text-amber-700 font-bold px-3 py-1">
-                    HUÉRFANOS
-                  </Badge>
+                <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-[#4A7C59] border-4 border-slate-50 flex items-center justify-center">
+                   <div className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
                 </div>
-              </div>
-            )}
-
-            {localCategories.length === 0 && (
-              <div className="col-span-full py-12 text-center bg-muted/20 rounded-xl border-2 border-dashed">
-                <FolderPlus className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-20" />
-                <p className="text-muted-foreground">No hay categorías creadas aún.</p>
-              </div>
-            )}
+             </div>
+             <div className="space-y-1 text-center">
+               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 leading-none">Actualizando</p>
+               <p className="text-[10px] font-bold text-slate-400">Sincronizando con base de datos...</p>
+             </div>
           </div>
-        </SortableContext>
-      </DndContext>
+        ) : (
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext 
+              items={localCategories.map(c => c.id)}
+              strategy={viewMode === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
+            >
+              <div className={viewMode === 'grid' 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8" 
+                : "flex flex-col gap-4 max-w-4xl mx-auto"
+              }>
+                {enrichedCategories.map((category) => (
+                  <SortableCategory 
+                    key={category.id} 
+                    category={category} 
+                    viewMode={viewMode}
+                    handleOpen={handleOpen}
+                    handleDelete={handleDelete}
+                  />
+                ))}
+
+                {orphanedCount > 0 && (
+                  <div className={`flex items-center justify-between p-6 sm:p-8 bg-blue-900/5 border-2 border-dashed border-blue-100 rounded-[2.5rem] group transition-all hover:bg-white hover:border-blue-400/30 hover:shadow-xl hover:shadow-blue-500/5 ${viewMode === 'list' ? 'w-full' : ''}`}>
+                    <div className="flex items-center gap-6">
+                      <div className="h-16 w-16 bg-white rounded-3xl flex items-center justify-center border border-blue-50 text-xs font-bold text-blue-500 shadow-sm relative">
+                        <div className="absolute inset-0 bg-blue-500/5 rounded-3xl animate-pulse" />
+                        <span className="relative z-10 text-xl font-black">?</span>
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="font-black text-slate-900 text-lg">Sin Categoría Definida</h3>
+                        <p className="text-xs text-blue-500 font-black uppercase tracking-widest">{orphanedCount} productos pendientes</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="bg-white border-blue-200 text-blue-700 font-extrabold px-4 py-2 rounded-2xl text-[10px] uppercase tracking-widest">
+                       MISCELÁNEA
+                    </Badge>
+                  </div>
+                )}
+
+                {localCategories.length === 0 && (
+                  <div className="col-span-full py-32 text-center animate-in zoom-in duration-1000">
+                    <div className="h-32 w-32 mx-auto mb-8 rounded-[3rem] bg-white border-2 border-dashed border-slate-200 flex items-center justify-center group-hover:border-[#4A7C59]/30 transition-colors">
+                      <FolderPlus className="h-12 w-12 text-slate-200" />
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-900 mb-2">Comienza tu Catálogo</h3>
+                    <p className="text-slate-400 font-medium max-w-sm mx-auto mb-10 px-6">Para empezar a vender, crea primero las categorías que darán forma a tu tienda online.</p>
+                    <Button onClick={() => handleOpen()} className="bg-black text-white hover:bg-slate-800 rounded-[1.5rem] h-14 px-10 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95 leading-none">
+                       Crear mi primera categoría
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+      </div>
+
+      <div className="p-8 rounded-[3rem] bg-indigo-50/50 border border-indigo-100/50 flex flex-col sm:flex-row items-center gap-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full -mr-32 -mt-32 blur-3xl saturate-200" />
+        <div className="h-20 w-20 rounded-[2rem] bg-white flex items-center justify-center shrink-0 shadow-xl border border-indigo-50 relative z-10 scale-110">
+           <Info className="h-8 w-8 text-indigo-500" />
+        </div>
+        <div className="text-center sm:text-left relative z-10 space-y-2">
+           <h4 className="text-base sm:text-lg font-black text-indigo-900 uppercase tracking-[0.2em]">Configuración de Reordenación</h4>
+           <p className="text-xs sm:text-sm font-medium text-indigo-600/80 leading-relaxed max-w-2xl">
+             Personaliza el flujo de navegación de tus clientes. Simplemente arrastra cualquiera de las tarjetas anteriores para establecer el orden de aparición exacto en el escaparate público.
+           </p>
+        </div>
+      </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden border-none shadow-2xl rounded-3xl bg-white/95 backdrop-blur-xl">
+        <DialogContent className="w-[95vw] sm:max-w-[440px] p-0 overflow-hidden border-none shadow-2xl rounded-[2rem] sm:rounded-3xl bg-white/95 backdrop-blur-xl">
           <div className="bg-[#4A7C59] p-6 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
             <DialogHeader className="relative z-10">
               <DialogTitle className="text-xl font-black uppercase tracking-widest text-white/90">
                 {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
               </DialogTitle>
-              <p className="text-[#4A7C59]-100/60 text-[10px] font-bold uppercase tracking-wider mt-1">
+              <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider mt-1">
                 Panel de control de inventario
               </p>
             </DialogHeader>
@@ -478,17 +533,17 @@ export function CategoriesTab({ categories, products = [], onRefresh }: Categori
             </div>
           </div>
 
-          <DialogFooter className="p-6 bg-slate-50/50 border-t border-slate-100/50 gap-2 sm:gap-0">
+          <DialogFooter className="p-5 sm:p-6 bg-slate-50/50 border-t border-slate-100/50 flex-col sm:flex-row gap-3 sm:gap-2">
             <button
               onClick={() => setIsOpen(false)}
-              className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+              className="h-12 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all order-2 sm:order-1 px-4"
             >
               Cancelar
             </button>
             <button
               onClick={handleSave}
               disabled={loading}
-              className="flex-[2] h-12 bg-black text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-[#4A7C59] transition-all shadow-lg shadow-black/10 active:scale-95 disabled:opacity-50"
+              className="h-12 bg-black text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-[#4A7C59] transition-all shadow-lg shadow-black/10 active:scale-95 disabled:opacity-50 order-1 sm:order-2 px-6"
             >
               {loading ? 'Sincronizando...' : 'Guardar Cambios'}
             </button>
@@ -498,4 +553,3 @@ export function CategoriesTab({ categories, products = [], onRefresh }: Categori
     </div>
   )
 }
-

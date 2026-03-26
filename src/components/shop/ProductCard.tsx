@@ -95,17 +95,27 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
             </div>
           </div>
 
-          {/* Nombre Corto */}
-          <div className="px-1 text-center">
-             <h3 className="text-[13px] font-bold text-slate-800 leading-tight truncate px-1">
+          {/* Nombre Corto y Precio */}
+          <div className="px-2 text-center mt-1">
+             <h3 className="text-[12px] sm:text-[13px] font-bold text-slate-800 leading-tight truncate px-1">
                {product.name}
              </h3>
+             <div className="mt-0.5 flex flex-col items-center">
+                {hasDiscount && (
+                  <span className="text-[9px] font-bold text-slate-400 line-through decoration-red-400/50 -mb-0.5 opacity-60">
+                    {formatPrice(originalBasePrice)}
+                  </span>
+                )}
+                <span className="text-[14px] sm:text-[15px] font-black text-slate-900 tracking-tight">
+                  {formatPrice(activeBasePrice)}
+                </span>
+             </div>
           </div>
         </motion.div>
       </DialogTrigger>
 
       {/* VENTANA DE MÁS INFO (MODAL) */}
-      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden bg-white/95 backdrop-blur-xl border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] rounded-[3rem]">
+      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden bg-white/95 backdrop-blur-xl border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] rounded-[2rem] sm:rounded-[3rem] max-h-[90vh] sm:max-h-none overflow-y-auto">
         <div className="relative">
            {/* Imagen en el Modal */}
             <div className="aspect-[4/3] w-full overflow-hidden bg-slate-50 relative">
@@ -122,7 +132,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
               </div>
            </div>
 
-           <div className="p-8 space-y-8">
+           <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
               {/* Descripción */}
               {product.description && (
                 <div className="bg-slate-50/80 p-5 rounded-3xl border border-slate-100 relative">
@@ -182,8 +192,8 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
 
               {/* Footer con Cantidad, Precio y Botón */}
               <div className="flex flex-col gap-6 pt-4 w-full">
-                 <div className="flex items-center justify-between bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
-                    <div className="flex items-center gap-4 bg-white rounded-2xl p-1 shadow-sm border border-slate-100">
+                 <div className="flex items-center justify-between bg-slate-50 p-3 sm:p-4 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100">
+                    <div className="flex items-center gap-2 sm:gap-4 bg-white rounded-2xl p-0.5 sm:p-1 shadow-sm border border-slate-100">
                        <button 
                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
                          className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-slate-50 text-slate-400 hover:text-black transition-all font-black text-xl"

@@ -138,21 +138,21 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-2 text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#4A7C59]/10 text-[#4A7C59] text-[10px] font-black uppercase tracking-widest italic mb-2">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 px-1 md:px-0">
+        <div className="space-y-1 md:space-y-2 text-left">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#4A7C59]/10 text-[#4A7C59] text-[9px] md:text-[10px] font-black uppercase tracking-widest italic mb-1 md:mb-2">
             <Layout className="h-3 w-3" />
             Configuración Visual
           </div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter flex items-center gap-4 italic uppercase">
+          <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tighter flex items-center gap-3 md:gap-4 italic uppercase">
             Banners <span className="text-[#4A7C59]">Promocionales</span>
           </h2>
-          <p className="text-slate-500 text-sm font-medium max-w-lg">Gestiona el carrusel de entrada de la web. Mejora el impacto visual con contenido optimizado.</p>
+          <p className="text-slate-500 text-xs md:text-sm font-medium max-w-lg">Gestiona el carrusel de entrada de la web. Mejora el impacto visual con contenido optimizado.</p>
         </div>
         <Button 
           onClick={handleAddPromo}
-          className="bg-[#4A7C59] hover:bg-[#3d664a] rounded-2xl px-10 h-16 font-black uppercase tracking-widest text-xs shadow-2xl shadow-[#4A7C59]/20 gap-3 transition-all active:scale-95 group"
+          className="w-full md:w-auto bg-[#4A7C59] hover:bg-[#3d664a] rounded-2xl px-6 md:px-10 h-14 md:h-16 font-black uppercase tracking-widest text-[10px] md:text-xs shadow-2xl shadow-[#4A7C59]/20 gap-3 transition-all active:scale-95 group"
         >
           <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform" />
           Nuevo Banner
@@ -160,40 +160,40 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
       </div>
 
       {/* Guía de Optimización Premium */}
-      <div className="p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm relative overflow-hidden group">
+      <div className="p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
           <Sparkles className="h-16 w-16 text-slate-900" />
         </div>
         
-        <div className="flex flex-col lg:flex-row lg:items-center gap-8">
-          <div className="flex-1 space-y-2">
-            <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest italic flex items-center gap-2">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4 md:gap-8">
+          <div className="flex-1 space-y-1 md:space-y-2">
+            <h4 className="text-[10px] md:text-[11px] font-black text-slate-900 uppercase tracking-widest italic flex items-center gap-2">
               <Sparkles className="h-3 w-3 text-amber-500" />
               Guía de contenido para Banners
             </h4>
-            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+            <p className="text-[10px] md:text-xs text-slate-500 font-medium leading-relaxed">
               Para que el modal de promociones se vea espectacular, te recomendamos:
             </p>
           </div>
           
-          <div className="flex flex-wrap gap-4">
-            <div className="px-5 py-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 group/item hover:border-[#4A7C59]/30 transition-colors">
-              <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center">
-                <ImageIcon className="h-5 w-5 text-amber-500" />
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4">
+            <div className="flex-1 sm:flex-initial px-4 md:px-5 py-2.5 md:py-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 md:gap-4 group/item hover:border-[#4A7C59]/30 transition-colors">
+              <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                <ImageIcon className="h-4 md:h-5 w-4 md:w-5 text-amber-500" />
               </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black text-slate-900 uppercase">Imágenes 1:1</span>
-                <span className="text-[9px] text-slate-400 font-bold uppercase">1080x1080px .webp</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[9px] md:text-[10px] font-black text-slate-900 uppercase truncate">Imágenes 1:1</span>
+                <span className="text-[8px] md:text-[9px] text-slate-400 font-bold uppercase truncate">1080x1080px .webp</span>
               </div>
             </div>
             
-            <div className="px-5 py-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 group/item hover:border-[#4A7C59]/30 transition-colors">
-              <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                <Video className="h-5 w-5 text-blue-500" />
+            <div className="flex-1 sm:flex-initial px-4 md:px-5 py-2.5 md:py-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 md:gap-4 group/item hover:border-[#4A7C59]/30 transition-colors">
+              <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <Video className="h-4 md:h-5 w-4 md:w-5 text-blue-500" />
               </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black text-slate-900 uppercase">Vídeo Vertical/1:1</span>
-                <span className="text-[9px] text-slate-400 font-bold uppercase">MP4 {'<' } 5MB (Mudo)</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[9px] md:text-[10px] font-black text-slate-900 uppercase truncate">Vídeo Vertical/1:1</span>
+                <span className="text-[8px] md:text-[9px] text-slate-400 font-bold uppercase truncate">MP4 {'<' } 5MB (Mudo)</span>
               </div>
             </div>
 
@@ -201,19 +201,19 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
               onClick={() => {
                 const activePromos = promos.filter(p => p.activa);
                 if (activePromos.length > 0) {
-                  setPreviewPromo(activePromos[0]); // O podrías pasar lógicamente todos si PromoModal lo soporta
+                  setPreviewPromo(activePromos[0]);
                 } else {
                   toast({ title: "Sin banners activos", description: "Activa al menos un banner para ver la previsualización real." });
                 }
               }}
-              className="px-5 py-3 bg-[#4A7C59] hover:bg-[#3d664a] rounded-2xl shadow-lg flex items-center gap-4 group/item transition-all active:scale-95"
+              className="w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 bg-[#4A7C59] hover:bg-[#3d664a] rounded-2xl shadow-lg flex items-center gap-3 md:gap-4 group/item transition-all active:scale-95"
             >
-              <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-                <Eye className="h-5 w-5 text-white" />
+              <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <Eye className="h-4 md:h-5 w-4 md:w-5 text-white" />
               </div>
-              <div className="flex flex-col items-start">
-                <span className="text-[10px] font-black text-white uppercase">Vista Previa</span>
-                <span className="text-[9px] text-white/70 font-bold uppercase italic">Fidelidad 100%</span>
+              <div className="flex flex-col items-start px-2 md:px-0">
+                <span className="text-[9px] md:text-[10px] font-black text-white uppercase">Vista Previa</span>
+                <span className="text-[8px] md:text-[9px] text-white/70 font-bold uppercase italic">Fidelidad 100%</span>
               </div>
             </button>
           </div>
@@ -230,69 +230,73 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
               promo.activa ? 'border-slate-100 shadow-md' : 'border-slate-100 opacity-70 grayscale'
             )}
           >
-            <div className="flex items-center gap-4 px-6 py-4 bg-slate-50/50">
-              <div className="h-12 w-12 rounded-xl bg-slate-900 overflow-hidden shrink-0 border border-slate-200">
-                {promo.type === 'video' ? (
-                  <div className="w-full h-full flex items-center justify-center bg-slate-800"><Video className="h-4 w-4 text-white" /></div>
-                ) : (
-                  <img src={fixPath(promo.url)} className="w-full h-full object-cover" />
-                )}
-              </div>
-              
-              <AccordionTrigger className="flex-1 hover:no-underline py-0">
-                <div className="flex flex-col items-start gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-widest text-[#4A7C59]">Banner #{idx + 1}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[8px] font-black text-white uppercase",
-                        promo.color || 'bg-slate-400'
-                      )}>
-                        {promo.badge}
-                      </span>
-                      {promo.zoom && (
-                        <div className="h-4 w-4 rounded-md bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500">
-                          <Maximize2 className="h-2.5 w-2.5" />
-                        </div>
-                      )}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 md:px-6 py-4 bg-slate-50/50">
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className="h-12 w-12 rounded-xl bg-slate-900 overflow-hidden shrink-0 border border-slate-200">
+                  {promo.type === 'video' ? (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-800"><Video className="h-4 w-4 text-white" /></div>
+                  ) : (
+                    <img src={fixPath(promo.url)} className="w-full h-full object-cover" />
+                  )}
+                </div>
+                
+                <AccordionTrigger className="flex-1 hover:no-underline py-0 justify-start">
+                  <div className="flex flex-col items-start gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black uppercase tracking-widest text-[#4A7C59]">Banner #{idx + 1}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-[8px] font-black text-white uppercase",
+                          promo.color || 'bg-slate-400'
+                        )}>
+                          {promo.badge}
+                        </span>
+                        {promo.zoom && (
+                          <div className="h-4 w-4 rounded-md bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500">
+                            <Maximize2 className="h-2.5 w-2.5" />
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    <span className="text-sm font-bold text-slate-700 text-left line-clamp-1">{promo.title || 'Sin Título'}</span>
                   </div>
-                  <span className="text-sm font-bold text-slate-700">{promo.title || 'Sin Título'}</span>
-                </div>
-              </AccordionTrigger>
+                </AccordionTrigger>
+              </div>
 
-              <div className="flex items-center gap-2 mr-0 ml-auto border-l border-slate-100 pl-4">
-                <div className="flex flex-col items-center gap-1.5 px-3">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Ver</span>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-10 w-10 text-slate-400 hover:text-[#4A7C59] hover:bg-[#4A7C59]/10 rounded-xl transition-colors"
-                    onClick={(e) => { e.stopPropagation(); setPreviewPromo(promo); }}
-                  >
-                    <Eye className="h-4.5 w-4.5" />
-                  </Button>
+              <div className="flex items-center justify-between w-full sm:w-auto sm:mr-0 sm:ml-auto border-t sm:border-t-0 sm:border-l border-slate-200/60 sm:pl-4 pt-3 sm:pt-0 mt-1 sm:mt-0">
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-center gap-1 px-2 md:px-3">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Ver</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-9 w-9 md:h-10 md:w-10 text-slate-400 hover:text-[#4A7C59] hover:bg-[#4A7C59]/10 rounded-xl transition-colors"
+                      onClick={(e) => { e.stopPropagation(); setPreviewPromo(promo); }}
+                    >
+                      <Eye className="h-4 w-4 md:h-4.5 md:w-4.5" />
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-1 px-2 md:px-3 border-l border-slate-200/60">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Estado</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleUpdatePromo(promo.id, 'activa', !promo.activa); }}
+                      className="h-9 md:h-10 transition-all active:scale-90 flex items-center"
+                    >
+                      {promo.activa ? (
+                        <ToggleRight className="h-7 w-7 md:h-8 md:w-8 text-[#4A7C59]" />
+                      ) : (
+                        <ToggleLeft className="h-7 w-7 md:h-8 md:w-8 text-slate-300" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex flex-col items-center gap-1.5 px-3 border-l border-slate-100">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Estado</span>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleUpdatePromo(promo.id, 'activa', !promo.activa); }}
-                    className="h-10 transition-all active:scale-90 flex items-center"
-                  >
-                    {promo.activa ? (
-                      <ToggleRight className="h-8 w-8 text-[#4A7C59]" />
-                    ) : (
-                      <ToggleLeft className="h-8 w-8 text-slate-300" />
-                    )}
-                  </button>
-                </div>
-
-                <div className="flex flex-col items-center gap-1.5 pl-3 border-l border-slate-100">
+                <div className="flex flex-col items-center gap-1 pl-3 border-l border-slate-200/60">
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Acciones</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-100">
+                      <Button variant="ghost" size="icon" className="h-9 w-9 md:h-10 md:w-10 rounded-xl hover:bg-slate-100">
                         <MoreVertical className="h-5 w-5 text-slate-500" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -300,12 +304,12 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                       <DropdownMenuItem className="rounded-xl gap-2 font-medium" onClick={() => setPreviewPromo(promo)}>
                         <Eye className="h-4 w-4" /> Previsualizar
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="rounded-xl gap-2 font-medium">
-                        <ExternalLink className="h-4 w-4" /> Ir al enlace
+                      <DropdownMenuItem className="rounded-xl gap-2 font-medium" onClick={() => promo.url && window.open(fixPath(promo.url), '_blank')}>
+                        <ExternalLink className="h-4 w-4" /> Ver Archivo Original
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="rounded-xl gap-2 font-medium" onClick={() => {
-                        const newPromo = { ...promo, id: Math.random().toString(36).substr(2, 9), title: `${promo.title} (Copia)` };
+                        const newPromo = { ...promo, id: Date.now(), title: `${promo.title} (Copia)` };
                         onUpdateConfig({ ...config, promos: [...promos, newPromo] });
                         toast({ title: "Banner Duplicado", description: "Se ha creado una copia correctamente." });
                       }}>
@@ -615,10 +619,10 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
         ))}
       </Accordion>
 
-      <div className="flex justify-end pt-6">
+      <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">
         <Button 
           onClick={() => onSave(config)}
-          className="bg-[#4A7C59] hover:bg-[#3d664a] rounded-2xl px-12 h-14 font-bold shadow-xl shadow-[#4A7C59]/20 transition-all active:scale-95 text-lg"
+          className="w-full sm:w-auto bg-[#4A7C59] hover:bg-[#3d664a] rounded-2xl px-12 h-14 md:h-16 font-black uppercase tracking-widest text-sm md:text-lg shadow-xl shadow-[#4A7C59]/20 transition-all active:scale-95"
         >
           Guardar Todos los Cambios
         </Button>

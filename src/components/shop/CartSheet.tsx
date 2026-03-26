@@ -364,7 +364,7 @@ _Pago: ${paymentMethodText}_`
       <SheetContent className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden border-l-0 bg-[#FCFDFE]">
       {/* Progress Header - Now more vibrant */}
       {checkoutStep !== 'success' && (
-        <div className="bg-white border-b px-8 py-6 sticky top-0 z-10 shadow-sm">
+        <div className="bg-white border-b px-4 sm:px-8 py-4 sm:py-6 sticky top-0 z-10 shadow-sm">
           <div className="flex items-center justify-between relative max-w-sm mx-auto">
             <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 z-0 rounded-full" />
             <motion.div 
@@ -380,14 +380,14 @@ _Pago: ${paymentMethodText}_`
                 <div key={step.id} className="relative z-10 flex flex-col items-center gap-2">
                   <motion.div 
                     animate={{ 
-                      scale: isCurrent ? 1.15 : 1,
+                      scale: isCurrent ? 1.1 : 1,
                       backgroundColor: isActive ? '#4A7C59' : '#FFFFFF',
                       borderColor: isActive ? '#4A7C59' : '#E2E8F0',
                       color: isActive ? '#FFFFFF' : '#94A3B8'
                     }}
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center border-2 shadow-sm transition-all duration-500`}
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center border-2 shadow-sm transition-all duration-500`}
                   >
-                    <step.icon className={`h-5 w-5 ${isCurrent ? 'animate-pulse' : ''}`} />
+                    <step.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${isCurrent ? 'animate-pulse' : ''}`} />
                   </motion.div>
                   <span className={`text-[10px] font-black uppercase tracking-[0.1em] ${isActive ? 'text-[#4A7C59]' : 'text-slate-400'}`}>
                     {step.label}
@@ -407,10 +407,17 @@ _Pago: ${paymentMethodText}_`
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.02 }}
-              className="absolute inset-0 flex flex-col p-8"
+              className="absolute inset-0 flex flex-col p-4 sm:p-8"
             >
-              <div className="mb-8 flex justify-between items-end">
+              <div className="mb-6 sm:mb-8 flex justify-between items-end px-2">
                 <div>
+                  <button 
+                    onClick={onClose}
+                    className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]/40 hover:text-[#4A7C59] transition-all mb-4 group/back"
+                  >
+                    <ChevronLeft className="h-4 w-4 transform group-hover/back:-translate-x-1 transition-transform" />
+                    Volver a la Tienda
+                  </button>
                   <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">
                     Tu Carrito
                   </h2>
@@ -440,12 +447,12 @@ _Pago: ${paymentMethodText}_`
                         <motion.div 
                           layout
                           key={itemKey} 
-                          className="flex gap-5 p-5 rounded-[2.5rem] bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.06)] hover:border-[#4A7C59]/10 transition-all group relative overflow-hidden"
+                          className="flex gap-3 sm:gap-5 p-3 sm:p-5 rounded-3xl sm:rounded-[2.5rem] bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.06)] hover:border-[#4A7C59]/10 transition-all group relative overflow-hidden"
                         >
                           {/* Item background accent - Ajustado para evitar glitches en el borde */}
                           <div className="absolute top-[-15%] right-[-15%] w-32 h-32 bg-[#4A7C59]/[0.02] rounded-full pointer-events-none transition-transform duration-700 group-hover:scale-150 z-0" />
                           
-                          <div className="w-24 h-24 rounded-3xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-50 shadow-inner">
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-50 shadow-inner">
                             {config.showImages && item.image ? (
                               <img src={fixPath(item.image)} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                             ) : (
@@ -455,8 +462,8 @@ _Pago: ${paymentMethodText}_`
                           
                           <div className="flex-1 min-w-0 flex flex-col justify-between py-1 relative z-10">
                             <div>
-                              <div className="flex justify-between items-start mb-1.5">
-                                <h4 className="font-extrabold text-base text-slate-800 truncate pr-2">{item.name}</h4>
+                              <div className="flex justify-between items-start mb-1">
+                                <h4 className="font-extrabold text-sm sm:text-base text-slate-800 truncate pr-2">{item.name}</h4>
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
@@ -505,25 +512,25 @@ _Pago: ${paymentMethodText}_`
                             <div className="flex items-center justify-between mt-4 border-t border-slate-50 pt-4">
                               <div className="flex flex-col">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Precio</span>
-                                <p className="text-lg font-black text-[#4A7C59]">{formatPrice(item.price)}</p>
+                                <p className="text-base sm:text-lg font-black text-[#4A7C59]">{formatPrice(item.price)}</p>
                               </div>
-                              <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100 shadow-inner">
+                              <div className="flex items-center gap-1 bg-slate-50 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-100 shadow-inner">
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
-                                  className="h-8 w-8 rounded-xl bg-white shadow-sm hover:shadow-md hover:scale-105" 
+                                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg sm:rounded-xl bg-white shadow-sm hover:shadow-md" 
                                   onClick={() => updateQuantity(item.id, item.quantity - 1, item.variantId, item.notes)}
                                 >
-                                  <Minus className="h-3.5 w-3.5" />
+                                  <Minus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                 </Button>
-                                <span className="w-6 text-center text-sm font-black text-slate-700">{item.quantity}</span>
+                                <span className="w-5 sm:w-6 text-center text-xs sm:text-sm font-black text-slate-700">{item.quantity}</span>
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
-                                  className="h-8 w-8 rounded-xl bg-white shadow-sm hover:shadow-md hover:scale-105" 
+                                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg sm:rounded-xl bg-white shadow-sm hover:shadow-md" 
                                   onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId, item.notes)}
                                 >
-                                  <Plus className="h-3.5 w-3.5" />
+                                  <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                 </Button>
                               </div>
                             </div>
@@ -606,7 +613,7 @@ _Pago: ${paymentMethodText}_`
                       <div className="flex flex-col">
                         <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">Total del pedido</span>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-black tracking-tighter text-slate-900">{formatPrice(getTotal())}</span>
+                          <span className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">{formatPrice(getTotal())}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end">
@@ -651,6 +658,13 @@ _Pago: ${paymentMethodText}_`
               className="absolute inset-0 flex flex-col p-8"
             >
               <div className="mb-8">
+                <button 
+                  onClick={onClose}
+                  className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]/40 hover:text-[#4A7C59] transition-all mb-4 group/back"
+                >
+                  <ChevronLeft className="h-4 w-4 transform group-hover/back:-translate-x-1 transition-transform" />
+                  Volver a la Tienda
+                </button>
                 <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">
                   Datos de Envío
                 </h2>
@@ -830,6 +844,13 @@ _Pago: ${paymentMethodText}_`
               className="absolute inset-0 flex flex-col p-8 overflow-hidden"
             >
               <div className="mb-8">
+                <button 
+                  onClick={onClose}
+                  className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]/40 hover:text-[#4A7C59] transition-all mb-4 group/back"
+                >
+                  <ChevronLeft className="h-4 w-4 transform group-hover/back:-translate-x-1 transition-transform" />
+                  Volver a la Tienda
+                </button>
                 <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">
                   Finalizar Compra
                 </h2>

@@ -2,6 +2,7 @@
 
 import {
   Calendar,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   Clock,
@@ -105,44 +106,53 @@ export function AdminPanel(props: AdminPanelProps) {
   ]
 
   return (
-    <div className="container mx-auto px-4 py-10 max-w-7xl">
-      <div className="flex flex-col lg:flex-row gap-10">
+    <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-10 max-w-7xl">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
         {/* Sidebar / Mobile Nav - Premium Design */}
         <div className="lg:w-72 flex-shrink-0">
-          <div className="mb-10 px-2 group">
-            <h1 className="text-3xl font-black tracking-tight text-slate-900 group-hover:text-[#4A7C59] transition-colors duration-500">
+          <div className="mb-6 lg:mb-10 px-2 group">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 group-hover:text-[#4A7C59] transition-colors duration-500">
               Panel Control
             </h1>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="h-1.5 w-10 rounded-full bg-[#4A7C59]" />
-              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#4A7C59]">
+            <div className="flex items-center gap-2 mt-1 sm:mt-2">
+              <div className="h-1 w-8 sm:h-1.5 sm:w-10 rounded-full bg-[#4A7C59]" />
+              <p className="text-[9px] sm:text-[11px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[#4A7C59]">
                 GESTIÓN ADMINISTRATIVA
               </p>
             </div>
+            {onViewStore && (
+              <button 
+                onClick={onViewStore}
+                className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#4A7C59] transition-all group/back px-2"
+              >
+                <ChevronLeft className="h-3.5 w-3.5 transform group-hover/back:-translate-x-1 transition-transform" />
+                Volver a la Tienda
+              </button>
+            )}
           </div>
 
-          <div className="flex lg:flex-col overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 gap-2 px-1">
+          <div className="flex lg:flex-col overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 gap-2 px-1 scrollbar-hide -mx-2 sm:mx-0">
             {menuItems.map((item) => (
               <motion.button
                 key={item.id}
-                whileHover={{ x: 4 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all whitespace-nowrap min-w-fit lg:w-full relative overflow-hidden group/btn ${
+                className={`flex items-center gap-2.5 sm:gap-4 px-3.5 sm:px-5 py-2.5 sm:py-4 rounded-xl sm:rounded-[1.25rem] text-[10px] sm:text-sm font-black transition-all whitespace-nowrap min-w-fit lg:w-full relative overflow-hidden group/btn ${
                   activeTab === item.id
-                  ? 'bg-white text-[#4A7C59] shadow-[0_10px_30px_-5px_rgba(74,124,89,0.2)] border border-[#4A7C59]/10'
-                  : 'bg-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-white text-[#4A7C59] shadow-[0_10px_25px_-5px_rgba(74,124,89,0.15)] border border-[#4A7C59]/10'
+                  : 'bg-transparent text-slate-400 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 {activeTab === item.id && (
                   <motion.div
                     layoutId="activeTab"
-                    className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#4A7C59] rounded-r-full"
+                    className="absolute left-0 top-0 bottom-0 w-1 lg:w-1.5 bg-[#4A7C59] rounded-r-full hidden sm:block"
                   />
                 )}
 
-                <div className={`p-2 rounded-xl transition-all duration-300 ${activeTab === item.id ? 'bg-[#4A7C59] text-white rotate-6' : 'bg-slate-100 text-slate-400 group-hover/btn:bg-slate-200 group-hover/btn:text-slate-600'}`}>
-                  <item.icon className="h-4.5 w-4.5" />
+                <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl transition-all duration-300 ${activeTab === item.id ? 'bg-[#4A7C59] text-white rotate-3 sm:rotate-6' : 'bg-slate-100 text-slate-400 group-hover/btn:bg-slate-200 group-hover/btn:text-slate-600'}`}>
+                  <item.icon className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5" />
                 </div>
 
                 <span className="tracking-tight">{item.label}</span>
@@ -154,40 +164,37 @@ export function AdminPanel(props: AdminPanelProps) {
             ))}
           </div>
 
-          <div className="mt-10 pt-8 flex flex-col gap-3 border-t border-slate-100 hidden lg:flex px-2">
+          <div className="mt-4 lg:mt-10 pt-4 lg:pt-8 flex lg:flex-col gap-2 sm:gap-3 border-t border-slate-100 px-2 overflow-x-auto lg:overflow-visible scrollbar-hide">
             {onViewStore && (
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-4 rounded-2xl text-slate-500 hover:text-[#4A7C59] hover:bg-[#4A7C59]/5 transition-all h-12 px-5 font-bold border border-transparent hover:border-[#4A7C59]/10"
+                className="justify-start gap-3 sm:gap-4 rounded-xl sm:rounded-2xl text-slate-400 hover:text-[#4A7C59] hover:bg-[#4A7C59]/5 transition-all h-9 sm:h-12 px-3 sm:px-5 font-black border border-transparent hover:border-[#4A7C59]/10 whitespace-nowrap"
                 onClick={onViewStore}
               >
-                <div className="p-2 rounded-lg bg-slate-50">
-                  <ExternalLink className="h-4 w-4" />
+                <div className="p-1.5 sm:p-2 rounded-lg bg-slate-50 group-hover:bg-[#4A7C59]/10 transition-colors">
+                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
                 </div>
-                <span className="text-xs uppercase tracking-widest">Ir a la tienda</span>
+                <span className="text-[9px] sm:text-xs uppercase tracking-widest">Tienda</span>
               </Button>
             )}
-
-            <div className="mt-8 pt-4 flex flex-col items-center gap-4 opacity-60">
-               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">powered by pujalte creative studio</span>
-            </div>
+ 
             {onLogout && (
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-4 rounded-2xl text-red-400 hover:text-red-600 hover:bg-red-50 transition-all h-12 px-5 font-bold border border-transparent hover:border-red-100"
+                className="justify-start gap-3 sm:gap-4 rounded-xl sm:rounded-2xl text-red-300 hover:text-red-500 hover:bg-red-50 transition-all h-9 sm:h-12 px-3 sm:px-5 font-black border border-transparent hover:border-red-100 whitespace-nowrap"
                 onClick={onLogout}
               >
-                <div className="p-2 rounded-lg bg-red-50/50">
-                  <LogOut className="h-4 w-4" />
+                <div className="p-1.5 sm:p-2 rounded-lg bg-red-50/30">
+                  <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
                 </div>
-                <span className="text-xs uppercase tracking-widest">Cerrar Panel</span>
+                <span className="text-[9px] sm:text-xs uppercase tracking-widest text-red-400">Salir</span>
               </Button>
             )}
           </div>
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)] p-2 md:p-3 min-h-[600px] animate-in fade-in slide-in-from-right-2 duration-400 relative overflow-hidden">
+          <div className="bg-white rounded-[1.25rem] sm:rounded-[1.5rem] border border-slate-100 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)] p-2 sm:p-4 min-h-[500px] sm:min-h-[600px] animate-in fade-in slide-in-from-right-2 duration-400 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#4A7C59]/[0.02] rounded-full -mr-32 -mt-32 pointer-events-none" />
             <div className="relative z-10 h-full">
               {activeTab === 'dashboard' && (

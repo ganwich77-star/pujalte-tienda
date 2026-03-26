@@ -15,6 +15,7 @@ export interface GalleryImage {
   alt: string;
   categoria: string;
   activa?: boolean;
+  mostrarPrecio?: boolean;
   descripcion?: string;
   precio?: number;
   hasVariants?: boolean;
@@ -26,7 +27,7 @@ export interface GalleryImage {
     stock?: number;
   }[];
   isPack?: boolean;
-  packItems?: string;
+  packItems?: (string | number)[];
 }
 
 export interface Testimonial {

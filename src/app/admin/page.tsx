@@ -265,45 +265,48 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
-        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 bg-[#4A7C59] rounded-xl flex items-center justify-center shadow-lg shadow-[#4A7C59]/20">
+        <div className="container mx-auto px-4 md:px-6 py-4 md:h-20 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="h-10 w-10 bg-[#4A7C59] rounded-xl flex items-center justify-center shadow-lg shadow-[#4A7C59]/20 shrink-0">
               <Camera className="h-5 w-5 text-white" />
             </div>
             <div>
-               <h1 className="text-lg font-bold text-gray-900 leading-tight tracking-tighter uppercase">ADMIN</h1>
+               <h1 className="text-base md:text-lg font-bold text-gray-900 leading-tight tracking-tighter uppercase">ADMIN</h1>
                <div className="flex flex-col">
-                 <p className="text-[10px] text-[#4A7C59] font-black uppercase tracking-[0.2em]">POWERED BY PUJALTE CREATIVE STUDIO</p>
+                 <p className="text-[8px] md:text-[10px] text-[#4A7C59] font-black uppercase tracking-[0.2em]">POWERED BY PUJALTE CREATIVE STUDIO</p>
                </div>
              </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const storeUrl = config.storeUrl || "https://espaciopujalte.com/comuniones2026";
-                window.open(storeUrl, '_blank');
-              }}
-              className="rounded-full border-gray-200 text-gray-600 hover:bg-gray-50 gap-2 font-bold uppercase tracking-widest text-[10px] px-4"
-            >
-              <ShoppingBag className="h-3.5 w-3.5" />
-              Tienda
-            </Button>
+          <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-between md:justify-end">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const storeUrl = config.storeUrl || "https://espaciopujalte.com/comuniones2026";
+                  window.open(storeUrl, '_blank');
+                }}
+                className="rounded-full border-gray-200 text-gray-600 hover:bg-gray-50 gap-2 font-bold uppercase tracking-widest text-[9px] px-3 md:px-4 h-9"
+              >
+                <ShoppingBag className="h-3.5 w-3.5" />
+                <span className="hidden xs:inline">Tienda</span>
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'} className="rounded-full hover:bg-gray-100 h-9 w-9">
+                <Eye className="h-4 w-4 text-gray-500" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsAuthenticated(false)} className="rounded-full hover:bg-red-50 group h-9 w-9">
+                <LogOut className="h-4 w-4 text-red-500 group-hover:scale-110 transition-transform" />
+              </Button>
+            </div>
+            
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="bg-[#4A7C59] hover:bg-[#3d6649] text-white gap-2 shadow-lg shadow-[#4A7C59]/20 rounded-full px-6"
+              className="bg-[#4A7C59] hover:bg-[#3d6649] text-white gap-2 shadow-lg shadow-[#4A7C59]/20 rounded-full px-4 md:px-6 h-9 text-[10px] md:text-sm"
             >
               <Save className="h-4 w-4" />
-              {isSaving ? 'Guardando...' : 'Guardar Cambios'}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'} className="rounded-full hover:bg-gray-100">
-              <Eye className="h-4 w-4 text-gray-500" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setIsAuthenticated(false)} className="rounded-full hover:bg-red-50 group">
-              <LogOut className="h-4 w-4 text-red-500 group-hover:scale-110 transition-transform" />
+              <span>{isSaving ? '...' : 'Guardar'}</span>
             </Button>
           </div>
         </div>
@@ -316,15 +319,15 @@ export default function AdminPage() {
           </Alert>
         )}
 
-        <Tabs defaultValue="general" className="space-y-8">
-          <TabsList className="bg-gray-100 p-1.5 rounded-[1.25rem] h-auto gap-1">
-            <TabsTrigger value="general" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">General</TabsTrigger>
-
-            {/* Eliminada pestaña duplicada de productos para centralizar en el panel de la tienda */}
-            <TabsTrigger value="categorias" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">Categorías</TabsTrigger>
-            <TabsTrigger value="servicios" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">Servicios</TabsTrigger>
-            <TabsTrigger value="testimonios" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">Testimonios</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="general" className="space-y-6 md:space-y-8">
+          <div className="overflow-x-auto pb-2 -mx-2 px-2 scrollbar-none">
+            <TabsList className="bg-gray-100 p-1 rounded-2xl h-auto gap-1 w-max min-w-full">
+              <TabsTrigger value="general" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 md:px-8 py-2 md:py-3 text-[10px] md:text-sm font-bold tracking-widest uppercase">General</TabsTrigger>
+              <TabsTrigger value="categorias" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 md:px-8 py-2 md:py-3 text-[10px] md:text-sm font-bold tracking-widest uppercase">Categorías</TabsTrigger>
+              <TabsTrigger value="servicios" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 md:px-8 py-2 md:py-3 text-[10px] md:text-sm font-bold tracking-widest uppercase">Servicios</TabsTrigger>
+              <TabsTrigger value="testimonios" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 md:px-8 py-2 md:py-3 text-[10px] md:text-sm font-bold tracking-widest uppercase">Testimonios</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="general" className="space-y-8">
             <div className="grid md:grid-cols-2 gap-8">

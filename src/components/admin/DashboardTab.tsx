@@ -58,51 +58,51 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice 
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Stat Cards - Mantenemos igual para consistencia */}
-        <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-[#4A7C59]/5 rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ventas Totales</CardTitle>
-            <Package className="h-4 w-4 text-[#4A7C59]" />
+        <Card className="rounded-[1.5rem] sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-[#4A7C59]/5 rounded-bl-full" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-4 sm:p-6">
+            <CardTitle className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Ventas Totales</CardTitle>
+            <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#4A7C59]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-slate-900 tracking-tighter">{stats.totalSales}</div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">unidades entregadas</p>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">{stats.totalSales}</div>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-0.5 sm:mt-1">unidades entregadas</p>
           </CardContent>
         </Card>
 
-        <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pedidos</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-blue-500" />
+        <Card className="rounded-[1.5rem] sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-blue-500/5 rounded-bl-full" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-4 sm:p-6">
+            <CardTitle className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Pedidos</CardTitle>
+            <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-slate-900 tracking-tighter">{stats.totalOrders}</div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">gestionados hoy</p>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">{stats.totalOrders}</div>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-0.5 sm:mt-1">gestionados hoy</p>
           </CardContent>
         </Card>
 
-        <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ingresos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-amber-500" />
+        <Card className="rounded-[1.5rem] sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-amber-500/5 rounded-bl-full" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-4 sm:p-6">
+            <CardTitle className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Ingresos</CardTitle>
+            <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-slate-900 tracking-tighter">{formatPrice(stats.totalRevenue)}</div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">en pedidos activos</p>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">{formatPrice(stats.totalRevenue)}</div>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-0.5 sm:mt-1">en pedidos activos</p>
           </CardContent>
         </Card>
 
-        <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Catálogo</CardTitle>
-            <BarChart3 className="h-4 w-4 text-purple-500" />
+        <Card className="rounded-[1.5rem] sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-purple-500/5 rounded-bl-full" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-4 sm:p-6">
+            <CardTitle className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Catálogo</CardTitle>
+            <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-slate-900 tracking-tighter">{categories.length}</div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">categorías activas</p>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">{categories.length}</div>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-0.5 sm:mt-1">categorías activas</p>
           </CardContent>
         </Card>
       </div>
@@ -132,16 +132,16 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice 
                 const maxQty = Math.max(...(Object.values(productCounts) as number[]), 1);
 
                 return topProducts.map(([name, qty], index) => (
-                  <div key={name} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100/50 group hover:border-[#4A7C59]/20 transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-[10px] font-black text-[#4A7C59]">
+                  <div key={name} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-3 rounded-2xl bg-slate-50 border border-slate-100/50 group hover:border-[#4A7C59]/20 transition-all gap-2 sm:gap-0">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg sm:rounded-xl bg-white shadow-sm flex items-center justify-center text-[9px] sm:text-[10px] font-black text-[#4A7C59] flex-shrink-0">
                         {index + 1}
                       </div>
-                      <span className="text-[12px] font-bold text-slate-700">{name}</span>
+                      <span className="text-[11px] sm:text-[12px] font-bold text-slate-700 truncate">{name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{(qty as number)} uds</span>
-                       <div className="h-1.5 w-12 rounded-full bg-slate-200 overflow-hidden">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 pl-8 sm:pl-0">
+                       <span className="text-[10px] font-black text-[#4A7C59] uppercase tracking-tighter whitespace-nowrap">{(qty as number)} unidades</span>
+                       <div className="h-1.5 w-16 sm:w-12 rounded-full bg-slate-200 overflow-hidden">
                           <div 
                             className="h-full bg-[#4A7C59]" 
                             style={{ width: `${((qty as number) / maxQty) * 100}%` }} 
@@ -168,16 +168,16 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice 
             </div>
             
             {/* Selector de Gráfico */}
-            <div className="flex bg-slate-100 p-1 rounded-xl">
+            <div className="flex bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-hide">
                {[
                  { id: 'status', label: 'Estado' },
                  { id: 'payment', label: 'Pago' },
-                 { id: 'category', label: 'Categoría' }
+                 { id: 'category', label: 'Cat.' }
                ].map(t => (
                  <button
                    key={t.id}
                    onClick={() => setChartType(t.id as any)}
-                   className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${chartType === t.id ? 'bg-white text-[#4A7C59] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                   className={`px-3 sm:px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${chartType === t.id ? 'bg-white text-[#4A7C59] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                  >
                    {t.label}
                  </button>
@@ -298,25 +298,25 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice 
           onClick={() => setIsRecentOrdersOpen(!isRecentOrdersOpen)}
           className="w-full text-left bg-slate-50/50 hover:bg-slate-50 transition-colors"
         >
-          <CardHeader className="flex flex-row items-center justify-between py-6 px-10">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-[#4A7C59]">
-                 <ShoppingCart className="h-6 w-6" />
+          <CardHeader className="flex flex-row items-center justify-between py-4 sm:py-6 px-4 sm:px-10">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-white shadow-sm flex items-center justify-center text-[#4A7C59]">
+                 <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <div>
-                <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-slate-900">Pedidos Recientes</CardTitle>
-                <CardDescription className="text-xs font-bold text-slate-400 italic leading-none mt-1">
-                  Revisión rápida de las últimas 5 operaciones
+              <div className="min-w-0">
+                <CardTitle className="text-xs sm:text-sm font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] text-slate-900 truncate">Pedidos Recientes</CardTitle>
+                <CardDescription className="text-[10px] sm:text-xs font-bold text-slate-400 italic leading-none mt-1 truncate">
+                  Últimas 5 operaciones
                 </CardDescription>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-               <Badge variant="secondary" className="bg-[#4A7C59]/10 text-[#4A7C59] border-none font-black px-3 py-1 rounded-full uppercase tracking-tighter">{orders.length} pedidos</Badge>
+            <div className="flex items-center gap-2 sm:gap-3">
+               <Badge variant="secondary" className="bg-[#4A7C59]/10 text-[#4A7C59] border-none font-black px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-tighter text-[9px] sm:text-[10px]">{orders.length}</Badge>
                <motion.div
                  animate={{ rotate: isRecentOrdersOpen ? 90 : 0 }}
-                 className="p-2 rounded-full bg-white shadow-sm"
+                 className="p-1 sm:p-2 rounded-full bg-white shadow-sm"
                >
-                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-slate-400" />
                </motion.div>
             </div>
           </CardHeader>
@@ -330,41 +330,41 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice 
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden border-t border-slate-100"
             >
-              <CardContent className="p-10">
-                <div className="space-y-6">
+              <CardContent className="p-4 sm:p-10">
+                <div className="space-y-4 sm:space-y-6">
                   {orders.slice(0, 5).map(order => (
-                    <div key={order.id} className="flex items-center justify-between p-5 rounded-[2rem] bg-slate-50/80 border border-slate-100 group hover:shadow-xl hover:shadow-[#4A7C59]/5 transition-all duration-500">
-                      <div className="flex items-center gap-5">
-                         <div className="h-12 w-12 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-[#4A7C59] transition-colors">
-                            <span className="text-[10px] font-black font-mono">#{order.id.slice(-4)}</span>
+                    <div key={order.id} className="flex items-center justify-between p-3 sm:p-5 rounded-2xl sm:rounded-[2rem] bg-slate-50/80 border border-slate-100 group hover:shadow-xl hover:shadow-[#4A7C59]/5 transition-all duration-500">
+                      <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+                         <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-[#4A7C59] transition-colors flex-shrink-0">
+                            <span className="text-[8px] sm:text-[10px] font-black font-mono">#{order.id.slice(-4)}</span>
                          </div>
-                        <div>
-                          <p className="text-[14px] font-black text-slate-800 uppercase tracking-tight">{order.customerName}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                             <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest text-[#4A7C59] border-[#4A7C59]/20 rounded-lg">{order.items.length} ARTÍCULOS</Badge>
-                             <span className="text-[10px] font-bold text-slate-400">•</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{order.paymentMethod || 'WEB'}</span>
+                        <div className="min-w-0">
+                          <p className="text-[12px] sm:text-[14px] font-black text-slate-800 uppercase tracking-tight truncate">{order.customerName}</p>
+                          <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
+                             <Badge variant="outline" className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-[#4A7C59] border-[#4A7C59]/20 rounded-lg whitespace-nowrap">{order.items.length} ART.</Badge>
+                             <span className="text-[10px] font-bold text-slate-400 hidden sm:inline">•</span>
+                             <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{order.paymentMethod || 'WEB'}</span>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="text-right flex flex-col items-end gap-2">
-                        <Badge className={`font-black uppercase tracking-widest text-[9px] px-3 py-1 rounded-full border-none shadow-lg ${
-                          order.status === 'pending' ? 'bg-amber-500 shadow-amber-500/20' : 
-                          order.status === 'paid' ? 'bg-emerald-500 shadow-emerald-500/20' : 
-                          order.status === 'shipped' ? 'bg-blue-500 shadow-blue-500/20' : 
-                          order.status === 'delivered' ? 'bg-slate-900 shadow-slate-900/20' : 'bg-red-500 shadow-red-500/20'
+                      <div className="flex flex-col items-end gap-2 pr-1">
+                        <Badge className={`font-black uppercase tracking-widest text-[8px] sm:text-[9px] px-2 sm:px-3 py-1 rounded-full border-none shadow-md ${
+                          order.status === 'pending' ? 'bg-amber-500 shadow-amber-500/10' : 
+                          order.status === 'paid' ? 'bg-emerald-500 shadow-emerald-500/10' : 
+                          order.status === 'shipped' ? 'bg-blue-500 shadow-blue-500/10' : 
+                          order.status === 'delivered' ? 'bg-slate-900 shadow-slate-900/10' : 'bg-red-500 shadow-red-500/10'
                         }`}>
                           {order.status === 'pending' ? 'Pendiente' : 
                            order.status === 'paid' ? 'Pagado' : 
                            order.status === 'shipped' ? 'Enviado' : 
                            order.status === 'delivered' ? 'Entregado' : 'Cancelado'}
                         </Badge>
-                        <div className="text-right">
-                           <p className="text-[15px] font-black text-slate-900 tabular-nums leading-none tracking-tighter">
+                        <div className="flex flex-col items-end justify-center">
+                           <p className="text-[14px] sm:text-[16px] font-black text-slate-900 tabular-nums leading-none tracking-tighter">
                              {formatPrice(order.total)}
                            </p>
-                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5 opacity-60">
+                           <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5 opacity-60">
                              {formatDate(order.createdAt)}
                            </p>
                         </div>

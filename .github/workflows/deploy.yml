@@ -1,0 +1,61 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main  # Se activa al subir cambios a la rama main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🚚 Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: 🟢 Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: 📦 Instalar dependencias
+        run: npm ci
+
+      - name: 🔨 Construir aplicación (standalone)
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          # Las variables de entorno para la construcción se leen de los Secrets de GitHub
+
+      - name: 🚀 Subir archivos a Hostinger (via SSH rsync)
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          ARGS: "-rlgoDzvc -i --delete"
+          SOURCE: ".next/standalone/"
+          REMOTE_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          REMOTE_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+          TARGET: ${{ secrets.HOSTINGER_REMOTE_TARGET }}
+          EXCLUDE: "/node_modules/, /public/, /.next/static/" # rsync solo standalone, el build script ya maneja la copia interna
+
+      # El script de build de package.json ya copia public y static dentro de standalone.
+      # rsync los subirá al servidor de forma eficiente.
+
+      - name: 🔄 Reiniciar Proceso Node en Hostinger
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+          script: |
+            cd ${{ secrets.HOSTINGER_REMOTE_TARGET }}
+            # Reiniciar pm2 si se usa, o el servicio correspondiente
+            if pm2 list | grep -q "pujalte-store"; then
+              pm2 restart pujalte-store
+            else
+              pm2 start server.js --name pujalte-store
+            fi

@@ -11,8 +11,10 @@ interface SplashScreenProps {
 
 export default function SplashScreen({ onComplete, logo, storeName }: SplashScreenProps) {
   const [isAnimating, setIsAnimating] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     const timer = setTimeout(() => {
       setIsAnimating(false)
       // Llamamos a onComplete inmediatamente para que la tienda cargue por debajo mientras el splash se desvanece
@@ -21,6 +23,8 @@ export default function SplashScreen({ onComplete, logo, storeName }: SplashScre
 
     return () => clearTimeout(timer)
   }, [onComplete])
+
+  if (!mounted) return null
 
   return (
     <AnimatePresence>
@@ -39,15 +43,15 @@ export default function SplashScreen({ onComplete, logo, storeName }: SplashScre
                 key={i}
                 className="absolute w-1 h-1 bg-gray-300 rounded-full"
                 initial={{
-                  x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-                  y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
+                  x: Math.random() * window.innerWidth,
+                  y: Math.random() * window.innerHeight,
                 }}
                 animate={{
                   y: [null, -100],
                   opacity: [0, 0.6, 0],
                 }}
                 transition={{
-                  duration: 3 + Math.random() * 2,
+                  duration: 2 + Math.random() * 3,
                   repeat: Infinity,
                   delay: Math.random() * 2,
                 }}
