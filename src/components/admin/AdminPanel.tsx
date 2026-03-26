@@ -264,7 +264,7 @@ export function AdminPanel(props: AdminPanelProps) {
                 <CheckoutTab
                   config={config}
                   onUpdateConfig={onUpdateConfig}
-                  onSave={() => onSaveConfig(config)}
+                  onSave={onSaveConfig}
                 />
               )}
 
@@ -272,7 +272,7 @@ export function AdminPanel(props: AdminPanelProps) {
                 <ConfigTab 
                   config={config} 
                   onUpdateConfig={onUpdateConfig} 
-                  onSave={() => onSaveConfig(config)} 
+                  onSave={onSaveConfig} 
                 />
               )}
 
@@ -280,7 +280,7 @@ export function AdminPanel(props: AdminPanelProps) {
                 <PromosTab 
                   config={config as any} 
                   onUpdateConfig={(newConfig) => onUpdateConfig(newConfig as any)} 
-                  onSave={() => onSaveConfig(config)} 
+                  onSave={(cfg) => onSaveConfig(cfg as any)} 
                 />
               )}
 

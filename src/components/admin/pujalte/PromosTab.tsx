@@ -77,7 +77,18 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
   }
 
   const handleUpdatePromo = (id: string | number, field: keyof Promo, value: any) => {
-    const updatedPromos = promos.map(p => p.id === id ? { ...p, [field]: value } : p)
+    let updatedPromos = promos.map(p => p.id === id ? { ...p, [field]: value } : p)
+    
+    // Auto-detectar tipo si se cambia la URL manualmente
+    if (field === 'url' && typeof value === 'string') {
+      const isVideo = value.match(/\.(mp4|mov|webm|m4v)/i) || value.includes('firebasestorage') && value.includes('video');
+      if (isVideo) {
+        updatedPromos = updatedPromos.map(p => p.id === id ? { ...p, type: 'video' } : p)
+      } else if (value.match(/\.(jpg|jpeg|png|webp|gif|avif)/i)) {
+        updatedPromos = updatedPromos.map(p => p.id === id ? { ...p, type: 'image' } : p)
+      }
+    }
+    
     onUpdateConfig({ ...config, promos: updatedPromos })
   }
 
@@ -85,15 +96,31 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
     setIsUploading(true)
     const formData = new FormData()
     formData.append('file', file)
+    
+    // Detectamos tipo por el MIME del archivo
+    const isVideo = file.type.startsWith('video/')
+    const isImage = file.type.startsWith('image/')
+    const detectedType = isVideo ? 'video' : 'image'
+
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      if (!res.ok) throw new Error('Error en el servidor de subida')
+      
       const data = await res.json()
       if (data.url) {
-        handleUpdatePromo(id, 'url', data.url)
-        toast({ title: "Subida Completa", description: "El archivo se ha optimizado y subido correctamente." })
+        // Actualizamos URL y Tipo de golpe para que la persistencia sea correcta
+        const updatedPromos = promos.map(p => 
+          p.id === id ? { ...p, url: data.url, type: detectedType as 'image' | 'video' } : p
+        )
+        onUpdateConfig({ ...config, promos: updatedPromos })
+        toast({ 
+          title: "Subida Exitosa", 
+          description: `Se ha configurado el ${isVideo ? 'vídeo' : 'banner'} correctamente.`,
+        })
       }
     } catch (e) {
-      toast({ title: "Error en subida", description: "No se pudo subir el archivo.", variant: "destructive" })
+      console.error("Upload error:", e)
+      toast({ title: "Error en subida", description: "No se pudo subir el archivo. Revisa tu conexión.", variant: "destructive" })
     } finally {
       setIsUploading(false)
     }
@@ -368,9 +395,9 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                             };
                             reader.readAsDataURL(file);
                           } else if (file.type.startsWith('video/')) {
-                            // Validación básica de vídeo (max 10MB para performance)
-                            if (file.size > 10 * 1024 * 1024) {
-                              toast({ title: "Vídeo demasiado pesado", description: "El vídeo supera los 10MB. Te recomendamos comprimirlo para una carga óptima.", variant: "destructive" });
+                            // Validación de vídeo (subimos a 20MB para dar más margen)
+                            if (file.size > 20 * 1024 * 1024) {
+                              toast({ title: "Vídeo demasiado grande", description: "El archivo supera los 20MB. Por favor, comprímelo un poco.", variant: "destructive" });
                               return;
                             }
                             handleDirectUpload(promo.id, file);

@@ -72,7 +72,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
           >
             {/* BACKGROUND MEDIA (HORIZONTAL FULL) */}
             <div className="absolute inset-0 w-full h-full">
-              {current.type === 'video' ? (
+              {(current.type === 'video' || current.url?.match(/\.(mp4|mov|webm|m4v)/i)) ? (
                 <video 
                   ref={videoRef}
                   src={fixPath(current.url)} 
@@ -90,15 +90,15 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                 />
               )}
 
-              {/* REFINED OVERLAY (NOT TOO BLACK) */}
+              {/* REFINED OVERLAY (MUCH LIGHTER TO PRESERVE ORIGINAL COLORS) */}
               <div className={cn(
                 "absolute inset-0 pointer-events-none transition-all duration-700",
-                current.contentPosition === 'top-left' && "bg-gradient-to-br from-black/80 via-black/40 to-transparent",
-                current.contentPosition === 'top-right' && "bg-gradient-to-bl from-black/80 via-black/40 to-transparent",
-                current.contentPosition === 'bottom-left' && "bg-gradient-to-tr from-black/80 via-black/40 to-transparent",
-                current.contentPosition === 'bottom-right' && "bg-gradient-to-tl from-black/80 via-black/40 to-transparent",
-                current.contentPosition === 'center' && "bg-black/40",
-                !current.contentPosition && "bg-gradient-to-tr from-black/80 via-black/40 to-transparent"
+                current.contentPosition === 'top-left' && "bg-gradient-to-br from-black/30 via-black/5 to-transparent",
+                current.contentPosition === 'top-right' && "bg-gradient-to-bl from-black/30 via-black/5 to-transparent",
+                current.contentPosition === 'bottom-left' && "bg-gradient-to-tr from-black/30 via-black/5 to-transparent",
+                current.contentPosition === 'bottom-right' && "bg-gradient-to-tl from-black/30 via-black/5 to-transparent",
+                current.contentPosition === 'center' && "bg-black/10",
+                !current.contentPosition && "bg-gradient-to-tr from-black/30 via-black/5 to-transparent"
               )} />
             </div>
 
@@ -155,12 +155,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
         </AnimatePresence>
 
         {/* REFINED CLOSE BUTTON */}
-        <button 
-          onClick={onClose}
-          className="absolute top-8 right-8 z-50 h-16 w-16 rounded-[1.5rem] bg-white/10 backdrop-blur-xl border border-white/20 text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90 group"
-        >
-          <X className="h-8 w-8 group-hover:rotate-90 transition-transform" />
-        </button>
+        {/* Botón de cierre eliminado a petición del usuario */}
 
         {/* Navigation - Only show if more than 1 promo */}
         {promos.length > 1 && (
@@ -200,7 +195,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
         animate={{ opacity: 0.6 }}
         className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white text-[10px] font-black uppercase tracking-[0.4em] pointer-events-none"
       >
-        Haz clic fuera o en la X para continuar a la web
+        Haz clic fuera para continuar a la web
       </motion.p>
     </div>
   )
