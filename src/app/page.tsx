@@ -41,6 +41,7 @@ import { CategoryBar } from '@/components/shop/CategoryBar'
 import { ProductCard } from '@/components/shop/ProductCard'
 import { ProductListItem } from '@/components/shop/ProductListItem'
 import { LegalDialogs } from '@/components/shop/LegalDialogs'
+import { PromoModal } from '@/components/landing/PromoModal'
 import { cn, fixPath } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -103,6 +104,7 @@ export default function Home() {
   
   // Admin state
   const [categories, setCategories] = useState<Category[]>([])
+  const [showPromo, setShowPromo] = useState(true)
   const [orders, setOrders] = useState<Order[]>([])
   const [stats, setStats] = useState({ totalSales: 0, totalOrders: 0, totalRevenue: 0 })
   const [config, setConfig] = useState<StoreConfig>(defaultConfig)
@@ -336,7 +338,14 @@ Mi email: ${formData.email}`
         isPack: (productForm as any).isPack ?? false,
         packItems: (productForm as any).packItems ?? '[]',
         variantType: productForm.hasVariants ? productForm.variantType : null,
-        variantBehavior: productForm.variantBehavior || 'add'
+        variantBehavior: productForm.variantBehavior || 'add',
+        isNew: (productForm as any).isNew || false,
+        salePrice: (productForm as any).salePrice ? parseFloat(String((productForm as any).salePrice)) : null,
+        variants: productForm.variants.map(v => ({
+          ...v,
+          price: parseFloat(String(v.price)) || 0,
+          stock: parseInt(String(v.stock)) || 0
+        }))
       }
       
       const res = await fetch(url, {
@@ -348,23 +357,7 @@ Mi email: ${formData.email}`
       if (!res.ok) throw new Error('Error al guardar producto')
       const savedProduct = await res.json()
       
-      if (productForm.hasVariants && productForm.variants.length > 0) {
-        for (const variant of productForm.variants) {
-          const vMethod = variant.id ? 'PUT' : 'POST'
-          const vUrl = variant.id ? `/api/variants/${variant.id}` : '/api/variants'
-          await fetch(vUrl, {
-            method: vMethod,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              productId: savedProduct.id,
-              name: variant.name,
-              price: parseFloat(variant.price),
-              stock: parseInt(variant.stock) || 0,
-              sortOrder: variant.sortOrder
-            })
-          })
-        }
-      }
+      // Se eliminan las llamadas individuales a /api/variants ya que ahora el endpoint de producto maneja todo el array de variantes
       
       toast({ title: '¡Guardado!', description: 'Producto guardado correctamente' })
       setIsProductDialogOpen(false)
@@ -604,8 +597,9 @@ Mi email: ${formData.email}`
         logo={fixPath(config.logo || landingData.logo)}
         storeName={config.slogan || "La tecnología al servicio de los recuerdos."}
         onComplete={() => {
-          setShowSplash(false)
-          setView('shop')
+          // Ya habremos cambiado la vista en el onClick, así que aquí solo nos aseguramos
+          // de que el splash se desmonte tras el desvanecimiento
+          setTimeout(() => setShowSplash(false), 600)
         }} 
       />
       )}
@@ -776,7 +770,13 @@ Mi email: ${formData.email}`
                 <a href="#sobre-mi" className="text-gray-600 hover:text-[#4A7C59] transition-colors">Sobre Mí</a>
                 <a href="#contacto" className="text-gray-600 hover:text-[#4A7C59] transition-colors">Contacto</a>
                 <button 
-                  onClick={() => { console.log('Abrir Splash'); setShowSplash(true); }}
+                  onClick={() => { 
+                    setShowSplash(true); 
+                    setTimeout(() => {
+                      setView('shop');
+                      window.scrollTo(0, 0);
+                    }, 100);
+                  }}
                   className="bg-[#4A7C59] text-white px-5 py-2 rounded-full font-medium hover:bg-[#3d664a] transition-colors"
                 >
                   Tienda Online
@@ -784,6 +784,24 @@ Mi email: ${formData.email}`
               </div>
             </div>
           </nav>
+          
+          <AnimatePresence>
+            {showPromo && config.promos && config.promos.length > 0 && (
+              <PromoModal 
+                promos={config.promos.filter(p => p.activa)}
+                onClose={() => setShowPromo(false)}
+                onOpenStore={() => { 
+                  setShowPromo(false); 
+                  setShowSplash(true); 
+                  setTimeout(() => {
+                    setView('shop');
+                    window.scrollTo(0, 0);
+                  }, 100);
+                }} 
+                onContact={() => { setShowPromo(false); document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' }); }} 
+              />
+            )}
+          </AnimatePresence>
 
           <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-gradient-to-br from-white via-gray-50 to-[#4A7C59]/5">
             <div className="container mx-auto px-4 relative z-10">
@@ -809,7 +827,13 @@ Mi email: ${formData.email}`
                   
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <button 
-                      onClick={() => { console.log('Acceso directo Tienda'); setShowSplash(true); }}
+                      onClick={() => { 
+                        setShowSplash(true); 
+                        setTimeout(() => {
+                          setView('shop');
+                          window.scrollTo(0, 0);
+                        }, 100);
+                      }}
                       className="bg-[#C87941] text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:bg-[#b06a38] transition-colors shadow-lg"
                     >
                       <ShoppingBag className="w-5 h-5" />
@@ -860,36 +884,44 @@ Mi email: ${formData.email}`
                   <div className="w-24 h-0.5 bg-[#4A7C59] mx-auto opacity-30"></div>
                 </motion.div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {(config.servicios?.length > 0 ? config.servicios : landingData.servicios).filter((s: any) => s.activa).map((service: any, index: number) => {
-                    const Icon = iconMap[service.icono] || Heart
-                    return (
-                      <motion.div
-                        key={service.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: index * 0.1 }}
-                        className="group"
-                      >
-                        <div className="relative h-full p-8 rounded-3xl border border-gray-100 bg-white hover:border-[#4A7C59]/20 hover:shadow-2xl hover:shadow-[#4A7C59]/5 transition-all duration-500">
-                          <div className="mb-8 aspect-[4/3] rounded-2xl overflow-hidden relative shadow-md">
-                            <img 
-                              src={fixPath(service.foto)} 
-                              alt={service.titulo} 
-                              className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110" 
-                            />
-                            <div className="absolute top-4 left-4 h-12 w-12 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg">
-                              <Icon className="h-6 w-6 text-[#4A7C59]" />
+                {(() => {
+                  const activeServices = (config.servicios?.length > 0 ? config.servicios : landingData.servicios).filter((s: any) => s.activa);
+                  const count = activeServices.length;
+                  const gridCols = count === 2 ? 'lg:grid-cols-2' : count === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
+                  
+                  return (
+                    <div className={`grid grid-cols-1 md:grid-cols-2 ${gridCols} gap-8 max-w-7xl mx-auto`}>
+                      {activeServices.map((service: any, index: number) => {
+                        const Icon = iconMap[service.icono] || Heart
+                        return (
+                          <motion.div
+                            key={service.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: index * 0.1 }}
+                            className="group"
+                          >
+                            <div className="relative h-full p-8 rounded-3xl border border-gray-100 bg-white hover:border-[#4A7C59]/20 hover:shadow-2xl hover:shadow-[#4A7C59]/5 transition-all duration-500">
+                              <div className="mb-8 aspect-[4/3] rounded-2xl overflow-hidden relative shadow-md">
+                                <img 
+                                  src={fixPath(service.foto)} 
+                                  alt={service.titulo} 
+                                  className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110" 
+                                />
+                                <div className="absolute top-4 left-4 h-12 w-12 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg">
+                                  <Icon className="h-6 w-6 text-[#4A7C59]" />
+                                </div>
+                              </div>
+                              <h3 className="text-xl font-bold mb-4 text-gray-900">{service.titulo}</h3>
+                              <p className="text-gray-600 leading-relaxed text-sm">{service.descripcion}</p>
                             </div>
-                          </div>
-                          <h3 className="text-xl font-bold mb-4 text-gray-900">{service.titulo}</h3>
-                          <p className="text-gray-600 leading-relaxed text-sm">{service.descripcion}</p>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                </div>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </section>
           )}

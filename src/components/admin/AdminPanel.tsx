@@ -22,7 +22,8 @@ import {
   Trash2,
   Upload,
   User,
-  Users
+  Users,
+  Sparkles
 } from 'lucide-react'
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -38,6 +39,7 @@ import { CustomersTab } from './CustomersTab'
 import { Product, Category, Order, StoreConfig } from '@/types'
 import { Button } from '@/components/ui/button'
 import { PacksTab } from './PacksTab'
+import { PromosTab } from './pujalte/PromosTab'
 
 interface AdminPanelProps {
   stats: {
@@ -92,9 +94,9 @@ export function AdminPanel(props: AdminPanelProps) {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'products', label: 'Productos', icon: Package },
+    { id: 'products', label: 'Galería', icon: LayoutGrid },
     { id: 'categories', label: 'Categorías', icon: Layers },
-    { id: 'packs', label: 'Packs', icon: LayoutGrid },
+    { id: 'promos', label: 'Banners', icon: Sparkles },
     { id: 'orders', label: 'Pedidos', icon: ShoppingCart },
     { id: 'customers', label: 'Clientes', icon: Users },
     { id: 'upload', label: 'Importar', icon: Upload },
@@ -112,9 +114,9 @@ export function AdminPanel(props: AdminPanelProps) {
               Panel Control
             </h1>
             <div className="flex items-center gap-2 mt-2">
-              <div className="h-1 w-8 rounded-full bg-[#4A7C59] opacity-50" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                Gestión {config.storeName}
+              <div className="h-1.5 w-10 rounded-full bg-[#4A7C59]" />
+              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#4A7C59]">
+                GESTIÓN ADMINISTRATIVA
               </p>
             </div>
           </div>
@@ -231,12 +233,6 @@ export function AdminPanel(props: AdminPanelProps) {
                 />
               )}
 
-              {activeTab === 'packs' && (
-                <PacksTab
-                   products={products}
-                   categories={categories}
-                />
-              )}
 
 
               {activeTab === 'orders' && (
@@ -275,6 +271,14 @@ export function AdminPanel(props: AdminPanelProps) {
                 <ConfigTab 
                   config={config} 
                   onUpdateConfig={onUpdateConfig} 
+                  onSave={onSaveConfig} 
+                />
+              )}
+
+              {activeTab === 'promos' && (
+                <PromosTab 
+                  config={config as any} 
+                  onUpdateConfig={(newConfig) => onUpdateConfig(newConfig as any)} 
                   onSave={onSaveConfig} 
                 />
               )}

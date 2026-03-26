@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import {
   Save, Plus, Trash2, LayoutDashboard, Image as ImageIcon,
-  Users, Star, MessageSquare, LogOut, Eye, PlusCircle,
+  Users, Star, MessageSquare, LogOut, Eye, PlusCircle, Sparkles,
   Type, RefreshCcw, Camera, Heart, Briefcase, Baby, Package,
   ChevronRight, Upload, X, Filter, Grid, Edit2, EyeOff, LayoutGrid, ShoppingBag
 } from 'lucide-react'
@@ -180,9 +180,13 @@ export default function AdminPage() {
         method: 'POST',
         body: formData
       })
-      const data = await res.json()
-      if (data.success) {
-        callback(data.url)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success) {
+          callback(data.url)
+        } else {
+          alert('Error al subir el archivo')
+        }
       } else {
         alert('Error al subir el archivo')
       }
@@ -224,7 +228,7 @@ export default function AdminPage() {
               <Camera className="h-8 w-8 text-[#4A7C59]" />
             </div>
             <CardTitle className="text-2xl font-light">Panel de Gestión</CardTitle>
-            <CardDescription>Pujalte Fotografía | Administración</CardDescription>
+            <CardDescription className="text-gray-900 font-bold uppercase tracking-[0.2em] text-[10px]">ADMINISTRACIÓN</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -267,10 +271,9 @@ export default function AdminPage() {
               <Camera className="h-5 w-5 text-white" />
             </div>
             <div>
-               <h1 className="text-lg font-bold text-gray-900 leading-tight">Admin</h1>
+               <h1 className="text-lg font-bold text-gray-900 leading-tight tracking-tighter uppercase">ADMIN</h1>
                <div className="flex flex-col">
-                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Pujalte Fotografía</p>
-                 <p className="text-[8px] text-gray-400 font-medium">powered by pujalte creative studio</p>
+                 <p className="text-[10px] text-[#4A7C59] font-black uppercase tracking-[0.2em]">POWERED BY PUJALTE CREATIVE STUDIO</p>
                </div>
              </div>
           </div>
@@ -316,11 +319,11 @@ export default function AdminPage() {
         <Tabs defaultValue="general" className="space-y-8">
           <TabsList className="bg-gray-100 p-1.5 rounded-[1.25rem] h-auto gap-1">
             <TabsTrigger value="general" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">General</TabsTrigger>
+            <TabsTrigger value="promos" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase bg-amber-50 text-amber-700 data-[state=active]:text-amber-900 shadow-amber-100">🔥 Promos</TabsTrigger>
             <TabsTrigger value="galeria" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">Galería</TabsTrigger>
             <TabsTrigger value="categorias" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">Categorías</TabsTrigger>
             <TabsTrigger value="servicios" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">Servicios</TabsTrigger>
             <TabsTrigger value="testimonios" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase">Testimonios</TabsTrigger>
-            <TabsTrigger value="packs" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-8 py-3 text-sm font-bold tracking-widest uppercase bg-emerald-50 text-emerald-700 data-[state=active]:text-emerald-900 shadow-emerald-100">Packs</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-8">
@@ -534,6 +537,191 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="promos" className="space-y-8">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-3xl font-black text-gray-900 tracking-tight">Gestión de Promociones</h2>
+                <p className="text-gray-500 font-medium">Configura el carrusel de entrada (imágenes y videos)</p>
+              </div>
+              <Button 
+                onClick={() => setConfig({
+                  ...config, 
+                  promos: [
+                    ...(config.promos || []), 
+                    { 
+                      id: Date.now(), 
+                      type: 'image', 
+                      url: '', 
+                      title: 'Nueva Promo', 
+                      subtitle: 'Descripción breve', 
+                      badge: 'Novedad', 
+                      color: 'from-amber-400 to-orange-500', 
+                      buttonText: 'Ver Más', 
+                      action: 'shop', 
+                      activa: true 
+                    }
+                  ]
+                })}
+                className="bg-[#4A7C59] hover:bg-[#3d6649] rounded-2xl h-14 px-8 shadow-xl shadow-[#4A7C59]/10"
+              >
+                <PlusCircle className="mr-2 h-5 w-5" />
+                Añadir Promo
+              </Button>
+            </div>
+
+            <Card className="border-0 shadow-sm bg-blue-50/50 rounded-3xl p-6 mb-8 border border-blue-100/50">
+              <div className="flex gap-4">
+                <div className="h-10 w-10 bg-blue-500 rounded-2xl flex items-center justify-center shrink-0">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-black text-blue-900 uppercase tracking-widest">Guía de Formatos Optimizados</h4>
+                  <p className="text-xs text-blue-800 leading-relaxed">
+                    Para que la web cargue rápido y se vea profesional, sigue estas medidas:<br/>
+                    • <b>Imágenes:</b> Formato <b>.webp</b> (calidad 80), resolución <b>1920x1080px</b> (16:9), peso menor a 300KB.<br/>
+                    • <b>Vídeos:</b> Formato <b>.mp4</b> (H.264), resolución <b>720p</b>, bitrate menor a 2Mbps, peso menor a 5MB.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <div className="grid gap-6">
+              {(config.promos || []).map((promo, idx) => (
+                <Card key={promo.id} className="border-0 shadow-sm rounded-3xl overflow-hidden group">
+                  <div className="grid md:grid-cols-3 gap-6 p-6">
+                    <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100 border border-gray-100">
+                      {promo.type === 'video' ? (
+                        <video src={promo.url} className="w-full h-full object-cover" muted />
+                      ) : (
+                        <img src={fixPath(promo.url)} className="w-full h-full object-cover" />
+                      )}
+                      <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer gap-2">
+                        <Upload className="h-6 w-6" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Cambiar {promo.type}</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept={promo.type === 'video' ? 'video/*' : 'image/*'}
+                          onChange={(e) => handleFileUpload(e, 16/9, (url) => {
+                            const newPromos = [...(config.promos || [])]
+                            newPromos[idx] = { ...promo, url }
+                            setConfig({ ...config, promos: newPromos })
+                          })}
+                        />
+                      </label>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Título</label>
+                          <Input value={promo.title} onChange={(e) => {
+                            const newPromos = [...(config.promos || [])]
+                            newPromos[idx] = { ...promo, title: e.target.value }
+                            setConfig({ ...config, promos: newPromos })
+                          }} className="bg-gray-50/50 border-0 rounded-xl font-bold" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Badge/Etiqueta</label>
+                          <Input value={promo.badge} onChange={(e) => {
+                            const newPromos = [...(config.promos || [])]
+                            newPromos[idx] = { ...promo, badge: e.target.value }
+                            setConfig({ ...config, promos: newPromos })
+                          }} className="bg-gray-50/50 border-0 rounded-xl" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Subtítulo</label>
+                        <Input value={promo.subtitle} onChange={(e) => {
+                          const newPromos = [...(config.promos || [])]
+                          newPromos[idx] = { ...promo, subtitle: e.target.value }
+                          setConfig({ ...config, promos: newPromos })
+                        }} className="bg-gray-50/50 border-0 rounded-xl" />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Tipo</label>
+                          <Select value={promo.type} onValueChange={(val: any) => {
+                            const newPromos = [...(config.promos || [])]
+                            newPromos[idx] = { ...promo, type: val }
+                            setConfig({ ...config, promos: newPromos })
+                          }}>
+                            <SelectTrigger className="bg-gray-50/50 border-0 rounded-xl h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="image">Imagen</SelectItem>
+                              <SelectItem value="video">Video</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Botón Texto</label>
+                          <Input value={promo.buttonText} onChange={(e) => {
+                            const newPromos = [...(config.promos || [])]
+                            newPromos[idx] = { ...promo, buttonText: e.target.value }
+                            setConfig({ ...config, promos: newPromos })
+                          }} className="bg-gray-50/50 border-0 rounded-xl" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Botón Acción</label>
+                          <Select value={promo.action} onValueChange={(val: any) => {
+                            const newPromos = [...(config.promos || [])]
+                            newPromos[idx] = { ...promo, action: val }
+                            setConfig({ ...config, promos: newPromos })
+                          }}>
+                            <SelectTrigger className="bg-gray-50/50 border-0 rounded-xl h-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="z-[70]">
+                              <SelectItem value="shop">Ir a Tienda</SelectItem>
+                              <SelectItem value="contact">Ir a Contacto</SelectItem>
+                              <SelectItem value="none">Cerrar Solo</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-2">
+                           <Switch 
+                             checked={promo.activa} 
+                             onCheckedChange={(val) => {
+                               const newPromos = [...(config.promos || [])]
+                               newPromos[idx] = { ...promo, activa: val }
+                               setConfig({ ...config, promos: newPromos })
+                             }} 
+                           />
+                           <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Visible</label>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {
+                            const newPromos = (config.promos || []).filter((_, i) => i !== idx)
+                            setConfig({ ...config, promos: newPromos })
+                          }}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl h-10 px-4"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+              {(config.promos || []).length === 0 && (
+                <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100">
+                  <PlusCircle className="h-12 w-12 text-gray-200 mx-auto mb-4" />
+                  <p className="text-gray-400 font-medium">No hay promociones configuradas</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
           <TabsContent value="galeria" className="space-y-6">
             <ProductsTab
               config={config}
@@ -723,14 +911,6 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="packs" className="space-y-8 min-h-[600px]">
-            <PacksTab 
-              products={config.galeria} 
-              categories={config.categorias}
-              onUpdate={(newItems) => setConfig({...config, galeria: newItems})}
-            />
           </TabsContent>
         </Tabs>
       </main>

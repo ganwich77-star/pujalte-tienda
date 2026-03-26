@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { 
   Plus, Package, Edit, Trash2, Eye, EyeOff, Save, ImageIcon, 
   ImageOff, Upload, MoreVertical, GripVertical, Check, X as CloseIcon, ZoomIn, ZoomOut,
-  ArrowUpDown, ArrowUp, ArrowDown, Info, AlertCircle, Banknote
+  ArrowUpDown, ArrowUp, ArrowDown, Info, AlertCircle, Banknote, Sparkles, Tag
 } from 'lucide-react'
 import { Checkbox } from "@/components/ui/checkbox"
 import Cropper from 'react-easy-crop'
@@ -180,21 +180,7 @@ function SortableProductRow({
           <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-black opacity-30 px-1">#{product.id.slice(0, 8)}</span>
         </div>
       </TableCell>
-      <TableCell className="w-28 text-right">
-        <div className="flex flex-col items-end gap-1.5 pr-6">
-          <div className="flex items-center gap-1 group/price justify-end">
-            <input 
-              type="number"
-              step="0.01"
-              value={product.price} 
-              onChange={(e) => onUpdateProductField(product.id, 'price', parseFloat(e.target.value) || 0)}
-              className="font-black tabular-nums text-base bg-transparent border-none focus:ring-0 p-0 w-16 text-right outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-            <span className="text-[10px] font-black opacity-30">€</span>
-          </div>
-        </div>
-      </TableCell>
-      <TableCell className="w-48 text-center">
+      <TableCell className="w-48 text-center px-4">
         <Select 
           value={product.categoryId || 'none'} 
           onValueChange={(val) => onUpdateProductField(product.id, 'categoryId', val === 'none' ? null : val)}
@@ -230,7 +216,22 @@ function SortableProductRow({
             {product.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           </Button>
 
-          {/* Edit */}
+          {/* Novedad */}
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={() => onUpdateProductField(product.id, 'isNew', !product.isNew)}
+            className={`h-9 w-9 rounded-xl border transition-all shadow-sm ${
+              product.isNew 
+                ? 'bg-amber-50 text-amber-500 border-amber-100 hover:bg-amber-100' 
+                : 'bg-slate-50 text-slate-300 border-slate-100 hover:bg-slate-100'
+            }`}
+            title={product.isNew ? 'Novedad Activa' : 'Marcar como Novedad'}
+          >
+            <Sparkles className="h-4 w-4" />
+          </Button>
+
+          {/* Editar */}
           <Button 
             size="icon" 
             variant="ghost" 
@@ -256,7 +257,7 @@ function SortableProductRow({
                 </div>
                 <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">¿Eliminar producto?</AlertDialogTitle>
                 <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
-                  Estás a punto de eliminar <span className="font-extrabold text-slate-900">&quot;{product.name}&quot;</span>. Esta acción no se puede deshacer y el producto desaparecerá de la tienda.
+                  Estás a punto de eliminar <span className="font-extrabold text-slate-900">&quot;{product.name}&quot;</span>. Esta acción no se puede deshacer y desaparecerá de la galería.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="gap-3 sm:gap-4 mt-2">
@@ -430,8 +431,8 @@ export function ProductsTab({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black uppercase tracking-tighter">Catálogo de Productos</h2>
-          <p className="text-sm text-muted-foreground font-medium">Gestiona tu catálogo y stock</p>
+          <h2 className="text-2xl font-black uppercase tracking-tighter">Galería de Fotos</h2>
+          <p className="text-sm text-muted-foreground font-medium">Gestiona las imágenes de tu portafolio</p>
         </div>
         <div className="flex items-center gap-3">
           {selectedIds.length > 0 && (
@@ -450,9 +451,9 @@ export function ProductsTab({
                   <div className="h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center mb-2">
                     <Trash2 className="h-7 w-7 text-red-500" />
                   </div>
-                  <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">¿Eliminar {selectedIds.length} productos?</AlertDialogTitle>
+                  <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">¿Eliminar {selectedIds.length} elementos?</AlertDialogTitle>
                   <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
-                    Esta acción no se puede deshacer. Los productos seleccionados se borrarán permanentemente del catálogo.
+                    Esta acción no se puede deshacer. Los elementos seleccionados se borrarán permanentemente.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter className="gap-3 sm:gap-4 mt-2">
@@ -469,7 +470,7 @@ export function ProductsTab({
           )}
           <Button onClick={onAddProduct} className="rounded-2xl gap-2 font-bold uppercase tracking-widest text-[10px] px-6 h-11 bg-black hover:bg-black/90 text-white shadow-xl shadow-black/10">
             <Plus className="h-4 w-4" />
-            Añadir Producto
+            Añadir Elemento
           </Button>
         </div>
       </div>
@@ -500,16 +501,6 @@ export function ProductsTab({
                       <div className="flex items-center gap-2">
                         Nombre / Identidad
                         {sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-20" />}
-                      </div>
-                    </TableHead>
-
-                    <TableHead 
-                      className="w-28 h-14 uppercase text-[10px] font-black tracking-widest opacity-50 text-right pr-6 cursor-pointer hover:text-black transition-colors"
-                      onClick={() => toggleSort('price')}
-                    >
-                      <div className="flex items-center justify-end gap-2">
-                        Precio
-                        {sortConfig.key === 'price' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-20" />}
                       </div>
                     </TableHead>
 
@@ -652,262 +643,140 @@ export function ProductsTab({
           <div className="p-5 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-10 border-b border-slate-50">
             <div>
               <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">
-                {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
+                {editingProduct ? 'Editar Elemento' : 'Nuevo Elemento'}
               </DialogTitle>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Gestión de catálogo</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Gestión de galería</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setIsProductDialogOpen(false)} className="rounded-xl h-8 w-8 hover:bg-slate-100 transition-colors">
+            <Button variant="ghost" size="icon" onClick={() => setIsProductDialogOpen(false)} className="h-8 w-8 rounded-xl hover:bg-slate-100">
               <CloseIcon className="h-4 w-4" />
             </Button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-5 scrollbar-hide">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            <div className="md:col-span-5 space-y-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Imagen Principal</Label>
-                <div 
-                  className="aspect-square rounded-[2rem] border-2 border-dashed border-border/60 bg-muted/20 flex flex-col items-center justify-center gap-4 overflow-hidden relative group cursor-pointer hover:bg-muted/30 transition-all hover:border-black/20"
-                  onClick={() => formImageInputRef.current?.click()}
-                >
-                  {productForm.image ? (
-                    <div className="relative w-full h-full group">
-                      <img src={fixPath(productForm.image)} alt="Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-[2px]">
-                        <Button 
-                          variant="secondary" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            formImageInputRef.current?.click();
-                          }}
-                          className="rounded-2xl font-black uppercase tracking-widest text-[10px] bg-white/90 text-black border-none shadow-2xl hover:bg-white"
-                        >
-                          <Upload className="h-3 w-3 mr-2" />
-                          Cambiar Foto
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-slate-400 group-hover:text-slate-600 transition-colors">
-                      <div className="w-16 h-16 rounded-3xl bg-slate-50 flex items-center justify-center mb-4 group-hover:rotate-6 transition-all duration-500">
-                        <Upload className="h-6 w-6" />
-                      </div>
-                      <div className="text-center px-6">
-                        <p className="font-black text-[10px] uppercase tracking-widest leading-none mb-1">Subir Imagen</p>
-                        <p className="text-[9px] opacity-50 italic">Formato cuadrado recomendado</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2 text-center p-4 bg-muted/20 rounded-2xl border border-dashed border-border/40">
-                <p className="text-[9px] uppercase font-black tracking-[0.2em] opacity-30">Tip de diseño</p>
-                <p className="text-xs font-medium text-muted-foreground italic">Usa fotos con fondo limpio para un catálogo premium.</p>
-              </div>
-            </div>
-
-            <div className="md:col-span-7 space-y-5">
-              <div className="space-y-1.5">
-                <Label htmlFor="productName" className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1">Nombre</Label>
-                <Input 
-                  id="productName" 
-                  value={productForm.name} 
-                  onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                  className="rounded-xl h-11 text-sm font-bold bg-slate-50/50 border-none focus-visible:ring-1 focus-visible:ring-[#4A7C59]/20"
-                  placeholder="Ej: Lona 70x160"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="productPrice" className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1">Precio</Label>
-                  <div className="relative">
-                    <Input 
-                      id="productPrice" 
-                      type="number"
-                      step="0.01"
-                        value={productForm.price ?? ''} 
-                        onChange={(e) => setProductForm({...productForm, price: e.target.value})}
-                      className="rounded-xl h-11 text-sm font-black bg-slate-50/50 border-none pl-8 focus-visible:ring-1 focus-visible:ring-[#4A7C59]/20"
-                      placeholder="0.00"
-                    />
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold opacity-30">€</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="category" className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1">Categoría</Label>
-                  <Select 
-                    value={productForm.categoryId || 'none'} 
-                    onValueChange={(val) => setProductForm({...productForm, categoryId: val === 'none' ? null : val})}
+          <div className="flex-1 overflow-y-auto p-6 scrollbar-hide space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+              {/* Columna Izquierda: Imagen */}
+              <div className="md:col-span-5 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">Imagen Principal</Label>
+                  <div 
+                    className="aspect-square rounded-[2rem] border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center gap-4 overflow-hidden relative group cursor-pointer hover:bg-slate-100 transition-all hover:border-slate-300"
+                    onClick={() => formImageInputRef.current?.click()}
                   >
-                    <SelectTrigger className="rounded-xl h-11 text-sm font-bold bg-slate-50/50 border-none focus:ring-1 focus:ring-[#4A7C59]/20">
-                      <SelectValue placeholder="Categoría" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-none shadow-2xl">
-                      <SelectItem value="none" className="text-xs font-medium">Sin Categoría</SelectItem>
-                      {categories.map((cat: any) => (
-                        <SelectItem key={cat.id} value={cat.id} className="text-xs font-medium">
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {productForm.image ? (
+                      <div className="relative w-full h-full group">
+                        <img src={fixPath(productForm.image)} alt="Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-[2px]">
+                          <Button variant="secondary" className="rounded-2xl font-black uppercase tracking-widest text-[10px]">
+                            <Upload className="h-3 w-3 mr-2" />
+                            Cambiar Foto
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-slate-300">
+                        <Upload className="h-8 w-8 mb-2" />
+                        <p className="font-black text-[10px] uppercase tracking-widest leading-none">Subir Imagen</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Badges */}
+                <div className="bg-slate-50/50 rounded-[1.5rem] p-4 border border-slate-100 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="isNew" className="text-[10px] font-black uppercase tracking-widest cursor-pointer flex items-center gap-2">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      Marcar Novedad
+                    </Label>
+                    <Switch 
+                      id="isNew" 
+                      checked={productForm.isNew || false}
+                      onCheckedChange={(checked) => setProductForm({...productForm, isNew: checked === true})}
+                      className="data-[state=checked]:bg-amber-500"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="productDescription" className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1 text-slate-400">Descripción (Opcional)</Label>
-                <textarea
-                  id="productDescription"
-                  value={productForm.description || ''}
-                  onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                  className="w-full min-h-[80px] rounded-xl p-3 text-xs font-medium bg-slate-50/50 border-none focus:ring-1 focus:ring-[#4A7C59]/20 resize-none placeholder:opacity-30"
-                  placeholder="Detalles adicionales del producto..."
-                />
-              </div>
-              </div>
-
-              <div className="space-y-4 pt-4 border-t border-slate-100 md:col-span-12">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-xs font-black uppercase tracking-widest">¿Tiene Suplementos?</Label>
-                    <p className="text-[10px] text-muted-foreground font-medium italic">Ej: Tallas, acabados, extras...</p>
-                  </div>
-                  <Switch 
-                    checked={productForm.hasVariants} 
-                    onCheckedChange={(checked) => setProductForm({...productForm, hasVariants: checked})}
-                    className="data-[state=checked]:bg-black"
+              {/* Columna Derecha: Datos */}
+              <div className="md:col-span-7 space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="productName" className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">Nombre</Label>
+                  <Input 
+                    id="productName" 
+                    value={productForm.name} 
+                    onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                    className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-none focus-visible:ring-1 focus-visible:ring-slate-200"
+                    placeholder="Escribe el nombre del producto..."
                   />
                 </div>
 
-                {productForm.hasVariants && (
-                  <div className="space-y-4 pt-3 border-t border-slate-100 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                       <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A7C59] bg-[#4A7C59]/5 px-3 py-1 rounded-full">Gestión de Opciones</Label>
-                       
-                       <div className="flex bg-slate-100 p-1 rounded-xl">
-                         <button
-                           onClick={() => setProductForm({...productForm, variantBehavior: 'add'})}
-                           className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all ${
-                             productForm.variantBehavior === 'add'
-                             ? 'bg-white shadow-sm text-black'
-                             : 'text-slate-400 hover:text-slate-600'
-                           }`}
-                         >
-                           Es Suplemento (+)
-                         </button>
-                         <button
-                           onClick={() => setProductForm({...productForm, variantBehavior: 'replace'})}
-                           className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all ${
-                             productForm.variantBehavior === 'replace'
-                             ? 'bg-white shadow-sm text-black'
-                             : 'text-slate-400 hover:text-slate-600'
-                           }`}
-                         >
-                           Es Precio Final (=)
-                         </button>
-                       </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {productForm.variants?.map((variant: any, index: number) => (
-                        <div key={index} className="flex gap-3 items-center bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group/variant relative transition-all duration-300">
-                          <div className="flex-1 space-y-1">
-                            <Label className="text-[8px] font-black uppercase tracking-widest text-slate-300 ml-1 italic">Nombre</Label>
-                            <Input 
-                              placeholder="..."
-                              value={variant.name}
-                              onChange={(e) => updateVariant(index, 'name', e.target.value)}
-                              className="h-8 rounded-lg border-none bg-white text-xs font-bold px-3 focus:ring-1 focus:ring-[#4A7C59]/20 transition-all shadow-sm"
-                            />
-                          </div>
-                          <div className="w-24 space-y-1 relative">
-                            <Label className="text-[8px] font-black uppercase tracking-widest text-slate-300 ml-1 italic">Extra</Label>
-                            <div className="relative">
-                              <Input 
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={variant.price}
-                                onChange={(e) => updateVariant(index, 'price', e.target.value)}
-                                className="h-8 rounded-lg border-none bg-white text-xs font-black tabular-nums text-right pr-7 focus:ring-1 focus:ring-[#4A7C59]/20 transition-all shadow-sm"
-                              />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 font-black opacity-20 text-[9px]">€</span>
-                            </div>
-                          </div>
-                          <div className="pt-4">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => removeVariant(index)}
-                              className="h-8 w-8 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      
-                      <Button 
-                        variant="outline" 
-                        onClick={addVariant}
-                        className="w-full h-9 rounded-xl border-dashed border-2 border-slate-200 hover:border-[#4A7C59]/40 hover:bg-[#4A7C59]/5 hover:text-[#4A7C59] gap-2 text-[9px] font-black uppercase tracking-wider transition-all"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        Añadir Opción
-                      </Button>
-
-                      <div className="p-3 rounded-xl bg-orange-50/30 border border-orange-100 flex gap-3 mt-2 items-start">
-                        <AlertCircle className="h-3.5 w-3.5 text-orange-400 mt-0.5" />
-                        <p className="text-[9px] text-orange-900/60 leading-tight font-medium">
-                          <span className="font-bold uppercase tracking-wider text-orange-700/60">Nota:</span>{' '}
-                          {productForm.variantBehavior === 'replace' 
-                            ? 'Al seleccionar esta opción, el precio base se IGNORARÁ y se usará el de la opción.' 
-                            : 'Se sumará el importe del suplemento al precio base del producto.'}
-                        </p>
-                      </div>
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category" className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">Categoría</Label>
+                    <Select 
+                      value={productForm.categoryId || 'none'} 
+                      onValueChange={(val) => setProductForm({...productForm, categoryId: val === 'none' ? null : val})}
+                    >
+                      <SelectTrigger className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-none focus:ring-1 focus:ring-slate-200">
+                        <SelectValue placeholder="Categoría" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-none shadow-2xl">
+                        <SelectItem value="none" className="text-xs font-medium uppercase font-black tracking-widest text-[9px]">Sin Categoría</SelectItem>
+                        {categories.map((cat: any) => (
+                          <SelectItem key={cat.id} value={cat.id} className="text-xs font-medium uppercase font-black tracking-widest text-[9px]">{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
+                </div>
 
-                <div className="flex items-center justify-between p-4 bg-slate-50/50 border border-slate-100 rounded-2xl mt-4 hover:bg-slate-50 transition-all group/vis">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl transition-all duration-500 ${productForm.active !== false ? 'bg-[#4A7C59] text-white' : 'bg-white text-slate-300'}`}>
-                      <Package className="h-3.5 w-3.5" />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] font-black uppercase tracking-widest block leading-none">Visible</Label>
-                      <p className="text-[9px] text-slate-400 font-medium italic">En el catálogo</p>
-                    </div>
-                  </div>
-                  <Switch 
-                    checked={productForm.active !== false} 
-                    onCheckedChange={(checked) => setProductForm({...productForm, active: checked})}
-                    className="data-[state=checked]:bg-[#4A7C59] scale-90"
+                <div className="space-y-2">
+                  <Label htmlFor="productDescription" className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">Descripción corta</Label>
+                  <textarea
+                    id="productDescription"
+                    value={productForm.description || ''}
+                    onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                    className="w-full min-h-[100px] rounded-2xl p-4 text-xs font-medium bg-slate-50/50 border-none focus:ring-1 focus:ring-slate-200 resize-none"
+                    placeholder="Detalles sobre el producto..."
                   />
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="p-5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+              {/* Toggle de Visibilidad General */}
+              <div className="flex items-center justify-between p-4 bg-slate-900 rounded-[1.5rem] text-white">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl bg-white/10`}>
+                    <Eye className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] font-black uppercase tracking-widest block">Visibilidad</Label>
+                    <p className="text-[9px] text-slate-400 font-medium">{productForm.active !== false ? 'Activo y visible en la web' : 'Oculto para los visitantes'}</p>
+                  </div>
+                </div>
+                <Switch 
+                  checked={productForm.active !== false} 
+                  onCheckedChange={(checked) => setProductForm({...productForm, active: checked})}
+                  className="data-[state=checked]:bg-emerald-500"
+                />
+              </div>
+            </div>
+
+          <div className="p-5 border-t border-slate-50 flex items-center justify-between bg-white px-8">
             <Button 
               variant="ghost" 
               onClick={() => setIsProductDialogOpen(false)}
-              className="rounded-xl font-black uppercase tracking-widest text-[10px] h-10 px-6 text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 text-slate-400"
             >
               Cancelar
             </Button>
-            <div className="flex gap-2">
-              <Button 
-                onClick={onSaveProduct}
-                className="rounded-xl font-black uppercase tracking-widest text-[10px] h-10 px-8 bg-[#4A7C59] text-white hover:bg-[#3d664a] shadow-lg shadow-[#4A7C59]/20"
-              >
-                {editingProduct ? 'Guardar Cambios' : 'Crear Producto'}
-              </Button>
-            </div>
+            <Button 
+              onClick={onSaveProduct}
+              className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-10 bg-black text-white hover:bg-slate-800 shadow-xl shadow-black/10"
+            >
+              {editingProduct ? 'Guardar Cambios' : 'Crear Elemento'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

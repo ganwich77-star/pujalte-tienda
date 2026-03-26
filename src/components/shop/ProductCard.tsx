@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, ShoppingCart, Plus, Info } from 'lucide-react'
+import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Product, ProductVariant, StoreConfig } from '@/types'
 import { fixPath } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -29,9 +30,17 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
   const [open, setOpen] = useState(false)
   const [quantity, setQuantity] = useState(1)
 
+  const activeBasePrice = product.salePrice ? Number(product.salePrice) : Number(product.price)
+  
   const displayPrice = (selectedVariant 
-    ? (product.variantBehavior === 'replace' ? Number(selectedVariant.price) : Number(product.price) + Number(selectedVariant.price)) 
-    : Number(product.price)) * quantity
+    ? (product.variantBehavior === 'replace' ? Number(selectedVariant.price) : activeBasePrice + Number(selectedVariant.price)) 
+    : activeBasePrice) * quantity
+
+  const hasDiscount = !!product.salePrice
+  const originalBasePrice = Number(product.price)
+  const originalPrice = (selectedVariant 
+    ? (product.variantBehavior === 'replace' ? Number(selectedVariant.price) : originalBasePrice + Number(selectedVariant.price)) 
+    : originalBasePrice) * quantity
 
   const onAdd = () => {
     handleAddToCart(product, selectedVariant || undefined, quantity)
@@ -64,19 +73,30 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
               </div>
             )}
             
+            {/* Badges */}
+            <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+              {product.isNew && (
+                <div className="bg-amber-400 text-white text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-amber-400/20 uppercase tracking-widest animate-in fade-in zoom-in duration-500">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Nuevo</span>
+                </div>
+              )}
+              {product.salePrice && (
+                <div className="bg-purple-600 text-white text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-purple-600/20 uppercase tracking-widest animate-in fade-in zoom-in duration-700">
+                  <Tag className="h-3 w-3" />
+                  <span>Oferta</span>
+                </div>
+              )}
+            </div>
+
             {/* Indicador de "Más Info" */}
             <div className="absolute top-3 right-3 p-1.5 bg-white/80 backdrop-blur-md rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
                <Info className="h-4 w-4 text-slate-800" />
             </div>
-
-
           </div>
 
           {/* Nombre Corto */}
           <div className="px-1 text-center">
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4A7C59]/60 block mb-0.5">
-                {product.category?.name || 'Estudio'}
-             </span>
              <h3 className="text-[13px] font-bold text-slate-800 leading-tight truncate px-1">
                {product.name}
              </h3>
@@ -180,12 +200,19 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                          +
                        </button>
                     </div>
-                    <div className="flex flex-col items-end">
-                       <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] mb-0.5 pr-1">Subtotal</span>
-                       <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none tabular-nums">
-                         {formatPrice(displayPrice)}
-                       </span>
-                    </div>
+                     <div className="flex flex-col items-end">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] mb-0.5 pr-1">Subtotal</span>
+                        <div className="flex flex-col items-end">
+                          {hasDiscount && (
+                            <span className="text-[10px] font-bold text-slate-400 line-through decoration-red-400/50 -mb-1 opacity-60">
+                              {formatPrice(originalPrice)}
+                            </span>
+                          )}
+                          <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none tabular-nums">
+                            {formatPrice(displayPrice)}
+                          </span>
+                        </div>
+                     </div>
                  </div>
                  
                  <Button 

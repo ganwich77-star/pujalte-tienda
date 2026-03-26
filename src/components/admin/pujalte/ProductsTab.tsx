@@ -6,7 +6,7 @@ import {
   DialogContent,
 } from '@/components/ui/dialog'
 import {
-  ImageIcon, Trash2, Upload, PlusCircle, LayoutGrid, Eye, EyeOff, GripVertical, Package, Plus, Pencil, Banknote, ChevronDown, ChevronUp, Settings2, CheckCircle2, XCircle
+  ImageIcon, Trash2, Upload, PlusCircle, LayoutGrid, Eye, EyeOff, GripVertical, Package, Plus, Pencil, ChevronDown, ChevronUp, Settings2, CheckCircle2, XCircle
 } from 'lucide-react'
 import { 
   DndContext, 
@@ -36,14 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { GalleryImage, LandingConfig } from '@/lib/landing-config'
@@ -74,7 +66,7 @@ function DeleteConfirmModal({ open, productName, onConfirm, onCancel }: {
             <Trash2 className="h-7 w-7 text-red-500" />
           </div>
           <div className="space-y-1.5">
-            <h3 className="text-lg font-black text-slate-800 tracking-tight">¿Eliminar artículo?</h3>
+            <h3 className="text-lg font-black text-slate-800 tracking-tight">¿Eliminar de la galería?</h3>
             <p className="text-sm text-slate-500">
               Se borrará <span className="font-bold text-slate-700">&ldquo;{productName}&rdquo;</span> de forma permanente.
             </p>
@@ -99,152 +91,6 @@ function DeleteConfirmModal({ open, productName, onConfirm, onCancel }: {
   )
 }
 
-function ProductDetailModal({ open, product, onSave, onCancel }: { 
-  open: boolean
-  product: GalleryImage
-  onSave: (updates: Partial<GalleryImage>) => void
-  onCancel: () => void 
-}) {
-  const [localProduct, setLocalProduct] = useState<GalleryImage>(product)
-
-  useEffect(() => {
-    setLocalProduct(product)
-  }, [product, open])
-
-  const addVariant = () => {
-    const newVariants = [
-      ...(localProduct.variants || []),
-      { id: Date.now().toString(), name: 'Nueva opción', price: 0, sortOrder: (localProduct.variants?.length || 0) }
-    ]
-    setLocalProduct({ ...localProduct, hasVariants: true, variants: newVariants })
-  }
-
-  const updateVariant = (id: string, updates: any) => {
-    const newVariants = localProduct.variants?.map(v => v.id === id ? { ...v, ...updates } : v)
-    setLocalProduct({ ...localProduct, variants: newVariants })
-  }
-
-  const removeVariant = (id: string) => {
-    const newVariants = localProduct.variants?.filter(v => v.id !== id)
-    setLocalProduct({ ...localProduct, variants: newVariants, hasVariants: newVariants && newVariants.length > 0 })
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onCancel}>
-      <DialogContent className="max-w-xl p-0 border-0 rounded-[2rem] shadow-2xl overflow-hidden bg-white">
-        <div className="bg-slate-50/50 p-8 space-y-8 max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center gap-4">
-             <div className="h-12 w-12 rounded-2xl bg-black flex items-center justify-center text-white">
-                <Settings2 className="h-5 w-5" />
-             </div>
-             <div>
-                <h3 className="text-xl font-black text-slate-800 tracking-tight">Opciones Avanzadas</h3>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">{product.alt}</p>
-             </div>
-          </div>
-
-          <div className="space-y-6">
-             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                   <div className="space-y-1">
-                      <Label className="text-xs font-black uppercase tracking-widest text-slate-500">¿Tiene opciones o medidas?</Label>
-                      <p className="text-[10px] text-slate-400 italic">Activa esto si el usuario debe elegir entre varias opciones.</p>
-                   </div>
-                   <Switch 
-                     checked={localProduct.hasVariants} 
-                     onCheckedChange={(c) => setLocalProduct({ ...localProduct, hasVariants: c, variants: c ? (localProduct.variants || []) : [] })} 
-                   />
-                </div>
-
-                {localProduct.hasVariants && (
-                  <div className="pt-4 border-t border-slate-50 space-y-4">
-                    <div className="space-y-2">
-                       <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nombre del selector (Ej: Medida, Acabado)</Label>
-                       <Input 
-                         value={localProduct.variantType || ''} 
-                         onChange={(e) => setLocalProduct({ ...localProduct, variantType: e.target.value })}
-                         placeholder="Ej: Medida"
-                         className="bg-slate-50 border-none rounded-xl"
-                       />
-                    </div>
-
-                    <div className="space-y-2">
-                       <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lógica de Precio</Label>
-                       <div className="grid grid-cols-2 gap-2">
-                          <button
-                            onClick={() => setLocalProduct({ ...localProduct, variantBehavior: 'replace' })}
-                            className={`p-3 rounded-xl border text-[11px] font-bold transition-all ${
-                              localProduct.variantBehavior === 'replace' 
-                              ? 'bg-black text-white border-black' 
-                              : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'
-                            }`}
-                          >
-                             Precio Base Cero (Sustituye)
-                          </button>
-                          <button
-                            onClick={() => setLocalProduct({ ...localProduct, variantBehavior: 'add' })}
-                            className={`p-3 rounded-xl border text-[11px] font-bold transition-all ${
-                              localProduct.variantBehavior === 'add' 
-                              ? 'bg-black text-white border-black' 
-                              : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'
-                            }`}
-                          >
-                             Suplemento (Suma al Base)
-                          </button>
-                       </div>
-                    </div>
-                  </div>
-                )}
-             </div>
-
-             {localProduct.hasVariants && (
-                <div className="space-y-3">
-                   <div className="flex items-center justify-between px-1">
-                      <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Listado de Opciones</Label>
-                      <Button variant="ghost" size="sm" onClick={addVariant} className="h-7 text-[10px] font-black uppercase text-[#4A7C59] bg-[#4A7C59]/10 rounded-lg hover:bg-[#4A7C59]/20">
-                         <Plus className="h-3 w-3 mr-1" /> Añadir
-                      </Button>
-                   </div>
-                   
-                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                      {localProduct.variants?.map((v) => (
-                        <div key={v.id} className="flex gap-2 items-center bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
-                           <Input 
-                             value={v.name} 
-                             onChange={(e) => updateVariant(v.id, { name: e.target.value })}
-                             placeholder="Nombre"
-                             className="flex-1 bg-slate-50/50 border-none text-[12px] font-bold rounded-xl h-9"
-                           />
-                           <div className="flex items-center gap-1 bg-slate-50 rounded-xl px-2 h-9 border border-slate-50">
-                              <Input 
-                                type="number"
-                                step="0.01"
-                                value={v.price} 
-                                onChange={(e) => updateVariant(v.id, { price: parseFloat(e.target.value) || 0 })}
-                                className="w-14 bg-transparent border-none text-[12px] font-black tabular-nums text-right p-0 h-full focus:ring-0"
-                              />
-                              <span className="text-[10px] font-bold opacity-30">€</span>
-                           </div>
-                           <Button variant="ghost" size="icon" onClick={() => removeVariant(v.id)} className="h-8 w-8 text-slate-300 hover:text-red-500 rounded-lg">
-                              <Trash2 className="h-4 w-4" />
-                           </Button>
-                        </div>
-                      ))}
-                   </div>
-                </div>
-             )}
-          </div>
-
-          <div className="flex gap-3 pt-4">
-             <Button variant="outline" onClick={onCancel} className="flex-1 h-12 rounded-2xl font-bold text-slate-500 border-slate-200">Cancelar</Button>
-             <Button onClick={() => { onSave(localProduct); onCancel(); }} className="flex-1 h-12 rounded-2xl font-black bg-[#4A7C59] hover:bg-[#3D664A] text-white shadow-xl shadow-emerald-100">Aplicar</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 function SortableProductRow({ 
   img, 
   handleFileUpload, 
@@ -261,7 +107,6 @@ function SortableProductRow({
   isDragging?: boolean
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
 
   const {
@@ -311,19 +156,11 @@ function SortableProductRow({
         </div>
 
         <div className="flex-1 min-w-0 pr-4">
-          <h4 className="font-bold text-slate-800 text-sm truncate">{img.alt || 'Sin nombre'}</h4>
+          <h4 className="font-bold text-slate-800 text-sm truncate">{img.alt || 'Sin título'}</h4>
           <div className="flex items-center gap-3 mt-0.5">
-             <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] bg-[#4A7C59]/5 px-2 py-0.5 rounded-full">
-                {img.precio || 0}€
-             </span>
              <span className="text-[10px] font-bold text-slate-400 capitalize bg-slate-50 px-2 py-0.5 rounded-full">
                 {img.categoria}
              </span>
-             {img.hasVariants && (
-                <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[8px] font-black h-4 px-1.5 rounded-md uppercase tracking-tighter shadow-none border-none">
-                  Variantes
-                </Badge>
-             )}
           </div>
         </div>
 
@@ -341,49 +178,16 @@ function SortableProductRow({
 
       {/* CONTENIDO DESPLEGABLE */}
       {isExpanded && (
-        <div className="px-5 pb-5 pt-2 border-t border-slate-50 grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in slide-in-from-top-2 duration-300">
+        <div className="px-5 pb-5 pt-2 border-t border-slate-50 grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-top-2 duration-300">
            {/* Info Principal */}
            <div className="space-y-4">
               <div className="space-y-1.5">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Nombre Comercial</Label>
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Título de la foto</Label>
                  <Input 
                    value={img.alt} 
                    onChange={(e) => updateImg({ alt: e.target.value })}
                    className="h-10 bg-slate-50/50 border-none rounded-xl font-bold text-sm focus:bg-white transition-all shadow-inner"
                  />
-              </div>
-              <div className="space-y-1.5">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Descripción corta</Label>
-                 <Input 
-                   value={img.descripcion || ''} 
-                   onChange={(e) => updateImg({ descripcion: e.target.value })}
-                   className="h-10 bg-slate-50/50 border-none rounded-xl text-xs italic focus:bg-white transition-all shadow-inner"
-                 />
-              </div>
-           </div>
-
-           {/* Precio y Categoría */}
-           <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                 <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Precio Base</Label>
-                    <div className="relative">
-                       <Input 
-                         type="number"
-                         step="0.01"
-                         value={img.precio || 0} 
-                         onChange={(e) => updateImg({ precio: parseFloat(e.target.value) || 0 })}
-                         className="h-10 bg-slate-50/50 border-none rounded-xl font-black tabular-nums transition-all shadow-inner pr-8"
-                       />
-                       <span className="absolute right-3 top-2.5 text-[10px] font-bold text-slate-300">€</span>
-                    </div>
-                 </div>
-                 <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Visible</Label>
-                    <div className="h-10 flex items-center justify-center bg-slate-50/50 rounded-xl shadow-inner border border-transparent group-hover:bg-white transition-colors">
-                       <Switch checked={img.activa} onCheckedChange={(c) => updateImg({ activa: c })} />
-                    </div>
-                 </div>
               </div>
               <div className="space-y-1.5">
                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Categoría</Label>
@@ -400,32 +204,19 @@ function SortableProductRow({
               </div>
            </div>
 
-           {/* Acciones de Producto */}
-           <div className="flex flex-col gap-2 justify-end">
-              <div className="flex gap-2">
-                 <Button 
-                   className={`flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${img.hasVariants ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-slate-900 hover:bg-black text-white'}`}
-                   onClick={() => setShowDetails(true)}
-                 >
-                    <Settings2 className="h-4 w-4 mr-2" />
-                    Opciones / Variantes
-                 </Button>
-                 
-                 <Button
-                   variant="outline"
-                   className={`h-10 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
-                     (img.mostrarPrecio ?? true) ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-slate-50 text-slate-400'
-                   }`}
-                   onClick={() => updateImg({ mostrarPrecio: !(img.mostrarPrecio ?? true) })}
-                 >
-                    <Banknote className="h-4 w-4 mr-2" />
-                    { (img.mostrarPrecio ?? true) ? 'Visible' : 'Oculto' }
-                 </Button>
+           {/* Acciones */}
+           <div className="flex flex-col gap-4 justify-end">
+              <div className="flex items-center justify-between bg-slate-50/50 p-3 rounded-xl border border-transparent hover:bg-white transition-colors shadow-inner">
+                 <div className="flex flex-col">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Visible en Web</Label>
+                    <p className="text-[9px] text-slate-400">{img.activa ? 'La foto se muestra' : 'Foto oculta'}</p>
+                 </div>
+                 <Switch checked={img.activa} onCheckedChange={(c) => updateImg({ activa: c })} />
               </div>
 
               <div className="flex gap-2">
-                 <label className="flex-1 h-10 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100 rounded-xl flex items-center justify-center cursor-pointer transition-all">
-                    <Upload className="h-3.5 w-3.5 mr-2" />
+                 <label className="flex-1 h-12 bg-black text-white hover:bg-slate-800 rounded-xl flex items-center justify-center cursor-pointer transition-all shadow-lg shadow-black/5">
+                    <Upload className="h-4 w-4 mr-2" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Cambiar Foto</span>
                     <input 
                       type="file" 
@@ -436,22 +227,15 @@ function SortableProductRow({
 
                  <Button 
                    variant="ghost" 
-                   className="h-10 w-10 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-red-100"
+                   className="h-12 w-12 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-red-100"
                    onClick={() => setConfirmDelete(true)}
                  >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-5 w-5" />
                  </Button>
               </div>
            </div>
         </div>
       )}
-
-      <ProductDetailModal
-        open={showDetails}
-        product={img}
-        onCancel={() => setShowDetails(false)}
-        onSave={(updates) => updateImg(updates)}
-      />
 
       <DeleteConfirmModal
         open={confirmDelete}
@@ -471,13 +255,9 @@ export default function ProductsTab({
   config, 
   setConfig, 
   handleFileUpload, 
-  injectPreset, 
-  handleImportCSV, 
-  presets, 
   categories 
 }: ProductsTabProps) {
   const [activeGalleryTab, setActiveGalleryTab] = useState('todos')
-  const [showGalleryImages, setShowGalleryImages] = useState(true)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -515,9 +295,9 @@ export default function ProductsTab({
         <div className="flex flex-col gap-5 relative z-10">
            <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-2xl bg-black flex items-center justify-center text-white shadow-xl shadow-black/10">
-                 <Package className="h-5 w-5" />
+                 <ImageIcon className="h-5 w-5" />
               </div>
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight">Gestionar Artículos</h2>
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight text-center md:text-left">Galería de Portafolio</h2>
            </div>
 
            <div className="flex bg-slate-100/50 p-1.5 rounded-2xl border border-slate-100 w-fit no-scrollbar overflow-x-auto">
@@ -538,46 +318,6 @@ export default function ProductsTab({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 relative z-10">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-12 rounded-[1.2rem] bg-white border-slate-200 text-[11px] font-black uppercase tracking-widest px-5 flex items-center gap-2 hover:bg-slate-50 transition-all">
-                 <LayoutGrid className="h-4 w-4 text-slate-400" />
-                 Lotes / CSV
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72 rounded-[2rem] border-slate-100 shadow-2xl p-4 space-y-3">
-              <div className="space-y-1 px-2">
-                 <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 p-0">Plantillas de Packs</DropdownMenuLabel>
-                 <p className="text-[9px] text-slate-400 leading-none">Carga productos predefinidos al instante.</p>
-              </div>
-              <div className="grid grid-cols-1 gap-1.5">
-                {Object.keys(presets).map(key => (
-                  <button 
-                    key={key} 
-                    onClick={() => injectPreset(key)} 
-                    className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[#4A7C59]/5 text-slate-600 font-bold text-xs transition-all group/btn"
-                  >
-                     <div className="h-8 w-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover/btn:bg-white group-hover/btn:shadow-sm">
-                        <Plus className="h-4 w-4 text-slate-400" />
-                     </div>
-                     {key}
-                  </button>
-                ))}
-              </div>
-              <DropdownMenuSeparator className="bg-slate-50" />
-              <div className="space-y-3 p-2">
-                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 p-0 text-center">Importar Catálogo</DropdownMenuLabel>
-                <label className="flex flex-col items-center justify-center gap-2 w-full bg-slate-50 hover:bg-slate-100 p-6 rounded-[1.5rem] border-dashed border-2 border-slate-200 transition-all cursor-pointer group/import">
-                  <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center shadow-sm group-hover/import:scale-110 transition-transform">
-                     <Upload className="h-4 w-4 text-emerald-500" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Subir .CSV (Excel)</span>
-                  <input type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
-                </label>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           <Button 
              onClick={() => {
                const newId = Date.now();
@@ -586,12 +326,9 @@ export default function ProductsTab({
                  galeria: [{ 
                    id: newId, 
                    src: '', 
-                   alt: 'Nuevo Artículo', 
+                   alt: 'Nueva Foto', 
                    categoria: activeGalleryTab === 'todos' ? 'social' : activeGalleryTab,
-                   activa: true,
-                   precio: 0,
-                   stock: 0,
-                   mostrarPrecio: true
+                   activa: true
                  }, ...config.galeria]
                })
              }}
@@ -599,12 +336,12 @@ export default function ProductsTab({
             className="h-12 rounded-[1.2rem] border-slate-200 text-[11px] font-black uppercase tracking-widest px-5 hover:bg-slate-50"
           >
             <PlusCircle className="h-4 w-4 mr-2 text-slate-400" />
-            Borrador vacío
+            Añadir Borrador
           </Button>
 
           <label className="h-12 bg-black hover:bg-slate-800 text-white gap-3 rounded-[1.2rem] px-6 shadow-[0_10px_20px_-5px_rgba(0,0,0,0.2)] flex items-center cursor-pointer transition-all transform active:scale-95">
             <Upload className="h-4 w-4" />
-            <span className="text-xs font-black uppercase tracking-widest">Añadir con Foto</span>
+            <span className="text-xs font-black uppercase tracking-widest">Subir Imagen</span>
             <input 
               type="file" 
               className="hidden" 
@@ -618,10 +355,7 @@ export default function ProductsTab({
                     src: url, 
                     alt: 'Nueva Imagen', 
                     categoria: activeGalleryTab === 'todos' ? 'social' : activeGalleryTab,
-                    activa: true,
-                    precio: 0,
-                    stock: 0,
-                    mostrarPrecio: true
+                    activa: true
                   }, ...config.galeria]
                 })
               })}
@@ -630,7 +364,7 @@ export default function ProductsTab({
         </div>
       </div>
 
-      {/* LISTADO DE PRODUCTOS */}
+      {/* LISTADO DE FOTOS */}
       <div className="space-y-3">
         <DndContext 
           sensors={sensors}
@@ -657,11 +391,11 @@ export default function ProductsTab({
         {filteredGallery.length === 0 && (
           <div className="py-32 bg-white/50 border border-dashed border-slate-200 rounded-[3rem] text-center space-y-5">
             <div className="h-20 w-20 bg-slate-100 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
-               <Package className="h-8 w-8 text-slate-300" />
+               <ImageIcon className="h-8 w-8 text-slate-300" />
             </div>
             <div className="space-y-1">
-               <p className="text-lg font-black text-slate-800">No hay productos aquí</p>
-               <p className="text-sm text-slate-400">Escoge otra categoría o crea uno nuevo arriba.</p>
+               <p className="text-lg font-black text-slate-800">No hay fotos en esta categoría</p>
+               <p className="text-sm text-slate-400">Escoge otra categoría o sube una foto nueva arriba.</p>
             </div>
           </div>
         )}

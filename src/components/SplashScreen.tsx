@@ -15,7 +15,8 @@ export default function SplashScreen({ onComplete, logo, storeName }: SplashScre
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsAnimating(false)
-      setTimeout(onComplete, 500)
+      // Llamamos a onComplete inmediatamente para que la tienda cargue por debajo mientras el splash se desvanece
+      onComplete()
     }, 3000)
 
     return () => clearTimeout(timer)
@@ -25,7 +26,8 @@ export default function SplashScreen({ onComplete, logo, storeName }: SplashScre
     <AnimatePresence>
       {isAnimating && (
         <motion.div
-          initial={{ opacity: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white"

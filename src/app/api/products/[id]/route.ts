@@ -35,18 +35,18 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { 
-      name, description, price, categoryId, image, active, 
+    const {
+      name, description, price, categoryId, image, active,
       hasVariants, variantType, sortOrder, variants,
-      variantBehavior 
+      variantBehavior, isNew, salePrice, showPrice
     } = body
-    
+
     const docRef = doc(db, COLLECTIONS.PRODUCTS, id);
-    
+
     const updateData: any = {
       updatedAt: serverTimestamp()
     };
-    
+
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (price !== undefined) updateData.price = parseFloat(String(price));
@@ -59,6 +59,8 @@ export async function PUT(
     if (sortOrder !== undefined) updateData.sortOrder = parseInt(String(sortOrder));
     if (variantBehavior !== undefined) updateData.variantBehavior = variantBehavior;
     if (variants !== undefined) updateData.variants = variants;
+    if (isNew !== undefined) updateData.isNew = isNew;
+    if (salePrice !== undefined) updateData.salePrice = salePrice ? parseFloat(String(salePrice)) : null;
 
     await updateDoc(docRef, updateData);
     

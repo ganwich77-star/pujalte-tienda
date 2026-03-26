@@ -25,6 +25,8 @@ export interface Product {
   variantType: string | null
   variantBehavior?: 'add' | 'replace'
   variants: ProductVariant[]
+  isNew?: boolean
+  salePrice?: number | null
 }
 
 export interface Category {

@@ -60,50 +60,42 @@
       "src": "/uploads/1774306696835-cropped-image.jpg",
       "alt": "Foto Boda Pro",
       "categoria": "social",
-      "activa": true,
-      "precio": 150,
-      "stock": 10,
-      "mostrarPrecio": false
+      "activa": true
     },
     {
       "id": "2",
       "src": "/uploads/1774306747869-cropped-image.jpg",
       "alt": "Fotografía infantil",
       "categoria": "infantil",
-      "activa": true,
-      "mostrarPrecio": false
+      "activa": true
     },
     {
       "id": "5",
       "src": "/uploads/1774306831789-cropped-image.jpg",
       "alt": "Fotografía de estudio",
       "categoria": "infantil",
-      "activa": true,
-      "mostrarPrecio": false
+      "activa": true
     },
     {
       "id": "6",
       "src": "/uploads/1774306921429-cropped-image.jpg",
       "alt": "Fotografía de producto",
       "categoria": "producto",
-      "activa": true,
-      "mostrarPrecio": false
+      "activa": true
     },
     {
       "id": "3",
       "src": "/uploads/1774306941134-cropped-image.jpg",
       "alt": "Fotografía de producto",
       "categoria": "producto",
-      "activa": true,
-      "mostrarPrecio": false
+      "activa": true
     },
     {
       "id": "4",
       "src": "/uploads/1774306885285-cropped-image.jpg",
       "alt": "Fotografía de boda",
       "categoria": "social",
-      "activa": true,
-      "mostrarPrecio": false
+      "activa": true
     }
   ],
   "testimonios": [
@@ -145,5 +137,6 @@
     "titulo": "Fotodetalles y Recordatorios - Tu tienda de premium",
     "descripcion": "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. La tecnología al servicio de los recuerdos.",
     "keywords": "fotografía, cuadros, posters, láminas, impresiones, regalos personalizados, fotógrafo murcia"
-  }
+  },
+  "promos": []
 }

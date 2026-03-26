@@ -14,23 +14,8 @@ export interface GalleryImage {
   src: string;
   alt: string;
   categoria: string;
-  precio?: number;
-  stock?: number;
-  mostrarPrecio?: boolean;
   activa?: boolean;
   descripcion?: string;
-  isPack?: boolean;
-  packItems?: (string | number)[];
-  hasVariants?: boolean;
-  variantType?: string;
-  variantBehavior?: 'add' | 'replace';
-  variants?: {
-    id: string;
-    name: string;
-    price: number;
-    stock?: number;
-    sortOrder?: number;
-  }[];
 }
 
 export interface Testimonial {
@@ -40,6 +25,19 @@ export interface Testimonial {
   rating: number;
   fecha: string;
   activo: boolean;
+}
+
+export interface Promo {
+  id: string | number;
+  type: 'image' | 'video';
+  url: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  color: string;
+  buttonText: string;
+  action: 'shop' | 'contact' | 'none';
+  activa: boolean;
 }
 
 export interface LandingConfig {
@@ -75,6 +73,7 @@ export interface LandingConfig {
     keywords: string;
   };
   adminPassword?: string;
+  promos?: Promo[];
 }
 
 export const landingConfig = landingData as LandingConfig;

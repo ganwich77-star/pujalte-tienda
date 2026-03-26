@@ -45,9 +45,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { 
-      name, description, price, categoryId, image, 
+      name, description, price, categoryId, image,
       hasVariants, variantType, variants, sortOrder,
-      variantBehavior 
+      variantBehavior, isNew, salePrice 
     } = body
     
     const productsRef = collection(db, COLLECTIONS.PRODUCTS);
@@ -66,6 +66,8 @@ export async function POST(request: NextRequest) {
       hasVariants: hasVariants || false,
       variantType: variantType || null,
       variantBehavior: variantBehavior || 'add',
+      isNew: isNew || false,
+      salePrice: salePrice ? parseFloat(String(salePrice)) : null,
       sortOrder: sortOrder || 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
