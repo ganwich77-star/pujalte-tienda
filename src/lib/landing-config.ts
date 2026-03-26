@@ -52,6 +52,7 @@ export interface Promo {
   contentPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'bottom-center' | 'top';
   zoom?: boolean;
   zoomScale?: number;
+  zoomY?: number;
   muted?: boolean;
 }
 

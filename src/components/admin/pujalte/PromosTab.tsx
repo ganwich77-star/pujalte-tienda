@@ -20,7 +20,8 @@ import {
   ExternalLink,
   Maximize2,
   Volume2,
-  VolumeX
+  VolumeX,
+  MoveVertical
 } from 'lucide-react'
 import { 
   DropdownMenu, 
@@ -504,19 +505,41 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                               />
                             </div>
                             {promo.zoom && (
-                              <div className="px-1 py-1 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Intensidad</span>
-                                  <span className="text-[10px] font-black text-[#4A7C59]">{(promo.zoomScale || 1.25).toFixed(2)}x</span>
+                              <div className="px-1 py-1 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                {/* Escala */}
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Intensidad Zoom</span>
+                                    <span className="text-[10px] font-black text-[#4A7C59]">{(promo.zoomScale || 1.25).toFixed(2)}x</span>
+                                  </div>
+                                  <Slider
+                                    defaultValue={[promo.zoomScale || 1.25]}
+                                    max={1.5}
+                                    min={1.05}
+                                    step={0.01}
+                                    onValueChange={([val]) => handleUpdatePromo(promo.id, 'zoomScale', val)}
+                                    className="py-1"
+                                  />
                                 </div>
-                                <Slider
-                                  defaultValue={[promo.zoomScale || 1.25]}
-                                  max={1.5}
-                                  min={1.05}
-                                  step={0.01}
-                                  onValueChange={([val]) => handleUpdatePromo(promo.id, 'zoomScale', val)}
-                                  className="py-2"
-                                />
+
+                                {/* Posición Y */}
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-1">
+                                      <MoveVertical className="h-2 w-2 text-slate-400" />
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Posición Vertical</span>
+                                    </div>
+                                    <span className="text-[10px] font-black text-[#4A7C59]">{Math.round(promo.zoomY ?? 50)}%</span>
+                                  </div>
+                                  <Slider
+                                    defaultValue={[promo.zoomY ?? 50]}
+                                    max={100}
+                                    min={0}
+                                    step={1}
+                                    onValueChange={([val]) => handleUpdatePromo(promo.id, 'zoomY', val)}
+                                    className="py-1"
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>
