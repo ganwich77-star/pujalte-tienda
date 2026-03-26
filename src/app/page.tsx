@@ -1309,6 +1309,45 @@ Mi email: ${formData.email}`
             </section>
           )}
 
+          {/* Contact Section - UNIFICADA Y SÓLIDA */}
+          <section id="contacto" className="py-24 md:py-32 relative overflow-hidden bg-[#4A7C59]/5">
+            <div className="container mx-auto px-4 relative z-10">
+              <div className="max-w-4xl mx-auto">
+                <motion.div 
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="bg-white/40 backdrop-blur-md border border-white/20 p-12 md:p-20 rounded-[3rem] shadow-2xl text-center relative overflow-hidden"
+                >
+                  <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-[#4A7C59] to-transparent opacity-30" />
+                  
+                  <span className="text-[#4A7C59] font-bold tracking-[0.2em] uppercase text-xs mb-6 block">¿Damos el primer paso?</span>
+                  <h2 className="text-4xl md:text-6xl font-light text-gray-900 mb-8 leading-tight italic">Hablemos de tu gran historia</h2>
+                  
+                  <p className="text-gray-600 mb-12 max-w-xl mx-auto text-lg md:text-xl font-light leading-relaxed">
+                    Cada detalle cuenta, cada momento es único. Estoy aquí para conocer tus ideas y convertirlas en recuerdos eternos.
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => window.open(`https://wa.me/${config.whatsappNumber}?text=${encodeURIComponent('¡Hola! Me gustaría obtener más información sobre vuestros servicios.')}`)}
+                      className="group bg-[#4A7C59] text-white px-12 py-6 rounded-full font-bold shadow-2xl shadow-[#4A7C59]/30 hover:bg-[#3d664a] transition-all flex items-center gap-3 text-lg"
+                    >
+                      <MessageCircle className="w-6 h-6 transition-transform group-hover:rotate-12" />
+                      Contactar por WhatsApp
+                    </motion.button>
+                  </div>
+                  
+                  <p className="mt-10 text-gray-400 text-sm font-light">
+                    Respondo encantado en menos de 24 horas
+                  </p>
+                </motion.div>
+              </div>
+            </div>
+          </section>
+
           {/* Testimonios */}
           {(config.visibilidad?.testimonios ?? true) && (
             <section className="py-24 md:py-32 bg-[#4A7C59]/5">
@@ -1388,21 +1427,7 @@ Mi email: ${formData.email}`
             </section>
           )}
 
-          {/* Contact Section */}
-          <section id="contacto" className="py-24 md:py-32 bg-white">
-            <div className="container mx-auto px-4 text-center">
-              <h2 className="text-4xl font-light text-gray-900 mb-8">Hablemos</h2>
-              <p className="text-gray-500 mb-12 max-w-xl mx-auto">
-                ¿Planeando una boda o evento especial? Me encantaría conocer tu historia.
-              </p>
-              <button 
-                onClick={() => window.open(`https://wa.me/${config.whatsappNumber}?text=${encodeURIComponent('¡Hola! Me gustaría obtener más información sobre vuestros servicios.')}`)}
-                className="bg-[#4A7C59] text-white px-10 py-5 rounded-full font-bold shadow-xl hover:bg-[#3d664a] transition-all hover:scale-105"
-              >
-                Contactar por WhatsApp
-              </button>
-            </div>
-          </section>
+
 
           {/* Footer */}
           <footer className="py-20 bg-gray-900 text-white overflow-hidden relative">
