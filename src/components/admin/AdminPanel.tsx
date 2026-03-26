@@ -71,7 +71,7 @@ interface AdminPanelProps {
   onDeleteOrder: (id: string) => void
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void
   onDownloadTemplate: () => void
-  onSaveConfig: () => void
+  onSaveConfig: (newConfig?: StoreConfig) => void
   onUpdateConfig: (config: StoreConfig) => void
   onRefreshCategories: () => void
   addVariant: () => void
@@ -264,7 +264,7 @@ export function AdminPanel(props: AdminPanelProps) {
                 <CheckoutTab
                   config={config}
                   onUpdateConfig={onUpdateConfig}
-                  onSave={onSaveConfig}
+                  onSave={() => onSaveConfig(config)}
                 />
               )}
 
@@ -272,7 +272,7 @@ export function AdminPanel(props: AdminPanelProps) {
                 <ConfigTab 
                   config={config} 
                   onUpdateConfig={onUpdateConfig} 
-                  onSave={onSaveConfig} 
+                  onSave={() => onSaveConfig(config)} 
                 />
               )}
 
@@ -280,9 +280,10 @@ export function AdminPanel(props: AdminPanelProps) {
                 <PromosTab 
                   config={config as any} 
                   onUpdateConfig={(newConfig) => onUpdateConfig(newConfig as any)} 
-                  onSave={onSaveConfig} 
+                  onSave={() => onSaveConfig(config)} 
                 />
               )}
+
             </div>
           </div>
         </div>

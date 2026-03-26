@@ -13,8 +13,19 @@ import {
   Link as LinkIcon, 
   Sparkles,
   Eye,
-  ChevronDown
+  ChevronDown,
+  MoreVertical,
+  Copy,
+  Download,
+  ExternalLink
 } from 'lucide-react'
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,7 +46,7 @@ import { ImageCropper } from './image-cropper'
 interface PromosTabProps {
   config: LandingConfig
   onUpdateConfig: (config: LandingConfig) => void
-  onSave: () => void
+  onSave: (config?: LandingConfig) => void
 }
 
 export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
@@ -210,54 +221,68 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                 </div>
               </AccordionTrigger>
 
-              <div className="flex items-center gap-6 shrink-0 ml-auto border-l pl-6 border-slate-200 h-10">
-                <div className="flex flex-col items-center gap-1.5 transition-transform hover:scale-105">
+              <div className="flex items-center gap-2 mr-0 ml-auto border-l border-slate-100 pl-4">
+                <div className="flex flex-col items-center gap-1.5 px-3">
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Ver</span>
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    className="h-10 w-10 text-slate-400 hover:text-[#4A7C59] hover:bg-[#4A7C59]/10 rounded-xl"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewPromo(promo);
-                    }}
+                    className="h-10 w-10 text-slate-400 hover:text-[#4A7C59] hover:bg-[#4A7C59]/10 rounded-xl transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setPreviewPromo(promo); }}
                   >
                     <Eye className="h-4.5 w-4.5" />
                   </Button>
                 </div>
 
-                <div className="flex flex-col items-center gap-1.5 transition-transform hover:scale-105">
+                <div className="flex flex-col items-center gap-1.5 px-3 border-l border-slate-100">
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Estado</span>
-                  <div className="h-10 flex items-center">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUpdatePromo(promo.id, 'activa', !promo.activa);
-                      }}
-                      className="transition-all active:scale-90"
-                    >
-                      {promo.activa ? (
-                        <ToggleRight className="h-7 w-7 text-[#4A7C59] drop-shadow-sm" />
-                      ) : (
-                        <ToggleLeft className="h-7 w-7 text-slate-300" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="flex flex-col items-center gap-1.5 transition-transform hover:scale-105">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Borrar</span>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-10 w-10 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeletePromo(promo.id);
-                    }}
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleUpdatePromo(promo.id, 'activa', !promo.activa); }}
+                    className="h-10 transition-all active:scale-90 flex items-center"
                   >
-                    <Trash2 className="h-4.5 w-4.5" />
-                  </Button>
+                    {promo.activa ? (
+                      <ToggleRight className="h-8 w-8 text-[#4A7C59]" />
+                    ) : (
+                      <ToggleLeft className="h-8 w-8 text-slate-300" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex flex-col items-center gap-1.5 pl-3 border-l border-slate-100">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Acciones</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-100">
+                        <MoreVertical className="h-5 w-5 text-slate-500" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 border-slate-100 shadow-2xl">
+                      <DropdownMenuItem className="rounded-xl gap-2 font-medium" onClick={() => setPreviewPromo(promo)}>
+                        <Eye className="h-4 w-4" /> Previsualizar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="rounded-xl gap-2 font-medium">
+                        <ExternalLink className="h-4 w-4" /> Ir al enlace
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="rounded-xl gap-2 font-medium" onClick={() => {
+                        const newPromo = { ...promo, id: Math.random().toString(36).substr(2, 9), title: `${promo.title} (Copia)` };
+                        onUpdateConfig({ ...config, promos: [...promos, newPromo] });
+                        toast({ title: "Banner Duplicado", description: "Se ha creado una copia correctamente." });
+                      }}>
+                        <Copy className="h-4 w-4" /> Duplicar Banner
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        className="rounded-xl gap-2 font-medium text-red-600 focus:text-red-600 focus:bg-red-50"
+                        onClick={() => {
+                          handleDeletePromo(promo.id);
+                          toast({ title: "Eliminado", description: "Banner borrado" });
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" /> Eliminar Permanentemente
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
@@ -429,7 +454,7 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
 
       <div className="flex justify-end pt-6">
         <Button 
-          onClick={onSave}
+          onClick={() => onSave(config)}
           className="bg-[#4A7C59] hover:bg-[#3d664a] rounded-2xl px-12 h-14 font-bold shadow-xl shadow-[#4A7C59]/20 transition-all active:scale-95 text-lg"
         >
           Guardar Todos los Cambios

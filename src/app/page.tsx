@@ -558,6 +558,10 @@ Mi email: ${formData.email}`
 
   const handleSaveConfig = async (newConfig?: StoreConfig) => {
     const configToSave = newConfig || config
+    console.log('💾 [HOME] Enviando config a guardar:', { 
+      hasPromos: !!configToSave.promos, 
+      count: configToSave.promos?.length 
+    })
     try {
       const res = await fetch('/api/config', {
         method: 'POST',
@@ -570,6 +574,7 @@ Mi email: ${formData.email}`
       }
     } catch (error) { console.error(error) }
   }
+
 
   const toggleShowImages = () => {
     const newConfig = { ...config, showImages: !config.showImages }

@@ -87,4 +87,6 @@ export interface StoreConfig {
   enableCard: boolean
   adminPassword?: string
   formFields: FormField[]
+  promos?: any[] // Para evitar dependencias circulares con lib/landing-config
 }
+

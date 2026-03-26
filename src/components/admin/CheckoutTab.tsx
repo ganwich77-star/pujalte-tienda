@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 interface CheckoutTabProps {
   config: StoreConfig
   onUpdateConfig: (config: StoreConfig) => void
-  onSave: () => void
+  onSave: (config?: StoreConfig) => void
 }
 
 export function CheckoutTab({ config, onUpdateConfig, onSave }: CheckoutTabProps) {
@@ -113,7 +113,7 @@ export function CheckoutTab({ config, onUpdateConfig, onSave }: CheckoutTabProps
           </div>
 
           <div className="flex justify-end pt-4">
-            <Button onClick={onSave} className="gap-2 px-8">
+            <Button onClick={() => onSave(config)} className="gap-2 px-8">
               <CheckCircle2 className="h-4 w-4" /> Guardar Formulario
             </Button>
           </div>

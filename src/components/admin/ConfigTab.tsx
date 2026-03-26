@@ -13,7 +13,7 @@ import { StoreConfig } from '@/types'
 interface ConfigTabProps {
   config: StoreConfig
   onUpdateConfig: (config: StoreConfig) => void
-  onSave: () => void
+  onSave: (config?: StoreConfig) => void
 }
 
 export function ConfigTab({ config, onUpdateConfig, onSave }: ConfigTabProps) {
@@ -119,7 +119,7 @@ export function ConfigTab({ config, onUpdateConfig, onSave }: ConfigTabProps) {
  
          <Separator />
         <div className="flex justify-end">
-          <Button onClick={onSave} className="gap-2 px-8">
+          <Button onClick={() => onSave(config)} className="gap-2 px-8">
             <Save className="h-4 w-4" /> Guardar Cambios
           </Button>
         </div>

@@ -50,6 +50,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log('📡 [API/CONFIG] Guardando configuración:', Object.keys(body))
+    if (body.promos) console.log('🖼️  [API/CONFIG] Banners detectados:', body.promos.length)
+    
     const docRef = doc(db, COLLECTIONS.CONFIG, 'default');
     
     await setDoc(docRef, {
@@ -58,6 +61,7 @@ export async function POST(request: NextRequest) {
     }, { merge: true });
     
     return NextResponse.json({ success: true, ...body })
+
   } catch (error: any) {
     console.error('Error saving config in Firebase:', error)
     return NextResponse.json({ error: 'Error al guardar configuración en Firebase' }, { status: 500 })
