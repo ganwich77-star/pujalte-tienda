@@ -78,27 +78,27 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
             className="flex flex-col w-full md:absolute md:inset-0"
           >
             {/* MOBILE ONLY: HEADER (ABOVE VIDEO) */}
-            <div className="md:hidden flex flex-col items-center text-center p-6 space-y-4">
+            <div className="md:hidden flex flex-col items-center text-center p-6 space-y-3">
               <div className={cn(
-                "inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-black uppercase tracking-[0.3em] text-white shadow-2xl text-[9px]",
+                "inline-flex items-center gap-2 rounded-full px-3 py-1 font-black uppercase tracking-[0.2em] text-white shadow-xl text-[8px]",
                 current.color || 'from-amber-400 to-orange-500',
                 "bg-gradient-to-r"
               )}>
-                <Sparkles className="h-3 w-3" />
+                <Sparkles className="h-2.5 w-2.5" />
                 {current.badge}
               </div>
               
-              <h2 className="text-4xl sm:text-5xl font-black text-white leading-[0.9] tracking-tighter drop-shadow-2xl italic">
+              <h2 className="text-2xl sm:text-3xl font-black text-white leading-[0.95] tracking-tight drop-shadow-2xl italic uppercase">
                 {current.title}
               </h2>
               
-              <p className="text-sm sm:text-base text-white/80 font-medium leading-tight max-w-[280px] sm:max-w-md">
+              <p className="text-[10px] sm:text-xs text-white/70 font-bold uppercase tracking-widest max-w-[260px] leading-tight">
                 {current.subtitle}
               </p>
             </div>
 
             {/* MEDIA CONTAINER (ALWAYS HORIZONTAL) */}
-            <div className="relative w-full aspect-video md:absolute md:inset-0 bg-black rounded-[2rem] md:rounded-none overflow-hidden shadow-2xl z-10 transition-all duration-500">
+            <div className="relative w-full aspect-video md:absolute md:inset-0 bg-black rounded-[2.5rem] md:rounded-none overflow-hidden shadow-2xl z-10 border border-white/5 transition-all duration-500">
               {/* Media Content */}
               <div className="absolute inset-0 w-full h-full">
                 {(current.type === 'video' || current.url?.match(/\.(mp4|mov|webm|m4v)/i)) ? (
@@ -138,6 +138,24 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                   !current.contentPosition && "bg-gradient-to-tr from-black/30 via-black/5 to-transparent"
                 )} />
               </div>
+
+              {/* Botones de navegación - Solo dentro del contenedor de media en móvil */}
+              {promos.length > 1 && (
+                <div className="md:hidden absolute inset-0 z-[60] flex items-center justify-between px-4 pointer-events-none">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); prev(); }}
+                    className="pointer-events-auto h-10 w-10 rounded-full border border-white/10 bg-black/20 backdrop-blur-sm text-white/70 flex items-center justify-center active:scale-90 transition-all"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); next(); }}
+                    className="pointer-events-auto h-10 w-10 rounded-full border border-white/10 bg-black/20 backdrop-blur-sm text-white/70 flex items-center justify-center active:scale-90 transition-all"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+              )}
 
               {/* DESKTOP ONLY CONTENT OVERLAY */}
               <div className={cn(
@@ -218,23 +236,20 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
           </motion.div>
         </AnimatePresence>
 
-        {/* REFINED CLOSE BUTTON */}
-        {/* Botón de cierre eliminado a petición del usuario */}
-
-        {/* Navigation - Only show if more than 1 promo */}
+        {/* Navigation - Only show if more than 1 promo (DESKTOP) */}
         {promos.length > 1 && (
           <>
             <button 
               onClick={prev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 md:h-12 md:w-12 rounded-full border border-white/10 bg-black/10 backdrop-blur-sm text-white/50 flex items-center justify-center hover:bg-black/40 hover:text-white transition-all active:scale-90"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 rounded-full border border-white/10 bg-black/10 backdrop-blur-sm text-white/50 md:flex hidden items-center justify-center hover:bg-black/40 hover:text-white transition-all active:scale-90"
             >
-              <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
+              <ChevronLeft className="h-6 w-6" />
             </button>
             <button 
               onClick={next}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 md:h-12 md:w-12 rounded-full border border-white/10 bg-black/10 backdrop-blur-sm text-white/50 flex items-center justify-center hover:bg-black/40 hover:text-white transition-all active:scale-90"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 rounded-full border border-white/10 bg-black/10 backdrop-blur-sm text-white/50 md:flex hidden items-center justify-center hover:bg-black/40 hover:text-white transition-all active:scale-90"
             >
-              <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
+              <ChevronRight className="h-6 w-6" />
             </button>
 
             {/* Indicators */}

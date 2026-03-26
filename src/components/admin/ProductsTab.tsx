@@ -6,6 +6,7 @@ import {
   ImageOff, Upload, MoreVertical, GripVertical, Check, X as CloseIcon, ZoomIn, ZoomOut,
   ArrowUpDown, ArrowUp, ArrowDown, Info, AlertCircle, Banknote, Sparkles, Tag
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Checkbox } from "@/components/ui/checkbox"
 import Cropper from 'react-easy-crop'
 import { getCroppedImg } from '@/lib/cropImage'
@@ -832,16 +833,15 @@ export function ProductsTab({
                   </div>
                 </div>
 
-                {/* Columna Derecha: Datos */}
                 <div className="md:col-span-7 space-y-6">
                   <div className="space-y-2.5">
-                    <Label htmlFor="productName" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre</Label>
+                    <Label htmlFor="productName" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre del Elemento</Label>
                     <Input 
                       id="productName" 
                       value={productForm.name} 
                       onChange={(e) => setProductForm({...productForm, name: e.target.value})}
                       className="rounded-xl sm:rounded-2xl h-11 sm:h-12 text-sm font-bold bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-slate-200"
-                      placeholder="Nombre del elemento..."
+                      placeholder="Ej: Sesión Infantil Premium..."
                     />
                   </div>
 
@@ -863,16 +863,181 @@ export function ProductsTab({
                     </Select>
                   </div>
 
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2.5">
+                      <Label htmlFor="productPrice" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Precio Base (€)</Label>
+                      <div className="relative group">
+                        <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
+                        <Input 
+                          id="productPrice" 
+                          type="number"
+                          step="0.01"
+                          value={productForm.price} 
+                          onChange={(e) => setProductForm({...productForm, price: Number(e.target.value)})}
+                          className="rounded-xl sm:rounded-2xl h-11 sm:h-12 text-sm font-bold bg-slate-50 border-none pl-11 focus-visible:ring-1 focus-visible:ring-slate-200"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <Label htmlFor="productSalePrice" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Precio Oferta (Opcional)</Label>
+                      <div className="relative group">
+                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
+                        <Input 
+                          id="productSalePrice" 
+                          type="number"
+                          step="0.01"
+                          value={productForm.salePrice || ''} 
+                          onChange={(e) => setProductForm({...productForm, salePrice: e.target.value ? Number(e.target.value) : null})}
+                          className="rounded-xl sm:rounded-2xl h-11 sm:h-12 text-sm font-bold bg-slate-50 border-none pl-11 focus-visible:ring-1 focus-visible:ring-slate-200 text-amber-600 placeholder:text-slate-200"
+                          placeholder="Sin oferta..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-2.5">
                     <Label htmlFor="productDescription" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Descripción</Label>
                     <textarea
                       id="productDescription"
                       value={productForm.description || ''}
                       onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                      className="w-full min-h-[100px] sm:min-h-[120px] rounded-xl sm:rounded-2xl p-4 text-xs font-bold bg-slate-50 border-none focus:ring-1 focus:ring-slate-200 resize-none placeholder:text-slate-300"
+                      className="w-full min-h-[80px] sm:min-h-[100px] rounded-xl sm:rounded-2xl p-4 text-xs font-bold bg-slate-50 border-none focus:ring-1 focus:ring-slate-200 resize-none placeholder:text-slate-300"
                       placeholder="Detalles sobre el producto..."
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Sección de Variantes */}
+              <div className="space-y-6 pt-6 border-t border-slate-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                      <ArrowUpDown className="h-5 w-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 leading-none">Opciones y Variantes</h3>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Tallas, acabados, etc.</p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={productForm.hasVariants} 
+                    onCheckedChange={(checked) => setProductForm({...productForm, hasVariants: checked})}
+                    className="data-[state=checked]:bg-slate-900"
+                  />
+                </div>
+
+                <AnimatePresence>
+                  {productForm.hasVariants && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="space-y-6 overflow-hidden"
+                    >
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Etiqueta (ej: Talla)</Label>
+                          <Input 
+                            value={productForm.variantType || ''} 
+                            onChange={(e) => setProductForm({...productForm, variantType: e.target.value})}
+                            placeholder="Talla, Color, Papel..."
+                            className="bg-slate-50 border-none rounded-xl h-10 text-xs font-bold"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Comportamiento Precio</Label>
+                          <Select 
+                            value={productForm.variantBehavior || 'replace'} 
+                            onValueChange={(val: any) => setProductForm({...productForm, variantBehavior: val})}
+                          >
+                            <SelectTrigger className="bg-slate-50 border-none rounded-xl h-10 text-xs font-bold">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-none shadow-2xl">
+                              <SelectItem value="replace" className="text-xs font-bold">Sustituir Base</SelectItem>
+                              <SelectItem value="add" className="text-xs font-bold">Sumar al Base</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {productForm.variants?.map((variant: any, index: number) => (
+                          <div key={index} className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl group/variant">
+                            <div className="flex-1 space-y-2">
+                              <Input 
+                                placeholder="Nombre (ej: XL)" 
+                                value={variant.name} 
+                                onChange={(e) => updateVariant(index, 'name', e.target.value)}
+                                className="bg-white border-none h-9 text-xs font-bold"
+                              />
+                            </div>
+                            <div className="w-24">
+                              <Input 
+                                type="number" 
+                                placeholder="Precio" 
+                                value={variant.price} 
+                                onChange={(e) => updateVariant(index, 'price', Number(e.target.value))}
+                                className="bg-white border-none h-9 text-xs font-bold"
+                              />
+                            </div>
+                            <div className="w-20">
+                              <Input 
+                                type="number" 
+                                placeholder="Stock" 
+                                value={variant.stock} 
+                                onChange={(e) => updateVariant(index, 'stock', Number(e.target.value))}
+                                className="bg-white border-none h-9 text-xs font-bold"
+                              />
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => removeVariant(index)}
+                              className="h-9 w-9 text-slate-300 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button 
+                          variant="outline" 
+                          onClick={addVariant}
+                          className="w-full h-10 border-dashed border-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all"
+                        >
+                          <Plus className="h-3 w-3 mr-2" />
+                          Añadir Variante
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Configuración Avanzada */}
+              <div className="grid grid-cols-2 gap-4 pt-4">
+                <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Info className="h-4 w-4 text-slate-400" />
+                    <Label className="text-[9px] font-black uppercase tracking-widest text-slate-600">Mostrar Precio</Label>
+                  </div>
+                  <Switch 
+                    checked={productForm.showPrice !== false} 
+                    onCheckedChange={(checked) => setProductForm({...productForm, showPrice: checked})}
+                  />
+                </div>
+                <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Package className="h-4 w-4 text-slate-400" />
+                    <Label className="text-[9px] font-black uppercase tracking-widest text-slate-600">Es un Pack</Label>
+                  </div>
+                  <Switch 
+                    checked={productForm.isPack || false} 
+                    onCheckedChange={(checked) => setProductForm({...productForm, isPack: checked})}
+                    className="data-[state=checked]:bg-emerald-500"
+                  />
                 </div>
               </div>
 

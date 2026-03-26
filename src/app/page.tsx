@@ -1015,9 +1015,11 @@ Mi email: ${formData.email}`
                   const gridCols = count === 2 ? 'lg:grid-cols-2' : count === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
                   
                   return (
-                    <div className={`grid grid-cols-1 md:grid-cols-2 ${gridCols} gap-8 max-w-7xl mx-auto`}>
+                    <div className={`grid grid-cols-2 md:grid-cols-2 ${gridCols} gap-4 md:gap-8 max-w-7xl mx-auto`}>
                       {activeServices.map((service: any, index: number) => {
                         const Icon = iconMap[service.icono] || Heart
+                        const isLastOdd = count % 2 !== 0 && index === count - 1;
+                        
                         return (
                           <motion.div
                             key={service.id}
@@ -1025,21 +1027,24 @@ Mi email: ${formData.email}`
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: index * 0.1 }}
-                            className="group"
+                            className={cn(
+                              "group",
+                              isLastOdd && "col-span-2 md:col-span-1"
+                            )}
                           >
-                            <div className="relative h-full p-8 rounded-3xl border border-gray-100 bg-white hover:border-[#4A7C59]/20 hover:shadow-2xl hover:shadow-[#4A7C59]/5 transition-all duration-500">
-                              <div className="mb-8 aspect-[4/3] rounded-2xl overflow-hidden relative shadow-md">
+                            <div className="relative h-full p-4 md:p-8 rounded-2xl md:rounded-3xl border border-gray-100 bg-white hover:border-[#4A7C59]/20 hover:shadow-2xl hover:shadow-[#4A7C59]/5 transition-all duration-500">
+                              <div className="mb-4 md:mb-8 aspect-[4/3] rounded-xl md:rounded-2xl overflow-hidden relative shadow-md">
                                 <img 
                                   src={fixPath(service.foto)} 
                                   alt={service.titulo} 
                                   className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110" 
                                 />
-                                <div className="absolute top-4 left-4 h-12 w-12 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg">
-                                  <Icon className="h-6 w-6 text-[#4A7C59]" />
+                                <div className="absolute top-2 left-2 md:top-4 md:left-4 h-8 w-8 md:h-12 md:w-12 bg-white/90 backdrop-blur-md rounded-lg md:rounded-2xl flex items-center justify-center shadow-lg">
+                                  <Icon className="h-4 w-4 md:h-6 md:w-6 text-[#4A7C59]" />
                                 </div>
                               </div>
-                              <h3 className="text-xl font-bold mb-4 text-gray-900">{service.titulo}</h3>
-                              <p className="text-gray-600 leading-relaxed text-sm">{service.descripcion}</p>
+                              <h3 className="text-sm md:text-xl font-bold mb-2 md:mb-4 text-gray-900 line-clamp-1">{service.titulo}</h3>
+                              <p className="text-gray-600 leading-relaxed text-[10px] md:text-sm line-clamp-3 md:line-clamp-none">{service.descripcion}</p>
                             </div>
                           </motion.div>
                         )
@@ -1129,28 +1134,30 @@ Mi email: ${formData.email}`
                 
                 <motion.div 
                   layout
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                  className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8"
                 >
                   <AnimatePresence mode='popLayout'>
-                    {(filteredGallery.length > 0 ? filteredGallery : landingData.galeria).map((img: any) => (
-                      <motion.div
-                        layout
-                        key={img.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.4 }}
-                        className="aspect-square relative overflow-hidden rounded-3xl group cursor-pointer bg-white shadow-sm"
-                      >
-                        <img 
-                          src={fixPath(img.src)} 
-                          alt={img.alt} 
-                          className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110" 
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-8">
-                        </div>
-                      </motion.div>
-                    ))}
+                    {allCombinedProducts
+                      .filter(p => p.active && (activeLandingCategory === 'todos' || 
+                        p.categoryId === activeLandingCategory || 
+                        p.category?.name?.toLowerCase() === activeLandingCategory.toLowerCase()))
+                      .map((product) => (
+                        <motion.div
+                          layout
+                          key={product.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ duration: 0.4 }}
+                        >
+                          <ProductCard 
+                            product={product}
+                            config={config}
+                            formatPrice={formatPrice}
+                            handleAddToCart={handleAddToCart}
+                          />
+                        </motion.div>
+                      ))}
                   </AnimatePresence>
                 </motion.div>
               </div>

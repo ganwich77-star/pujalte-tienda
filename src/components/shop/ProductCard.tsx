@@ -173,18 +173,19 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                         .filter(v => v.name && v.name.trim() !== '')
                         .sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0))
                         .map(variant => {
-                        const finalVariantPrice = product.variantBehavior === 'replace' 
-                          ? Number(variant.price) 
-                          : Number(product.price) + Number(variant.price);
-                          
-                        return (
-                          <SelectItem key={variant.id} value={variant.id} className="text-[13px] font-bold rounded-2xl py-3.5 cursor-pointer focus:bg-white/10 focus:text-emerald-400">
-                            <div className="flex items-center justify-between w-full min-w-[200px]">
-                               <span className="mr-8">{variant.name}</span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
+                          const finalVariantPrice = product.variantBehavior === 'replace' 
+                            ? Number(variant.price) 
+                            : activeBasePrice + Number(variant.price);
+                            
+                          return (
+                            <SelectItem key={variant.id} value={variant.id} className="text-[13px] font-bold rounded-2xl py-3.5 cursor-pointer focus:bg-white/10 focus:text-emerald-400">
+                              <div className="flex items-center justify-between w-full min-w-[200px] gap-8">
+                                 <span>{variant.name}</span>
+                                 <span className="text-emerald-400 tabular-nums">{formatPrice(finalVariantPrice)}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
                     </SelectContent>
                   </Select>
                 </div>
