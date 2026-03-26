@@ -17,7 +17,9 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
   const [index, setIndex] = useState(0)
   const [isMuted, setIsMuted] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
-
+  
+  const current = promos[index]
+  
   useEffect(() => {
     if (promos.length <= 1) return
     const timer = setInterval(() => {
@@ -25,6 +27,12 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
     }, 8000)
     return () => clearInterval(timer)
   }, [index, promos.length])
+
+  useEffect(() => {
+    if (current?.type === 'video') {
+      setIsMuted(current.muted ?? true)
+    }
+  }, [index, current?.id])
 
   const next = () => setIndex((index + 1) % promos.length)
   const prev = () => setIndex((index - 1 + promos.length) % promos.length)
@@ -35,7 +43,6 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
     else onClose()
   }
 
-  const current = promos[index]
   if (!current) return null
 
   const getActionIcon = (action: string) => {
@@ -80,19 +87,15 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                   loop 
                   muted={isMuted}
                   playsInline
-                  className={cn(
-                    "w-full h-full object-cover transition-transform duration-[10s] ease-out",
-                    current.zoom && "scale-125"
-                  )}
+                  className="w-full h-full object-cover transition-transform duration-[10s] ease-out"
+                  style={current.zoom ? { transform: `scale(${current.zoomScale || 1.25})` } : {}}
                 />
               ) : (
                 <img 
                   src={fixPath(current.url)} 
                   alt={current.title}
-                  className={cn(
-                    "w-full h-full object-cover transition-transform duration-[10s] ease-out",
-                    current.zoom && "scale-125"
-                  )}
+                  className="w-full h-full object-cover transition-transform duration-[10s] ease-out"
+                  style={current.zoom ? { transform: `scale(${current.zoomScale || 1.25})` } : {}}
                 />
               )}
 
@@ -172,9 +175,17 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
         {/* Botón de cierre eliminado a petición del usuario */}
 
         {/* Navigation - Only show if more than 1 promo */}
-        {promos.length > 1 && (
+        {promos.length > 1 ? (
           <>
             <div className="absolute bottom-10 right-8 md:right-20 z-50 flex items-center gap-4">
+              {current.type === 'video' && (
+                <button 
+                  onClick={() => setIsMuted(!isMuted)}
+                  className="h-14 w-14 rounded-full border border-white/20 bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90 shadow-2xl mr-4"
+                >
+                  {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+                </button>
+              )}
               <button 
                 onClick={prev}
                 className="h-14 w-14 rounded-2xl border border-white/20 bg-black/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90 shadow-2xl"
@@ -200,6 +211,18 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
               ))}
             </div>
           </>
+        ) : (
+          /* Case for single promo with video - Sound button needs to stay */
+          current.type === 'video' && (
+            <div className="absolute bottom-10 right-8 md:right-20 z-50">
+              <button 
+                onClick={() => setIsMuted(!isMuted)}
+                className="h-14 w-14 rounded-full border border-white/20 bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/20 transition-all active:scale-90 shadow-2xl"
+              >
+                {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+              </button>
+            </div>
+          )
         )}
       </motion.div>
       

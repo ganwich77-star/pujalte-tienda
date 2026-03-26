@@ -51,6 +51,8 @@ export interface Promo {
   activa: boolean;
   contentPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'bottom-center' | 'top';
   zoom?: boolean;
+  zoomScale?: number;
+  muted?: boolean;
 }
 
 export interface LandingConfig {

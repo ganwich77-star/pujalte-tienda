@@ -18,7 +18,9 @@ import {
   Copy,
   Download,
   ExternalLink,
-  Maximize2
+  Maximize2,
+  Volume2,
+  VolumeX
 } from 'lucide-react'
 import { 
   DropdownMenu, 
@@ -36,6 +38,7 @@ import { LandingConfig, Promo } from '@/lib/landing-config'
 import { fixPath, cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 import { Switch } from '@/components/ui/switch'
+import { Slider } from '@/components/ui/slider'
 import { 
   Accordion,
   AccordionContent,
@@ -483,18 +486,61 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                       </Select>
                     </div>
 
-                    <div className="space-y-2 flex flex-col justify-end">
-                      <Label className="text-[10px] font-black uppercase text-slate-500/80 mb-2 tracking-wider flex items-center gap-2">
-                        Zoom Media
-                      </Label>
-                      <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 h-12 shadow-sm">
-                        <Maximize2 className={cn("h-4 w-4 transition-colors", promo.zoom ? "text-[#4A7C59]" : "text-slate-300")} />
-                        <span className="text-xs font-bold text-slate-600 flex-1">Efecto Zoom</span>
-                        <Switch 
-                          checked={promo.zoom || false} 
-                          onCheckedChange={(checked) => handleUpdatePromo(promo.id, 'zoom', checked)}
-                          className="data-[state=checked]:bg-[#4A7C59]"
-                        />
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-500/80 mb-2 tracking-wider flex items-center gap-2">
+                          Zoom & Audio
+                        </Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Control de Zoom */}
+                          <div className="flex flex-col gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm min-h-[50px]">
+                            <div className="flex items-center gap-3">
+                              <Maximize2 className={cn("h-4 w-4 transition-colors", promo.zoom ? "text-[#4A7C59]" : "text-slate-300")} />
+                              <span className="text-xs font-bold text-slate-600 flex-1">Efecto Zoom</span>
+                              <Switch 
+                                checked={promo.zoom || false} 
+                                onCheckedChange={(checked) => handleUpdatePromo(promo.id, 'zoom', checked)}
+                                className="data-[state=checked]:bg-[#4A7C59]"
+                              />
+                            </div>
+                            {promo.zoom && (
+                              <div className="px-1 py-1 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Intensidad</span>
+                                  <span className="text-[10px] font-black text-[#4A7C59]">{(promo.zoomScale || 1.25).toFixed(2)}x</span>
+                                </div>
+                                <Slider
+                                  defaultValue={[promo.zoomScale || 1.25]}
+                                  max={1.5}
+                                  min={1.05}
+                                  step={0.01}
+                                  onValueChange={([val]) => handleUpdatePromo(promo.id, 'zoomScale', val)}
+                                  className="py-2"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Control de Audio (Solo Video) */}
+                          {promo.type === 'video' && (
+                            <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 h-full shadow-sm">
+                              {promo.muted ? (
+                                <VolumeX className="h-4 w-4 text-amber-500" />
+                              ) : (
+                                <Volume2 className="h-4 w-4 text-[#4A7C59]" />
+                              )}
+                              <div className="flex flex-col flex-1">
+                                <span className="text-xs font-bold text-slate-600">Silenciar Video</span>
+                                <span className="text-[9px] font-medium text-slate-400">Inicio sin sonido</span>
+                              </div>
+                              <Switch 
+                                checked={promo.muted ?? true} 
+                                onCheckedChange={(checked) => handleUpdatePromo(promo.id, 'muted', checked)}
+                                className="data-[state=checked]:bg-[#4A7C59]"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
