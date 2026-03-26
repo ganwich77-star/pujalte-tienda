@@ -1318,10 +1318,10 @@ Mi email: ${formData.email}`
                 </div>
                 <div className="p-3 bg-slate-50/50 flex flex-col gap-2">
                   {[
-                    { label: 'Información General', msg: '¡Hola! Me gustaría obtener más información sobre vuestros servicios.', icon: '✨' },
-                    { label: 'Packs Comunión', msg: 'Hola, me gustaría información sobre los packs de Comunión 2026/2027.', icon: '📸' },
-                    { label: 'Estado de mi Pedido', msg: 'Hola, tengo una duda sobre un pedido realizado en la tienda.', icon: '🛍️' },
-                    { label: 'Solicitar Cita Previa', msg: 'Hola, me gustaría solicitar una cita para visitar el estudio.', icon: '📅' }
+                    { label: 'Cita para Fotos DNI', msg: 'Hola, me gustaría pedir cita para fotos de DNI/Pasaporte.', icon: '🆔' },
+                    { label: 'Cita Info Reportajes', msg: 'Hola, quiero información y cita para un reportaje (Comunión, Infantil, etc).', icon: '📸' },
+                    { label: 'Consulta Pedido Online', msg: 'Hola, tengo una duda sobre un pedido realizado en la web.', icon: '🛍️' },
+                    { label: 'Otras Consultas', msg: 'Hola, tengo una consulta general sobre vuestros servicios.', icon: '💬' }
                   ].map((opt, i) => (
                     <motion.a
                       key={i}
