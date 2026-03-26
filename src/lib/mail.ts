@@ -145,3 +145,76 @@ export const sendOrderEmails = async (order: any) => {
     console.error('Fallo al enviar correos:', error)
   }
 }
+
+export const sendWelcomeEmails = async (client: { dni: string, name: string, email: string, phone: string }) => {
+  const { dni, name, email, phone } = client
+
+  // 1. EMAIL BIENVENIDA CLIENTE
+  const customerHtml = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333; border: 1px solid #eee; border-radius: 16px; overflow: hidden; background: #fff;">
+       <div style="background: #4A7C59; padding: 30px; text-align: center; color: white;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 900;">✨ ¡BIENVENIDO A PUJALTE! ✨</h1>
+      </div>
+      <div style="padding: 30px; text-align: center;">
+        <h2 style="color: #1a1a1a;">¡Hola ${name}!</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #666;">
+          Gracias por registrarte en nuestra plataforma. A partir de ahora podrás realizar tus pedidos de forma más rápida usando solo tu DNI <strong>${dni}</strong>.
+        </p>
+        <div style="background: #f9f9f9; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: left;">
+          <p style="margin: 5px 0;"><strong>🆔 DNI:</strong> ${dni}</p>
+          <p style="margin: 5px 0;"><strong>📱 Teléfono:</strong> ${phone}</p>
+        </div>
+        <p style="font-size: 14px; color: #888;">Si no has sido tú, ignora este correo.</p>
+        <p style="margin-top: 30px; font-weight: bold; color: #4A7C59;">Pujalte Creative Studio</p>
+      </div>
+    </div>
+  `
+
+  // 2. EMAIL NOTIFICACIÓN ADMIN
+  const adminHtml = `
+    <div style="font-family: sans-serif; padding: 30px; border: 4px solid #4A7C59; border-radius: 12px; background: #f9fffb;">
+      <h2 style="color: #4A7C59; margin: 0 0 20px 0;">👤 NUEVO CLIENTE REGISTRADO</h2>
+      <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <p><strong>👤 Nombre:</strong> ${name}</p>
+        <p><strong>🆔 DNI:</strong> ${dni}</p>
+        <p><strong>📧 Email:</strong> ${email}</p>
+        <p><strong>📱 Teléfono:</strong> ${phone}</p>
+      </div>
+      
+      <div style="margin-top: 25px; background: #fff4e5; padding: 20px; border-radius: 12px; border: 1px solid #ffcc80;">
+        <h4 style="margin: 0 0 10px 0; color: #e65100;">💰 Gestión de Pagos:</h4>
+        <p style="font-size: 13px; color: #5d4037;">
+            Pulsa el siguiente botón para permitir que <strong>solo este cliente</strong> pueda realizar pagos mediante <strong>Forma Manual (Efectivo)</strong> en la tienda:
+        </p>
+        <a href="${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/enable-cash?dni=${encodeURIComponent(dni)}&email=${encodeURIComponent(email)}" 
+           style="display: inline-block; background: #e65100; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 10px;">
+           ✅ ACTIVAR PAGO MANUAL PARA ${name}
+        </a>
+      </div>
+
+      <p style="margin-top: 25px; font-size: 12px; color: #999;">Esta acción solo afectará al DNI: ${dni}</p>
+    </div>
+  `
+
+  try {
+    // Al Cliente
+    await transporter.sendMail({
+      from: '"Pujalte Creative Studio" <hola@pujaltefotografia.es>',
+      to: email,
+      subject: `👋 ¡Bienvenido a Pujalte Creative Studio, ${name}!`,
+      html: customerHtml,
+    })
+
+    // Al Admin
+    await transporter.sendMail({
+      from: '"Gestión de Clientes" <hola@pujaltefotografia.es>',
+      to: 'hola@pujaltefotografia.es, apps@pujaltefotografia.es',
+      subject: `👤 NUEVO REGISTRO: ${name} (${dni})`,
+      html: adminHtml,
+    })
+    
+    console.log(`Correos de bienvenida enviados para ${dni}`)
+  } catch (error) {
+    console.error('Error enviando correos de bienvenida:', error)
+  }
+}

@@ -1,137 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, COLLECTIONS } from '@/lib/firebase'
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  query, 
-  orderBy,
-  serverTimestamp,
-  doc,
-  updateDoc,
-  deleteDoc,
-  setDoc
-} from "firebase/firestore";
-import { sendOrderEmails } from '@/lib/mail';
+import * as firestore from "firebase/firestore";
+import { sendWelcomeEmails } from '@/lib/mail'
 
 export async function GET() {
   try {
-    const ordersRef = collection(db, COLLECTIONS.ORDERS);
-    const q = query(ordersRef, orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
-    
-    const orders = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
+    const q = firestore.query(
+      firestore.collection(db, COLLECTIONS.ORDERS),
+      firestore.orderBy('createdAt', 'desc')
+    );
+    const querySnapshot = await firestore.getDocs(q);
+    const orders = querySnapshot.docs.map(item => ({
+      id: item.id,
+      ...item.data()
     }));
-    
-    return NextResponse.json(orders)
-  } catch (error: any) {
-    console.error('Error fetching orders from Firebase:', error)
-    return NextResponse.json({ error: 'Error al obtener pedidos de Firebase' }, { status: 500 })
+
+    return NextResponse.json(orders);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    return NextResponse.json({ error: 'Error al obtener pedidos' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { 
-      customerName, customerPhone, customerEmail, address, notes, 
-      items, paymentMethod, paymentId, paymentStatus, customFields 
-    } = body
+    const data = await request.json();
+    const { items, total, customer, status = 'pending', paymentMethod = 'cash' } = data;
 
-    // Calculate total
-    const total = items.reduce((sum: number, item: { price: number; quantity: number }) => sum + (parseFloat(String(item.price)) * item.quantity), 0)
-
-    const ordersRef = collection(db, COLLECTIONS.ORDERS);
+    // 1. Persistencia/Activación del cliente en la colección unificada
+    const clientRef = firestore.doc(db, COLLECTIONS.CLIENTS, customer.dni);
+    const clientSnap = await firestore.getDoc(clientRef);
     
-    // Generar número de seguimiento único
-    const trackingNumber = `PUJ-26-${Math.floor(1000 + Math.random() * 9000)}`;
+    let isNewClient = !clientSnap.exists();
 
-    const newOrder = {
-      trackingNumber,
-      customerName: customerName || "",
-      customerPhone: customerPhone || "",
-      customerEmail: customerEmail || "",
-      address: address || "",
-      notes: notes || "",
-      total,
-      paymentMethod: paymentMethod || "none",
-      paymentId: paymentId || null,
-      customFields: customFields || null,
-      paymentStatus: paymentStatus || 'pending',
-      status: paymentStatus === 'completed' ? 'paid' : 'pending',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      // Guardamos los items directamente en el pedido para eficiencia
-      items: items.map((item: any) => ({
-        productId: item.productId,
-        productName: item.productName,
-        quantity: item.quantity,
-        price: parseFloat(String(item.price)),
-        note: item.note || ""
-      }))
+    const clientData = {
+      ...customer,
+      updatedAt: firestore.serverTimestamp(),
+      lastOrderDate: firestore.serverTimestamp(),
     };
 
-    const docRef = await addDoc(ordersRef, newOrder);
-    
-    // PERSISTIR CLIENTE EN FIREBASE si hay DNI en customFields
-    const cf = (customFields || {}) as Record<string, any>
-    const dni = (cf.dni || '').trim().toUpperCase()
-    if (dni) {
+    if (isNewClient) {
+      // Si es nuevo, inicializamos campos base
+      await firestore.setDoc(clientRef, {
+        ...clientData,
+        createdAt: firestore.serverTimestamp(),
+        cashEnabled: false, // Por defecto deshabilitado para nuevos
+        status: 'active'
+      });
+      
+      // ENVIAR EMAILS DE BIENVENIDA (incluye enlace de activación para admin)
       try {
-        const clientRef = doc(db, 'clients', dni)
-        await setDoc(clientRef, {
-          dni,
-          name: customerName || '',
-          email: customerEmail || '',
-          phone: customerPhone || '',
-          updatedAt: new Date().toISOString()
-        }, { merge: true })
-      } catch (e) { console.error('[ORDERS] Error guardando cliente en Firebase:', e) }
+        await sendWelcomeEmails(customer);
+      } catch (mailError) {
+        console.error('Error enviando emails de bienvenida:', mailError);
+      }
+    } else {
+      // Si ya existe, actualizamos sus datos
+      await firestore.updateDoc(clientRef, clientData);
     }
 
-    // ENVIAR CORREOS (CLIENTE Y ADMINISTRACIÓN) - No bloqueamos el proceso si falla el email
-    const orderForEmail = { id: docRef.id, ...newOrder }
-    sendOrderEmails(orderForEmail).catch(err => console.error("Error asíncrono enviando correos:", err));
-
-    return NextResponse.json(orderForEmail)
-  } catch (error: any) {
-    console.error('Error creating order in Firebase:', error)
-    return NextResponse.json({ error: 'Error al crear pedido en Firebase' }, { status: 500 })
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    const { id, status } = await request.json()
-    if (!id || !status) return NextResponse.json({ error: 'ID y estado obligatorios' }, { status: 400 })
-
-    const orderRef = doc(db, COLLECTIONS.ORDERS, id);
-    await updateDoc(orderRef, { 
+    // 2. Crear el pedido
+    const orderData = {
+      items,
+      total,
+      customer: {
+        dni: customer.dni,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone
+      },
       status,
-      updatedAt: serverTimestamp()
-    });
+      paymentMethod,
+      createdAt: firestore.serverTimestamp(),
+      updatedAt: firestore.serverTimestamp()
+    };
 
-    return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error('Error updating order:', error)
-    return NextResponse.json({ error: 'No se pudo actualizar el pedido' }, { status: 500 })
+    const docRef = await firestore.addDoc(firestore.collection(db, COLLECTIONS.ORDERS), orderData);
+    
+    return NextResponse.json({ 
+      id: docRef.id,
+      isNewClient 
+    });
+  } catch (error) {
+    console.error('Error creating order:', error);
+    return NextResponse.json({ error: 'Error al crear el pedido' }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-    if (!id) return NextResponse.json({ error: 'ID obligatorio' }, { status: 400 })
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
 
-    const orderRef = doc(db, COLLECTIONS.ORDERS, id);
-    await deleteDoc(orderRef);
+    if (!id) {
+      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    }
 
-    return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error('Error deleting order:', error)
-    return NextResponse.json({ error: 'No se pudo eliminar el pedido' }, { status: 500 })
+    await firestore.deleteDoc(firestore.doc(db, COLLECTIONS.ORDERS, id));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    return NextResponse.json({ error: 'Error al eliminar el pedido' }, { status: 500 });
   }
 }

@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/firebase'
-import { doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, deleteDoc } from "firebase/firestore"
+import { db, COLLECTIONS } from '@/lib/firebase'
+import { doc, setDoc, deleteDoc } from "firebase/firestore"
 import { db as prisma } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const dni = searchParams.get('dni')?.toUpperCase()
-  const email = searchParams.get('email') || ''
+  const dni = (searchParams.get('dni') || '').toUpperCase().trim()
+  const email = (searchParams.get('email') || '').trim()
 
   if (!dni) return new NextResponse('Falta el DNI', { status: 400 })
 
   try {
-    const clientRef = doc(db, 'clients', dni)
+    const clientRef = doc(db, COLLECTIONS.CLIENTS, dni)
     await setDoc(clientRef, {
       dni,
       email,
@@ -20,113 +20,113 @@ export async function GET(request: NextRequest) {
     }, { merge: true })
 
     return new NextResponse(`
-      <div style="font-family: sans-serif; text-align: center; padding: 50px;">
-        <h1 style="color: #4A7C59;">✅ ¡Hecho!</h1>
-        <p>El pago en efectivo ha sido habilitado para el DNI: <strong>${dni}</strong></p>
-        <a href="javascript:window.close()" style="color: #666;">Cerrar esta ventana</a>
-      </div>
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Pago Habilitado</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f9f9f9; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+            .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; max-width: 400px; }
+            h1 { color: #10b981; margin-bottom: 16px; font-size: 24px; }
+            p { color: #4b5563; line-height: 1.5; margin-bottom: 24px; }
+            .dni { font-weight: bold; color: #1f2937; }
+            .btn { color: #6b7280; text-decoration: none; font-size: 14px; border-bottom: 1px solid transparent; transition: all 0.2s; cursor: pointer; }
+            .btn:hover { border-bottom-color: #9ca3af; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>✅ Pago Habilitado</h1>
+            <p>El pago en efectivo ha sido activado correctamente para el cliente con DNI <span class="dni">${dni}</span>.</p>
+            <button onclick="window.close()" class="btn" style="background:none; border:none; padding:0;">Cerrar esta ventana</button>
+          </div>
+        </body>
+      </html>
     `, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
   } catch (error) {
     console.error('Error enabling cash:', error)
-    return new NextResponse('Error', { status: 500 })
+    return new NextResponse('Error al habilitar el pago.', { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    
-    const dni = (searchParams.get('dni') || '').toUpperCase().trim()
-    const name = searchParams.get('name') || ''
-    const email = searchParams.get('email') || ''
-    const phone = searchParams.get('phone') || ''
-    const enable = searchParams.get('enable') === 'true'
-    
-    // Identificadores para sincronizar pedidos antiguos
-    const originalDni = (searchParams.get('originalDni') || '').toUpperCase().trim()
-    const originalEmail = (searchParams.get('originalEmail') || '').trim()
-    const originalPhone = (searchParams.get('originalPhone') || '').trim()
-
-    console.log('[UPDATE_CUSTOMER] Sync Request:', { dni, originalDni, originalEmail, originalPhone })
-
-    if (!dni && !email && !phone) {
-      return NextResponse.json({ error: 'Se necesita al menos un identificador (DNI, email o teléfono)' }, { status: 400 })
-    }
-
-    // Clave de Firebase: DNI si existe, si no email o teléfono
-    const firebaseKey = dni || email || phone
-
-    // Si el DNI ha cambiado o se está asignando por primera vez, eliminar el doc con la clave antigua
-    const oldKey = originalDni || originalEmail || originalPhone || ''
-    if (oldKey && oldKey !== firebaseKey) {
-        try {
-            await deleteDoc(doc(db, 'clients', oldKey))
-        } catch (e) { console.error('Error eliminando doc antiguo:', e) }
-    }
-
-    const clientRef = doc(db, 'clients', firebaseKey)
-    await setDoc(clientRef, {
-      dni,
-      name,
-      email,
-      phone,
-      cashEnabled: enable,
-      updatedAt: new Date().toISOString()
-    }, { merge: true })
-
-    // 2. MySQL Sync (OPCIONAL - si falla NO bloquea el guardado en Firebase)
-    // Buscamos pedidos que coincidan con la identidad previa del cliente
-    // Solo buscamos si tenemos algun dato previo para evitar un barrido total accidental
-    if (originalDni || originalEmail || originalPhone) {
-      try {
-        const conds: any[] = []
-        if (originalDni) conds.push({ customFields: { contains: `"dni":"${originalDni}"` } })
-        if (originalEmail) conds.push({ customerEmail: originalEmail })
-        if (originalPhone) conds.push({ customerPhone: originalPhone })
-
-        const ordersToUpdate = await prisma.order.findMany({
-            where: { OR: conds }
-        })
-
-        console.log(`[SYNC_MYSQL] Found ${ordersToUpdate.length} orders to update.`)
-
-        for (const order of ordersToUpdate) {
-            let customFields: any = {}
-            try {
-                if (order.customFields) customFields = JSON.parse(order.customFields)
-            } catch (e) { 
-                console.error('[SYNC_MYSQL] Error parseando customFields en pedido:', order.id)
-                customFields = {}
-            }
-            
-            // Forzar el nuevo DNI
-            customFields.dni = dni
-
-            await prisma.order.update({
-                where: { id: order.id },
-                data: {
-                    customerName: name || order.customerName,
-                    customerEmail: email || order.customerEmail,
-                    customerPhone: phone || order.customerPhone,
-                    customFields: JSON.stringify(customFields)
-                }
-            })
-        }
-      } catch (mysqlError: any) {
-        // MySQL falló (credenciales, conexión) pero Firebase ya está guardado correctamente
-        console.error('[SYNC_MYSQL_ERROR] Non-critical MySQL sync failed:', mysqlError.message)
+    try {
+      const { searchParams } = new URL(request.url)
+      
+      const dni = (searchParams.get('dni') || '').toUpperCase().trim()
+      const name = searchParams.get('name') || ''
+      const email = (searchParams.get('email') || '').trim()
+      const phone = (searchParams.get('phone') || '').trim()
+      const enable = searchParams.get('enable') === 'true'
+      
+      // Identificadores para sincronizar pedidos antiguos
+      const originalDni = (searchParams.get('originalDni') || '').toUpperCase().trim()
+      const originalEmail = (searchParams.get('originalEmail') || '').trim()
+      const originalPhone = (searchParams.get('originalPhone') || '').trim()
+  
+      if (!dni && !email && !phone) {
+        return NextResponse.json({ error: 'Se necesita al menos un identificador' }, { status: 400 })
       }
+  
+      const firebaseKey = dni || email || phone
+      const oldKey = originalDni || originalEmail || originalPhone || ''
+      
+      if (oldKey && oldKey !== firebaseKey) {
+          try {
+              await deleteDoc(doc(db, COLLECTIONS.CLIENTS, oldKey))
+          } catch (e) { console.error('Error eliminando doc antiguo:', e) }
+      }
+  
+      const clientRef = doc(db, COLLECTIONS.CLIENTS, firebaseKey)
+      await setDoc(clientRef, {
+        dni,
+        name,
+        email,
+        phone,
+        cashEnabled: enable,
+        updatedAt: new Date().toISOString()
+      }, { merge: true })
+  
+      // MySQL Sync (Opcional)
+      if (originalDni || originalEmail || originalPhone) {
+        try {
+          const conds: any[] = []
+          if (originalDni) conds.push({ customFields: { contains: `"dni":"${originalDni}"` } })
+          if (originalEmail) conds.push({ customerEmail: originalEmail })
+          if (originalPhone) conds.push({ customerPhone: originalPhone })
+  
+          const ordersToUpdate = await prisma.order.findMany({
+              where: { OR: conds }
+          })
+  
+          for (const order of ordersToUpdate) {
+              let customFields: any = {}
+              try {
+                  if (order.customFields) customFields = JSON.parse(order.customFields)
+              } catch (e) { customFields = {} }
+              
+              customFields.dni = dni
+  
+              await prisma.order.update({
+                  where: { id: order.id },
+                  data: {
+                      customerName: name || order.customerName,
+                      customerEmail: email || order.customerEmail,
+                      customerPhone: phone || order.customerPhone,
+                      customFields: JSON.stringify(customFields)
+                  }
+              })
+          }
+        } catch (mysqlError: any) {
+          console.error('[SYNC_MYSQL_ERROR]', mysqlError.message)
+        }
+      }
+  
+      return NextResponse.json({ success: true, dni })
+  
+    } catch (error: any) {
+      console.error('[UPDATE_CUSTOMER_FATAL]', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
-
-    // Firebase guardado → éxito garantizado
-    return NextResponse.json({ success: true, dni })
-
-  } catch (error: any) {
-    console.error('[UPDATE_CUSTOMER_FATAL]', error)
-    // Retornamos el error detallado para ayudar al usuario/despacho
-    return NextResponse.json({ 
-        error: 'No se pudo guardar el cliente.', 
-        details: error.message 
-    }, { status: 500 })
-  }
 }

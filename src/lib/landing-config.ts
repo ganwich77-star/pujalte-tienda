@@ -50,7 +50,7 @@ export interface Promo {
   buttonText: string;
   action: 'shop' | 'contact' | 'none';
   activa: boolean;
-  contentPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'bottom-center' | 'top';
+  contentPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'bottom-center' | 'top' | 'top-center' | 'bottom';
   zoom?: boolean;
   zoomScale?: number;
   zoomY?: number;

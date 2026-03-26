@@ -6,10 +6,12 @@ import {
   updateDoc, 
   doc, 
   serverTimestamp,
-  setDoc
+  setDoc,
+  getDoc
 } from "firebase/firestore";
 import { generatePaycometData } from '@/lib/payments/server'
-import { sendOrderEmails } from '@/lib/mail'
+import { sendOrderEmails, sendWelcomeEmails } from '@/lib/mail'
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -112,21 +114,45 @@ export async function POST(request: NextRequest) {
           updatedAt: serverTimestamp()
         });
 
-        // PERSISTIR CLIENTE EN FIREBASE si hay DNI
+        // PERSISTIR CLIENTE EN FIREBASE si hay DNI (Colección Unificada)
         const cf = (customFields || {}) as Record<string, any>
         const dni = (cf.dni || '').trim().toUpperCase()
         if (dni) {
           try {
-            const clientRef = doc(db, 'clients', dni)
-            await setDoc(clientRef, {
+            const clientRef = doc(db, COLLECTIONS.CLIENTS, dni)
+            const clientSnap = await getDoc(clientRef);
+            
+            const isNewRegistration = !clientSnap.exists();
+
+            const clientData = {
               dni,
               name: customerName || '',
               email: customerEmail || '',
               phone: customerPhone || '',
-              updatedAt: new Date().toISOString()
-            }, { merge: true })
+              updatedAt: serverTimestamp(),
+              status: 'active'
+            }
+
+            if (isNewRegistration) {
+              await setDoc(clientRef, {
+                ...clientData,
+                createdAt: serverTimestamp(),
+                cashEnabled: false
+              })
+              
+              // ENVIAR BIENVENIDA (Admin recibe enlace de activación manual)
+              sendWelcomeEmails({
+                dni,
+                name: customerName || '',
+                email: customerEmail || '',
+                phone: customerPhone || ''
+              }).catch(e => console.error('[CHECKOUT] Error enviando bienvenida:', e))
+            } else {
+              await updateDoc(clientRef, clientData)
+            }
           } catch (e) { console.error('[CHECKOUT] Error guardando cliente:', e) }
         }
+
 
         // 4. Send order confirmations (don't await - fast response)
         const orderForEmail = { id: orderId, ...newOrder };

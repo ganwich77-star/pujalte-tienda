@@ -22,7 +22,8 @@ export const COLLECTIONS = {
   CATEGORIES: "comuniones2026_categories",
   ORDERS: "comuniones2026_orders",
   CONFIG: "comuniones2026_config",
-  VARIANTS: "comuniones2026_variants"
+  VARIANTS: "comuniones2026_variants",
+  CLIENTS: "comuniones2026_clients"
 };
 
 export { app, db, storage };

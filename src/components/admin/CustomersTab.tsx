@@ -34,8 +34,17 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from '@/hooks/use-toast'
 import { Order } from '@/types'
-import { db } from '@/lib/firebase'
-import { collection, getDocs } from 'firebase/firestore'
+import { db, COLLECTIONS } from '@/lib/firebase'
+import { 
+  collection, 
+  getDocs, 
+  doc, 
+  deleteDoc, 
+  updateDoc,
+  query,
+  orderBy,
+  where
+} from 'firebase/firestore'
 
 interface CustomersTabProps {
   orders: Order[]
@@ -54,7 +63,8 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
   useEffect(() => {
     const loadFirebaseClients = async () => {
       try {
-        const snap = await getDocs(collection(db, 'clients'))
+        const q = query(collection(db, COLLECTIONS.CLIENTS), orderBy('updatedAt', 'desc'))
+        const snap = await getDocs(q)
         const map: Record<string, any> = {}
         snap.forEach(d => { map[d.id] = d.data() })
         setFirebaseClients(map)

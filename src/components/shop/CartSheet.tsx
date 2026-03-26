@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/dialog"
 import { SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
+import { db, COLLECTIONS } from '@/lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
@@ -126,25 +128,24 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
   }
 
   // Buscar cliente por DNI: si existe, salta al pago directo
-  const handleDniLogin = () => {
+  const handleDniLogin = async () => {
     if (!dniLogin.trim()) return
 
-    const savedData = localStorage.getItem(`pujalte_customer_${dniLogin.toUpperCase().trim()}`)
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData)
-        setFormData(parsed)
-        setIsReturning(true)
-        setIsAuthModalOpen(false)
-        setCheckoutStep('payment') // Cliente registrado → salta el formulario, va directo al pago
-        checkCashEnabled(dniLogin)
-        toast({
-          title: `¡Bienvenido de nuevo, ${parsed.name}!`,
-          description: "Hemos cargado tus datos. Ve directo a elegir tu método de pago.",
-        })
-      } catch (e) {
-        toast({ title: "Error", description: "No se pudieron recuperar los datos.", variant: "destructive" })
-      }
+    const dni = dniLogin.toUpperCase().trim()
+    const clientRef = doc(db, COLLECTIONS.CLIENTS, dni)
+    const clientSnap = await getDoc(clientRef)
+
+    if (clientSnap.exists()) {
+      const clientData = clientSnap.data()
+      setFormData(clientData as Record<string, string>)
+      setIsReturning(true)
+      setIsAuthModalOpen(false)
+      setCheckoutStep('payment') // Cliente registrado → salta el formulario, va directo al pago
+      checkCashEnabled(dni)
+      toast({
+        title: `¡Bienvenido de nuevo, ${clientData.name}!`,
+        description: "Hemos cargado tus datos. Ve directo a elegir tu método de pago.",
+      })
     } else {
       toast({
         title: "No encontrado",

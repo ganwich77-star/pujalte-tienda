@@ -500,12 +500,12 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-slate-200 shadow-xl">
                           <SelectItem value="top-left" className="font-semibold py-2">↖️ Arriba Izq</SelectItem>
-                          <SelectItem value="top" className="font-semibold py-2">⬆️ Arriba Centro</SelectItem>
+                          <SelectItem value="top" className="font-semibold py-2">⬆️ Arriba Centro (Layout Externo)</SelectItem>
                           <SelectItem value="top-right" className="font-semibold py-2">↗️ Arriba Der</SelectItem>
                           <SelectItem value="bottom-left" className="font-semibold py-2">↙️ Abajo Izq</SelectItem>
-                          <SelectItem value="bottom-center" className="font-semibold py-2">⬇️ Abajo Centro</SelectItem>
+                          <SelectItem value="bottom-center" className="font-semibold py-2">⬇️ Abajo Centro (Layout Externo)</SelectItem>
                           <SelectItem value="bottom-right" className="font-semibold py-2">↘️ Abajo Der</SelectItem>
-                          <SelectItem value="center" className="font-semibold py-2">🎯 Centro</SelectItem>
+                          <SelectItem value="center" className="font-semibold py-2">🎯 Centro (Superpuesto)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

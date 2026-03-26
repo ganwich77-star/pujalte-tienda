@@ -17,6 +17,7 @@ import {
   Star,
   Image as ImageIcon,
   Camera,
+  Search, // Added Search icon
   Heart,
   Users,
   Briefcase,
@@ -164,6 +165,39 @@ export default function Home() {
 
   const [formData, setFormData] = useState({ name: '', email: '', message: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const activeTestimonios = useMemo(() => {
+    return (config.testimonios?.length > 0 ? config.testimonios : landingData.testimonios).filter((t: any) => t.activo)
+  }, [config.testimonios])
+
+  const [testimonioIndex, setTestimonioIndex] = useState(0)
+  const [galleryIndex, setGalleryIndex] = useState(0)
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState<any>(null)
+  const [[page, direction], setPage] = useState([0, 0])
+
+  const paginateTestimonio = (newDirection: number) => {
+    setTestimonioIndex((prev) => (prev + newDirection + activeTestimonios.length) % activeTestimonios.length)
+  }
+
+  const paginateGallery = (newDirection: number) => {
+    setGalleryIndex((prev) => (prev + newDirection + filteredGallery.length) % filteredGallery.length)
+  }
+  
+  useEffect(() => {
+    if (activeTestimonios.length <= 1) return
+    const interval = setInterval(() => {
+      paginateTestimonio(1)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [activeTestimonios.length])
+
+  useEffect(() => {
+    if (filteredGallery.length <= 1) return
+    const interval = setInterval(() => {
+      paginateGallery(1)
+    }, 6000)
+    return () => clearInterval(interval)
+  }, [filteredGallery.length])
 
 
   const handleContact = async (e: React.FormEvent) => {
@@ -862,10 +896,11 @@ Mi email: ${formData.email}`
                       window.scrollTo(0, 0);
                     }, 100);
                   }}
-                  className="bg-[#4A7C59] text-white p-2 rounded-full font-medium hover:bg-[#3d664a] transition-colors shadow-sm"
+                  className="bg-[#4A7C59] text-white px-4 py-2 rounded-full font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 hover:bg-[#3d664a] transition-all shadow-md"
                   title="Tienda"
                 >
-                  <ShoppingBag className="w-5 h-5" />
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>Ir a tienda</span>
                 </button>
                 
                 <Sheet>
@@ -1015,10 +1050,10 @@ Mi email: ${formData.email}`
                   const gridCols = count === 2 ? 'lg:grid-cols-2' : count === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
                   
                   return (
-                    <div className={`grid grid-cols-2 md:grid-cols-2 ${gridCols} gap-4 md:gap-8 max-w-7xl mx-auto`}>
+                    <div className={`grid grid-cols-3 md:grid-cols-3 ${gridCols} gap-2 md:gap-8 max-w-7xl mx-auto`}>
                       {activeServices.map((service: any, index: number) => {
                         const Icon = iconMap[service.icono] || Heart
-                        const isLastOdd = count % 2 !== 0 && index === count - 1;
+                        const isLastOdd = false; // Ya no necesitamos col-span-2 ya que siempre serán 3 en línea
                         
                         return (
                           <motion.div
@@ -1027,13 +1062,10 @@ Mi email: ${formData.email}`
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: index * 0.1 }}
-                            className={cn(
-                              "group",
-                              isLastOdd && "col-span-2 md:col-span-1"
-                            )}
+                            className="group col-span-1"
                           >
-                            <div className="relative h-full p-4 md:p-8 rounded-2xl md:rounded-3xl border border-gray-100 bg-white hover:border-[#4A7C59]/20 hover:shadow-2xl hover:shadow-[#4A7C59]/5 transition-all duration-500">
-                              <div className="mb-4 md:mb-8 aspect-[4/3] rounded-xl md:rounded-2xl overflow-hidden relative shadow-md">
+                            <div className="relative h-full p-2.5 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-gray-100 bg-white hover:border-[#4A7C59]/20 hover:shadow-2xl hover:shadow-[#4A7C59]/5 transition-all duration-500">
+                              <div className="mb-3 md:mb-8 aspect-[4/3] rounded-xl md:rounded-2xl overflow-hidden relative shadow-sm">
                                 <img 
                                   src={fixPath(service.foto)} 
                                   alt={service.titulo} 
@@ -1043,8 +1075,8 @@ Mi email: ${formData.email}`
                                   <Icon className="h-4 w-4 md:h-6 md:w-6 text-[#4A7C59]" />
                                 </div>
                               </div>
-                              <h3 className="text-sm md:text-xl font-bold mb-2 md:mb-4 text-gray-900 line-clamp-1">{service.titulo}</h3>
-                              <p className="text-gray-600 leading-relaxed text-[10px] md:text-sm line-clamp-3 md:line-clamp-none">{service.descripcion}</p>
+                              <h3 className="text-[10px] md:text-xl font-bold mb-1 md:mb-4 text-gray-900 line-clamp-1">{service.titulo}</h3>
+                              <p className="text-gray-500 leading-tight md:leading-relaxed text-[8px] md:text-sm line-clamp-2 md:line-clamp-none">{service.descripcion}</p>
                             </div>
                           </motion.div>
                         )
@@ -1066,7 +1098,7 @@ Mi email: ${formData.email}`
                       <div className="h-1 w-20 bg-[#4A7C59] mx-auto mt-6 opacity-20" />
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4">
                       {landingCategories.filter(cat => cat !== 'todos').map((cat) => (
                         <motion.button
                           key={cat}
@@ -1076,18 +1108,18 @@ Mi email: ${formData.email}`
                             setActiveLandingCategory(cat)
                             document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })
                           }}
-                          className={`p-6 rounded-[2rem] border transition-all duration-500 flex flex-col items-center gap-4 group ${
+                          className={`p-3 md:p-6 rounded-2xl md:rounded-[2rem] border transition-all duration-500 flex flex-col items-center gap-2 md:gap-4 group ${
                             activeLandingCategory === cat 
                               ? 'bg-white border-[#4A7C59] shadow-2xl shadow-[#4A7C59]/10' 
                               : 'bg-white/50 border-gray-100 hover:border-[#4A7C59]/30 hover:bg-white'
                           }`}
                         >
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${
+                          <div className={`w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 ${
                             activeLandingCategory === cat ? 'bg-[#4A7C59] text-white rotate-6' : 'bg-gray-50 text-gray-400 group-hover:bg-[#4A7C59]/10 group-hover:text-[#4A7C59]'
                           }`}>
                             <Camera className="w-6 h-6" />
                           </div>
-                          <span className="text-xs font-black uppercase tracking-widest text-gray-900 group-hover:text-[#4A7C59]">{cat}</span>
+                           <span className="text-[8px] md:text-xs font-black uppercase tracking-widest text-gray-900 group-hover:text-[#4A7C59] line-clamp-1">{cat}</span>
                         </motion.button>
                       ))}
                     </div>
@@ -1106,8 +1138,8 @@ Mi email: ${formData.email}`
                     viewport={{ once: true }}
                     className="max-w-lg"
                   >
-                    <p className="text-[#4A7C59] font-bold tracking-widest uppercase text-xs mb-4">Productos</p>
-                    <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-6">Capturando la esencia de cada historia</h2>
+                    <p className="text-[#4A7C59] font-bold tracking-widest uppercase text-xs mb-4">Portafolio</p>
+                    <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-6 font-serif">Nuestra Galería de Momentos</h2>
                   </motion.div>
                   
                   <motion.div 
@@ -1132,34 +1164,99 @@ Mi email: ${formData.email}`
                   </motion.div>
                 </div>
                 
-                <motion.div 
-                  layout
-                  className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8"
-                >
-                  <AnimatePresence mode='popLayout'>
-                    {allCombinedProducts
-                      .filter(p => p.active && (activeLandingCategory === 'todos' || 
-                        p.categoryId === activeLandingCategory || 
-                        p.category?.name?.toLowerCase() === activeLandingCategory.toLowerCase()))
-                      .map((product) => (
-                        <motion.div
-                          layout
-                          key={product.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.4 }}
-                        >
-                          <ProductCard 
-                            product={product}
-                            config={config}
-                            formatPrice={formatPrice}
-                            handleAddToCart={handleAddToCart}
-                          />
-                        </motion.div>
-                      ))}
+                <div className="relative group/gallery overflow-hidden min-h-[350px] md:min-h-[500px] flex items-center">
+                  <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                    <motion.div 
+                      key={galleryIndex}
+                      custom={direction}
+                      variants={{
+                        enter: (dir: number) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
+                        center: { x: 0, opacity: 1 },
+                        exit: (dir: number) => ({ x: dir < 0 ? '100%' : '-100%', opacity: 0 })
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
+                      className="w-full grid grid-cols-1 md:grid-cols-3 gap-8 px-4"
+                    >
+                      {/* En móvil mostramos 1, en desktop mostramos 3 empezando desde galleryIndex */}
+                      {[0, 1, 2].map((offset) => {
+                        const itemIdx = (galleryIndex + offset) % filteredGallery.length
+                        const img = filteredGallery[itemIdx]
+                        if (!img) return null
+                        
+                        return (
+                          <div 
+                            key={`${img.id}-${itemIdx}`}
+                            className={cn(
+                              "w-full transition-all duration-500",
+                              offset > 0 ? "hidden md:block" : "block"
+                            )}
+                          >
+                            <div 
+                              onClick={() => setSelectedGalleryImage(img)}
+                              className={cn(
+                                "group aspect-square rounded-[2rem] overflow-hidden relative shadow-xl transition-all duration-700 cursor-pointer",
+                                // Todas iguales
+                                "scale-100 blur-0 opacity-100",
+                                // Control de visibilidad
+                                offset > 0 ? "hidden md:block" : "block"
+                              )}
+                            >
+                              <img 
+                                src={fixPath(img.src)} 
+                                alt={img.alt} 
+                                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125" 
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4 md:p-8">
+                                <p className="text-white font-bold text-[10px] md:text-xs uppercase tracking-widest">{img.alt}</p>
+                              </div>
+                              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Search className="w-4 h-4 text-white" />
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </motion.div>
                   </AnimatePresence>
-                </motion.div>
+
+                  {/* Manual Controls */}
+                  <button 
+                    onClick={() => { setPage([galleryIndex, -1]); paginateGallery(-1) }}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-md w-12 h-12 rounded-full shadow-xl flex items-center justify-center text-gray-900 opacity-0 group-hover/gallery:opacity-100 transition-all hover:scale-110 z-20 border border-gray-100"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button 
+                    onClick={() => { setPage([galleryIndex, 1]); paginateGallery(1) }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-md w-12 h-12 rounded-full shadow-xl flex items-center justify-center text-gray-900 opacity-0 group-hover/gallery:opacity-100 transition-all hover:scale-110 z-20 border border-gray-100"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Lightbox / Zoom */}
+                <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
+                  <DialogContent className="!max-w-none w-screen h-screen p-0 bg-transparent border-none shadow-none flex items-center justify-center overflow-hidden z-[100] [&>button]:hidden">
+                    {/* Background Layer with Blur and Dimming */}
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xl" onClick={() => setSelectedGalleryImage(null)} />
+                    
+                    {/* The Image with its 'Filo Blanco' */}
+                    <div className="relative z-10 flex items-center justify-center p-4 md:p-12 pointer-events-none">
+                      <motion.img 
+                        src={fixPath(selectedGalleryImage?.src)} 
+                        alt="Zoom"
+                        className="max-h-[90vh] max-w-[90vw] object-contain rounded-sm border-[1.5px] border-white shadow-2xl pointer-events-auto cursor-pointer"
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        onClick={() => setSelectedGalleryImage(null)}
+                      />
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </section>
           )}
@@ -1219,34 +1316,72 @@ Mi email: ${formData.email}`
                 <div className="text-center mb-20">
                   <h2 className="text-3xl md:text-4xl font-light text-gray-900">Lo que dicen mis clientes</h2>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {(config.testimonios?.length > 0 ? config.testimonios : landingData.testimonios).filter((t: any) => t.activo).map((testimonio: any, index: number) => (
-                    <motion.div
-                      key={testimonio.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.1 }}
-                      className="bg-white p-10 rounded-[2rem] shadow-sm relative group hover:shadow-xl hover:-translate-y-2 transition-all duration-500"
+
+                <div className="relative max-w-4xl mx-auto group min-h-[450px] flex items-center">
+                  <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                    <motion.div 
+                      key={testimonioIndex}
+                      custom={direction}
+                      variants={{
+                        enter: (dir: number) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
+                        center: { x: 0, opacity: 1 },
+                        exit: (dir: number) => ({ x: dir < 0 ? '100%' : '-100%', opacity: 0 })
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
+                      className="w-full px-4"
                     >
-                      <Quote className="absolute top-8 right-10 h-10 w-10 text-[#4A7C59]/5 group-hover:text-[#4A7C59]/10 transition-colors" />
-                      <div className="flex gap-1 mb-6">
-                        {[...Array(testimonio.rating || 5)].map((_, i) => (
-                          <Star key={i} className="h-4 w-4 fill-[#4A7C59] text-[#4A7C59]" />
-                        ))}
-                      </div>
-                      <p className="text-gray-600 mb-8 italic leading-relaxed font-light text-lg">&quot;{testimonio.texto}&quot;</p>
-                      <div className="flex items-center gap-4 border-t border-gray-50 pt-6">
-                        <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-[#4A7C59] text-xs">
-                          {testimonio.nombre?.charAt(0)}
+                      {activeTestimonios[testimonioIndex] && (
+                        <div className="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-[#4A7C59]/5 relative group border border-gray-50 h-full">
+                          <Quote className="absolute top-8 right-10 h-12 w-12 text-[#4A7C59]/10" />
+                          <div className="flex gap-1 mb-8">
+                            {[...Array(activeTestimonios[testimonioIndex].rating || 5)].map((_, i) => (
+                              <Star key={i} className="h-5 w-5 fill-[#C87941] text-[#C87941]" />
+                            ))}
+                          </div>
+                          <p className="text-gray-700 mb-10 italic leading-relaxed font-light text-xl md:text-2xl">
+                            &quot;{activeTestimonios[testimonioIndex].texto}&quot;
+                          </p>
+                          <div className="flex items-center gap-5 border-t border-gray-100 pt-8 mt-auto">
+                            <div className="h-14 w-14 rounded-2xl bg-[#4A7C59]/10 flex items-center justify-center font-bold text-[#4A7C59] text-lg">
+                              {activeTestimonios[testimonioIndex].nombre?.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-lg font-bold text-gray-900">{activeTestimonios[testimonioIndex].nombre}</p>
+                              <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">{activeTestimonios[testimonioIndex].fecha}</p>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-900">{testimonio.nombre}</p>
-                          <p className="text-[10px] text-gray-400 uppercase tracking-widest">{testimonio.fecha}</p>
-                        </div>
-                      </div>
+                      )}
                     </motion.div>
+                  </AnimatePresence>
+                  
+                  {/* Testimonial Controls */}
+                  <button 
+                    onClick={() => { setPage([testimonioIndex, -1]); paginateTestimonio(-1) }}
+                    className="absolute -left-4 md:-left-12 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-md w-10 h-10 md:w-14 md:h-14 rounded-2xl shadow-xl flex items-center justify-center text-[#4A7C59] opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-20 border border-gray-100"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button 
+                    onClick={() => { setPage([testimonioIndex, 1]); paginateTestimonio(1) }}
+                    className="absolute -right-4 md:-right-12 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-md w-10 h-10 md:w-14 md:h-14 rounded-2xl shadow-xl flex items-center justify-center text-[#4A7C59] opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-20 border border-gray-100"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Indicators - Movidos debajo del carrusel */}
+                <div className="flex justify-center gap-3 mt-12">
+                  {activeTestimonios.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setTestimonioIndex(i)}
+                      className={`h-2 rounded-full transition-all duration-500 ${testimonioIndex === i ? 'w-8 bg-[#4A7C59]' : 'w-2 bg-gray-200 hover:bg-gray-300'}`}
+                      aria-label={`Ir al testimonio ${i + 1}`}
+                    />
                   ))}
                 </div>
               </div>
@@ -1270,13 +1405,36 @@ Mi email: ${formData.email}`
           </section>
 
           {/* Footer */}
-          <footer className="py-12 bg-white border-t border-gray-50">
-            <div className="container mx-auto px-4 text-center">
-              <img src={fixPath(config.logo || landingData.logo)} alt="Logo" className="h-8 mx-auto mb-8 opacity-40 hover:opacity-100 transition-opacity" />
-              <p className="text-gray-400 text-xs tracking-widest uppercase font-medium" suppressHydrationWarning>
-                © {new Date().getFullYear()} {config.storeName}. Todos los derechos reservados.
-              </p>
+          <footer className="py-20 bg-gray-900 text-white overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#4A7C59]/30 to-transparent" />
+            <div className="container mx-auto px-4 text-center relative z-10">
+              {/* Logo eliminado según petición */}
+              <div className="mb-10" />
+              
+              <div className="flex flex-col gap-6 items-center">
+                <p className="text-gray-400 text-[10px] md:text-xs tracking-[0.3em] uppercase font-black" suppressHydrationWarning>
+                  © {new Date().getFullYear()} {config.storeName}. Todos los derechos reservados.
+                </p>
+                
+                <div className="h-px w-12 bg-gray-800 my-2" />
+                
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="flex flex-col items-center gap-2"
+                >
+                  <p className="text-gray-500 text-[9px] tracking-[0.4em] uppercase font-bold">Concept & Development</p>
+                  <p className="text-white text-sm md:text-lg font-black tracking-[0.2em] italic">
+                    POWERED BY <span className="text-[#4A7C59]">PUJALTE</span> CREATIVE STUDIO
+                  </p>
+                </motion.div>
+              </div>
             </div>
+            
+            {/* Decorative elements */}
+            <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-[#4A7C59]/10 rounded-full blur-3xl" />
+            <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
           </footer>
         </div>
       )}
