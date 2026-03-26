@@ -1308,7 +1308,6 @@ Mi email: ${formData.email}`
                 >
                   <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <MessageCircle className="h-9 w-9 relative z-10" />
-                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold animate-pulse">1</span>
                 </motion.button>
               </PopoverTrigger>
               <PopoverContent align="end" side="top" className="w-80 p-0 rounded-[2rem] border-none shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden bg-white mb-4">
