@@ -240,19 +240,7 @@ function SortableProductRow({
             <Edit className="h-4 w-4" />
           </Button>
 
-          {/* Price visibility */}
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => onUpdateProductField(product.id, 'showPrice', !(product.showPrice ?? true))}
-            className={`h-9 w-9 rounded-xl border transition-all shadow-sm ${
-              (product.showPrice ?? true)
-                ? 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100'
-                : 'bg-slate-50 text-slate-300 border-slate-100 hover:bg-slate-100'
-            }`}
-          >
-            <Banknote className="h-4 w-4" />
-          </Button>
+
 
           {/* Delete */}
           <AlertDialog>
