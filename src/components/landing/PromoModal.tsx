@@ -27,13 +27,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
     return () => clearInterval(timer)
   }, [index, promos.length])
   
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => {
-        // Silently catch autoplay errors
-      })
-    }
-  }, [index, current.url])
+
 
 
   const next = () => setIndex((index + 1) % promos.length)
