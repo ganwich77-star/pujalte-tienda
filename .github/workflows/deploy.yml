@@ -37,7 +37,7 @@ jobs:
           SOURCE: ".next/standalone/"
           REMOTE_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
           REMOTE_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+          REMOTE_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
           TARGET: ${{ secrets.HOSTINGER_REMOTE_TARGET }}
           EXCLUDE: "/node_modules/, /public/, /.next/static/" # rsync solo standalone, el build script ya maneja la copia interna
 
