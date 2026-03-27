@@ -4,17 +4,23 @@ import { persist } from 'zustand/middleware'
 export interface CartItem {
   id: string
   name: string
-  price: number
+  price: number // Este es el precio UNITARIO calculado actual
   quantity: number
   image?: string | null
   // Datos de variante
   variantId?: string
   variantName?: string
+  variantPrice?: number // Guardamos el precio de la variante por separado
   // Producto base
   productId?: string
   notes?: string
   fileUrl?: string
   fileName?: string
+  // Datos para recálculo dinámico
+  basePrice: number
+  salePrice?: number
+  tierPricing?: any // Puede ser string JSON o Array
+  variantBehavior?: 'add' | 'replace'
 }
 
 interface CartStore {
@@ -26,6 +32,40 @@ interface CartStore {
   clearCart: () => void
   getTotal: () => number
   getItemCount: () => number
+}
+
+// Lógica de cálculo de precio unitario dinámico
+const calculateUnitPrice = (qty: number, item: Partial<CartItem>) => {
+  let base = item.salePrice ? Number(item.salePrice) : Number(item.basePrice);
+  
+  if (item.tierPricing) {
+    try {
+      const tiers = typeof item.tierPricing === 'string' 
+        ? JSON.parse(item.tierPricing) 
+        : item.tierPricing;
+
+      if (Array.isArray(tiers) && tiers.length > 0) {
+        const applicableTier = [...tiers]
+          .sort((a, b) => b.minQty - a.minQty)
+          .find(t => qty >= t.minQty);
+        if (applicableTier) base = Number(applicableTier.price);
+      }
+    } catch (e) {
+      console.error("Error parsing tiers in cart:", e);
+    }
+  }
+
+  // Si tiene variante, aplicamos el comportamiento
+  const vPrice = Number(item.variantPrice || 0);
+  if (item.variantId) {
+    if (item.variantBehavior === 'replace') {
+      return vPrice;
+    } else {
+      return base + vPrice;
+    }
+  }
+
+  return base;
 }
 
 // Genera una clave única para cada item (incluyendo variante)
@@ -49,16 +89,22 @@ export const useCartStore = create<CartStore>()(
         })
         
         if (existingItem) {
+          const newQty = existingItem.quantity + item.quantity;
+          const newUnitPrice = calculateUnitPrice(newQty, existingItem);
+          
           return {
             items: state.items.map((i) => {
               const existingKey = getItemKey(i.id, i.variantId, i.notes)
               return existingKey === itemKey 
-                ? { ...i, quantity: i.quantity + item.quantity }
+                ? { ...i, quantity: newQty, price: newUnitPrice }
                 : i
             })
           }
         }
-        return { items: [...state.items, item] }
+
+        // Para nuevos items, nos aseguramos de que el precio inicial esté bien calculado
+        const initialUnitPrice = calculateUnitPrice(item.quantity, item);
+        return { items: [...state.items, { ...item, price: initialUnitPrice }] }
       }),
       
       removeItem: (id, variantId, notes) => set((state) => {
@@ -86,7 +132,11 @@ export const useCartStore = create<CartStore>()(
         return {
           items: state.items.map((i) => {
             const existingKey = getItemKey(i.id, i.variantId, i.notes)
-            return existingKey === itemKey ? { ...i, quantity } : i
+            if (existingKey === itemKey) {
+               const newUnitPrice = calculateUnitPrice(quantity, i);
+               return { ...i, quantity, price: newUnitPrice };
+            }
+            return i;
           })
         }
       }),

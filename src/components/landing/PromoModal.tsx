@@ -263,13 +263,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
             <ChevronRight className="h-6 w-6" />
           </button>
 
-          {/* Botón Cerrar */}
-          <button 
-            onClick={onClose}
-            className="absolute top-6 right-6 z-50 h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-red-500/50 transition-all shadow-lg"
-          >
-            <X className="h-6 w-6" />
-          </button>
+          {/* Botón Cerrar eliminado por petición */}
         </div>
       </motion.div>
     </div>

@@ -4,7 +4,8 @@ import React, { useState, useMemo } from 'react'
 import { 
   Search, Plus, Filter, MoreVertical, Pencil, Trash2, 
   Eye, EyeOff, Sparkles, SlidersHorizontal, Package,
-  Tag, Download, Upload, AlertCircle, ShoppingBag, PlusCircle
+  Tag, Download, Upload, AlertCircle, ShoppingBag, PlusCircle,
+  ImageIcon, BarChart3, Layers2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -242,12 +243,24 @@ export default function ProductsTab({
                     </td>
                     <td className="px-4 py-5">
                       <div className="flex flex-col">
-                        <span className="text-sm font-black text-slate-900 tracking-tight italic">
-                          {formatPrice(product.precio || 0)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-black tracking-tight italic ${product.salePrice ? 'text-slate-300 line-through text-xs' : 'text-slate-900'}`}>
+                            {formatPrice(product.precio || 0)}
+                          </span>
+                          {product.salePrice && (
+                            <span className="text-sm font-black text-emerald-600 tracking-tight italic">
+                              {formatPrice(product.salePrice)}
+                            </span>
+                          )}
+                        </div>
+                        {product.tierPricing && JSON.parse(product.tierPricing).length > 0 && (
+                          <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1 mt-1 bg-blue-50 px-1.5 py-0.5 rounded-md w-fit">
+                            <BarChart3 className="h-2 w-2" /> Precios Escalados
+                          </span>
+                        )}
                         {product.hasVariants && (
-                          <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1 mt-0.5">
-                            <SlidersHorizontal className="h-2.5 w-2.5" /> Con Variantes
+                          <span className="text-[7px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-1 mt-1 bg-orange-50 px-1.5 py-0.5 rounded-md w-fit">
+                            <Layers2 className="h-2 w-2" /> Con Variantes
                           </span>
                         )}
                       </div>

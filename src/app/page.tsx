@@ -106,7 +106,7 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>('featured')
   
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isPostAddDialogOpen, setIsPostAddDialogOpen] = useState(false)
@@ -320,19 +320,20 @@ Mi email: ${formData.email}`
   }, [orders])
 
   const handleAddToCart = (product: Product, variant?: ProductVariant, quantity: number = 1) => {
-    const activeBasePrice = product.salePrice ? Number(product.salePrice) : Number(product.price)
-    
     const cartItem: CartItem = {
       id: product.id,
       name: product.name,
-      price: variant 
-        ? (product.variantBehavior === 'replace' ? Number(variant.price) : activeBasePrice + Number(variant.price))
-        : activeBasePrice,
+      price: product.price || 0, 
       quantity: quantity,
       image: product.image,
       variantId: variant?.id,
       variantName: variant?.name,
-      productId: product.id
+      variantPrice: variant?.price || 0,
+      productId: product.id,
+      basePrice: product.price || 0,
+      salePrice: product.salePrice || undefined,
+      tierPricing: product.tierPricing || undefined,
+      variantBehavior: product.variantBehavior || undefined
     }
     setItemWithNote(cartItem)
     setTempNote('')
@@ -692,10 +693,13 @@ Mi email: ${formData.email}`
                          product.description?.toLowerCase().includes(searchQuery.toLowerCase())
     
     // Filtrado por categoría: 
+    // - Si es 'featured', mostramos novedades y ofertas
     // - Si es MySQL, comparamos IDs
     // - Si es JSON, comparamos el campo categoria (string) con el nombre de la categoría seleccionada
     let matchesCategory = true;
-    if (selectedCategoryId) {
+    if (selectedCategoryId === 'featured') {
+      matchesCategory = !!(product.isNew || product.salePrice);
+    } else if (selectedCategoryId) {
       const selectedCat = categories.find(c => c.id === selectedCategoryId);
       if (selectedCat) {
         matchesCategory = product.categoryId === selectedCategoryId || 
@@ -1527,7 +1531,15 @@ Mi email: ${formData.email}`
                     <div className="flex justify-between items-center pt-4 border-t">
                       <span className="text-2xl font-bold text-primary">{formatPrice(Number(editingProduct.price))}</span>
                       <Button onClick={() => { 
-                        addItem({ ...editingProduct, quantity: 1, price: Number(editingProduct.price) }); 
+                        addItem({ 
+                          ...editingProduct, 
+                          quantity: 1, 
+                          price: Number(editingProduct.price) || 0,
+                          basePrice: Number(editingProduct.price) || 0,
+                          salePrice: editingProduct.salePrice || undefined,
+                          tierPricing: editingProduct.tierPricing || undefined,
+                          variantBehavior: editingProduct.variantBehavior || undefined
+                        }); 
                         setIsProductDialogOpen(false); 
                         setTimeout(() => setIsPostAddDialogOpen(true), 500);
                       }}>

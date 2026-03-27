@@ -44,8 +44,8 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
     if (tiers && tiers.length > 0) {
       // Find the highest tier that is <= qty
       const applicableTier = [...tiers]
-        .sort((a, b) => b.qty - a.qty)
-        .find(t => qty >= t.qty);
+        .sort((a, b) => b.minQty - a.minQty)
+        .find(t => qty >= t.minQty);
       if (applicableTier) price = applicableTier.price;
     }
     return price;
@@ -126,11 +126,11 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                 {product.showPrice !== false ? (
                   <>
                     {hasDiscount && (
-                      <span className="text-[9px] font-bold text-slate-400 line-through decoration-red-400/50 -mb-0.5 opacity-60">
+                      <span className="text-[10px] font-bold text-slate-400/60 line-through decoration-red-400/40 tracking-tight mb-[-2px]">
                         {formatPrice(originalBasePrice)}
                       </span>
                     )}
-                    <span className="text-[14px] sm:text-[15px] font-black text-slate-900 tracking-tight">
+                    <span className={`text-[15px] sm:text-[16px] font-black tracking-tighter ${hasDiscount ? 'text-red-500' : 'text-slate-900'}`}>
                       {formatPrice(activeBasePrice)}
                     </span>
                   </>
@@ -178,8 +178,8 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 px-1 italic">Tramos de Descuento</p>
                    <div className="flex flex-wrap gap-2">
                       {tiers.map((t: any, i: number) => (
-                        <div key={i} className={`px-4 py-2.5 rounded-2xl border flex flex-col items-center gap-0.5 transition-all ${quantity >= t.qty ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-slate-100 text-slate-400'}`}>
-                           <span className="text-[10px] font-black tracking-tighter italic">+{t.qty} uds.</span>
+                        <div key={i} className={`px-4 py-2.5 rounded-2xl border flex flex-col items-center gap-0.5 transition-all ${quantity >= t.minQty ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-slate-100 text-slate-400'}`}>
+                           <span className="text-[10px] font-black tracking-tighter italic">+{t.minQty} uds.</span>
                            <span className="text-[13px] font-black italic">{formatPrice(t.price)}</span>
                         </div>
                       ))}
@@ -258,17 +258,17 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                          +
                        </button>
                     </div>
-                      <div className="flex flex-col items-end">
+                      <div className="flex flex-col items-end justify-center">
                          {product.showPrice !== false ? (
                            <>
-                             <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] mb-0.5 pr-1">Subtotal</span>
-                             <div className="flex flex-col items-end">
+                             <span className="text-[9px] font-black uppercase tracking-[0.1em] text-[#4A7C59]/60 mb-1 pr-1">Subtotal Final</span>
+                             <div className="flex flex-col items-end gap-0">
                                {hasDiscount && (
-                                 <span className="text-[10px] font-bold text-slate-400 line-through decoration-red-400/50 -mb-1 opacity-60">
+                                 <span className="text-[12px] font-bold text-slate-400/50 line-through decoration-red-400/30">
                                    {formatPrice(originalPrice)}
                                  </span>
                                )}
-                               <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none tabular-nums">
+                               <span className={`text-3xl font-black tracking-tighter leading-none tabular-nums ${hasDiscount ? 'text-red-500' : 'text-slate-900'}`}>
                                  {formatPrice(displayPrice)}
                                </span>
                              </div>

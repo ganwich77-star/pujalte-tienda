@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { 
   Save, 
   Settings, 
@@ -7,7 +8,9 @@ import {
   ShieldCheck, 
   Globe, 
   MessageSquare,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -26,6 +29,7 @@ interface ConfigTabProps {
 }
 
 export function ConfigTab({ config, onUpdateConfig, onSave }: ConfigTabProps) {
+  const [showPassword, setShowPassword] = useState(false)
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-[2rem] border shadow-sm">
@@ -144,13 +148,22 @@ export function ConfigTab({ config, onUpdateConfig, onSave }: ConfigTabProps) {
             <CardContent className="p-8 pt-0 space-y-6">
               <div className="space-y-2.5">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contraseña de Panel</Label>
-                <Input 
-                  type="password"
-                  value={config.adminPassword || ''} 
-                  onChange={(e) => onUpdateConfig({ ...config, adminPassword: e.target.value })} 
-                  placeholder="admin123" 
-                  className="h-14 rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-white/20 font-black tracking-widest focus-visible:ring-white/20"
-                />
+                <div className="relative group/pass">
+                  <Input 
+                    type={showPassword ? "text" : "password"}
+                    value={config.adminPassword || ''} 
+                    onChange={(e) => onUpdateConfig({ ...config, adminPassword: e.target.value })} 
+                    placeholder="admin123" 
+                    className="h-14 rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-white/20 font-black tracking-widest focus-visible:ring-white/20 pr-14 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-all active:scale-90"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div className="p-4 rounded-2xl bg-white/10 border border-white/10 space-y-2">
                 <div className="flex items-center gap-2 text-[#4A7C59]">

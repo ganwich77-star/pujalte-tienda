@@ -4,7 +4,7 @@ import { useRef, useEffect } from 'react'
 import { Category } from '@/types'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { LayoutGrid, Camera, Image, Gift, Palette, Shirt, Bookmark, Box, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Star, LayoutGrid, Camera, Image, Gift, Palette, Shirt, Bookmark, Box, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface CategoryBarProps {
   categories: Category[]
@@ -14,6 +14,7 @@ interface CategoryBarProps {
 
 const getCategoryIcon = (name: string) => {
   const n = name.toLowerCase()
+  if (n.includes('destacado')) return <Star className="h-4 w-4 fill-current" />
   if (n.includes('foto') || n.includes('impresion')) return <Camera className="h-4 w-4" />
   if (n.includes('cuadro') || n.includes('lienzo')) return <Image className="h-4 w-4" />
   if (n.includes('regalo') || n.includes('detalle')) return <Gift className="h-4 w-4" />
@@ -74,6 +75,19 @@ export function CategoryBar({ categories, selectedCategoryId, onCategorySelect }
             ref={scrollRef}
             className="flex overflow-x-auto no-scrollbar gap-2 pb-1 scroll-smooth px-8"
           >
+            <button
+              onClick={() => onCategorySelect('featured')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap shrink-0 border-2",
+                selectedCategoryId === 'featured' 
+                  ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105" 
+                  : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
+              )}
+            >
+              <Star className="h-4 w-4 fill-current" />
+              Destacado
+            </button>
+
             <button
               onClick={() => onCategorySelect(null)}
               className={cn(
