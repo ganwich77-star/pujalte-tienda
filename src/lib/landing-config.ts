@@ -29,6 +29,9 @@ export interface GalleryImage {
   }[];
   isPack?: boolean;
   packItems?: (string | number)[];
+  minQuantity?: number;
+  stepQuantity?: number;
+  tierPricing?: string;
 }
 
 export interface Testimonial {

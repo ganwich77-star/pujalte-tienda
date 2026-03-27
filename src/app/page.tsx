@@ -133,7 +133,10 @@ export default function Home() {
     packItems: '[]',
     variantType: '',
     variantBehavior: 'add',
-    variants: [] as { id?: string; name: string; price: string; stock: string; sortOrder: number }[]
+    variants: [] as { id?: string; name: string; price: string; stock: string; sortOrder: number }[],
+    minQuantity: '1',
+    stepQuantity: '1',
+    tierPricing: [] as { minQty: number; price: number }[]
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -385,6 +388,11 @@ Mi email: ${formData.email}`
         variantBehavior: productForm.variantBehavior || 'add',
         isNew: (productForm as any).isNew || false,
         salePrice: (productForm as any).salePrice ? parseFloat(String((productForm as any).salePrice)) : null,
+        minQuantity: parseInt(productForm.minQuantity) || 1,
+        stepQuantity: parseInt(productForm.stepQuantity) || 1,
+        tierPricing: Array.isArray(productForm.tierPricing) && productForm.tierPricing.length > 0 
+          ? JSON.stringify(productForm.tierPricing) 
+          : null,
         variants: productForm.variants.map(v => ({
           ...v,
           price: parseFloat(String(v.price)) || 0,
@@ -488,7 +496,8 @@ Mi email: ${formData.email}`
   const resetProductForm = () => {
     setProductForm({ 
       name: '', description: '', price: '', stock: '0', categoryId: '', image: '', imagePosition: 'center',
-      hasVariants: false, showPrice: true, isPack: false, packItems: '[]', variantType: '', variantBehavior: 'add', variants: [] 
+      hasVariants: false, showPrice: true, isPack: false, packItems: '[]', variantType: '', variantBehavior: 'add', variants: [],
+      minQuantity: '1', stepQuantity: '1', tierPricing: []
     })
     setEditingProduct(null)
   }
@@ -509,6 +518,11 @@ Mi email: ${formData.email}`
       packItems: product.packItems || '[]',
       variantType: product.variantType || '',
       variantBehavior: product.variantBehavior || 'add',
+      minQuantity: (product.minQuantity ?? 1).toString(),
+      stepQuantity: (product.stepQuantity ?? 1).toString(),
+      tierPricing: typeof product.tierPricing === 'string' 
+        ? JSON.parse(product.tierPricing) 
+        : (Array.isArray(product.tierPricing) ? product.tierPricing : []),
       variants: (product.variants || []).map(v => ({
         id: v.id || Math.random().toString(36).substr(2, 9),
         name: v.name || '',
@@ -638,7 +652,7 @@ Mi email: ${formData.email}`
     
     // Productos de JSON (catálogo configurado en admin) que tengan precio > 0
     const jsonProds = (config.galeria || [])
-      .filter(g => (g.precio && g.precio > 0) || (g.variants && g.variants.length > 0))
+      .filter(g => (g.activa !== false) && ((g.precio && g.precio > 0) || (g.variants && g.variants.length > 0)))
       .map(g => {
         const mysqlCategory = categories.find(c => c.name.toLowerCase() === g.categoria?.toLowerCase());
         return {
@@ -651,7 +665,7 @@ Mi email: ${formData.email}`
           categoryId: mysqlCategory ? mysqlCategory.id : g.categoria,
           category: mysqlCategory ? { id: mysqlCategory.id, name: mysqlCategory.name } : (g.categoria ? { id: g.categoria, name: g.categoria } : null),
           active: g.activa !== false,
-          showPrice: true,
+          showPrice: g.mostrarPrecio !== false,
           isPack: false,
           packItems: null,
           hasVariants: g.hasVariants || (g.variants && g.variants.length > 0),

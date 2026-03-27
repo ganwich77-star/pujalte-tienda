@@ -28,15 +28,36 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [added, setAdded] = useState(false)
   const [open, setOpen] = useState(false)
-  const [quantity, setQuantity] = useState(1)
+  const minQty = product.minQuantity || 1
+  const stepQty = product.stepQuantity || 1
+  
+  const [quantity, setQuantity] = useState(minQty)
 
-  const activeBasePrice = product.salePrice ? Number(product.salePrice) : Number(product.price)
+  // Parse Tier Pricing
+  const tiers = typeof product.tierPricing === 'string' 
+    ? JSON.parse(product.tierPricing) 
+    : (Array.isArray(product.tierPricing) ? product.tierPricing : []);
+
+  // Calculate Unit Price based on Tiers
+  const getUnitPrice = (qty: number) => {
+    let price = product.salePrice ? Number(product.salePrice) : Number(product.price);
+    if (tiers && tiers.length > 0) {
+      // Find the highest tier that is <= qty
+      const applicableTier = [...tiers]
+        .sort((a, b) => b.qty - a.qty)
+        .find(t => qty >= t.qty);
+      if (applicableTier) price = applicableTier.price;
+    }
+    return price;
+  }
+
+  const activeBasePrice = getUnitPrice(quantity)
   
   const displayPrice = (selectedVariant 
     ? (product.variantBehavior === 'replace' ? Number(selectedVariant.price) : activeBasePrice + Number(selectedVariant.price)) 
     : activeBasePrice) * quantity
 
-  const hasDiscount = !!product.salePrice
+  const hasDiscount = !!product.salePrice || (tiers && tiers.length > 0 && activeBasePrice < (product.salePrice ? Number(product.salePrice) : Number(product.price)))
   const originalBasePrice = Number(product.price)
   const originalPrice = (selectedVariant 
     ? (product.variantBehavior === 'replace' ? Number(selectedVariant.price) : originalBasePrice + Number(selectedVariant.price)) 
@@ -48,7 +69,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
     setTimeout(() => {
       setAdded(false)
       setOpen(false)
-      setQuantity(1)
+      setQuantity(minQty)
     }, 1500)
   }
 
@@ -102,14 +123,22 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                {product.name}
              </h3>
              <div className="mt-0.5 flex flex-col items-center">
-                {hasDiscount && (
-                  <span className="text-[9px] font-bold text-slate-400 line-through decoration-red-400/50 -mb-0.5 opacity-60">
-                    {formatPrice(originalBasePrice)}
+                {product.showPrice !== false ? (
+                  <>
+                    {hasDiscount && (
+                      <span className="text-[9px] font-bold text-slate-400 line-through decoration-red-400/50 -mb-0.5 opacity-60">
+                        {formatPrice(originalBasePrice)}
+                      </span>
+                    )}
+                    <span className="text-[14px] sm:text-[15px] font-black text-slate-900 tracking-tight">
+                      {formatPrice(activeBasePrice)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    Ver más
                   </span>
                 )}
-                <span className="text-[14px] sm:text-[15px] font-black text-slate-900 tracking-tight">
-                  {formatPrice(activeBasePrice)}
-                </span>
              </div>
           </div>
         </motion.div>
@@ -137,9 +166,24 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
               {/* Descripción */}
               {product.description && (
                 <div className="bg-slate-50/80 p-5 rounded-3xl border border-slate-100 relative">
-                   <p className="text-[13px] leading-relaxed text-slate-600 font-bold uppercase text-center opacity-70">
-                     &ldquo;{product.description}&rdquo;
+                   <p className="text-[12px] leading-relaxed text-slate-600 font-bold uppercase text-center opacity-80">
+                      {product.description}
                    </p>
+                </div>
+              )}
+
+              {/* Tramos de Precios (Novedad) */}
+              {tiers && tiers.length > 0 && (
+                <div className="space-y-3">
+                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 px-1 italic">Tramos de Descuento</p>
+                   <div className="flex flex-wrap gap-2">
+                      {tiers.map((t: any, i: number) => (
+                        <div key={i} className={`px-4 py-2.5 rounded-2xl border flex flex-col items-center gap-0.5 transition-all ${quantity >= t.qty ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-slate-100 text-slate-400'}`}>
+                           <span className="text-[10px] font-black tracking-tighter italic">+{t.qty} uds.</span>
+                           <span className="text-[13px] font-black italic">{formatPrice(t.price)}</span>
+                        </div>
+                      ))}
+                   </div>
                 </div>
               )}
 
@@ -182,7 +226,9 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                             <SelectItem key={variant.id} value={variant.id} className="text-[13px] font-bold rounded-2xl py-3.5 cursor-pointer focus:bg-white/10 focus:text-emerald-400">
                               <div className="flex items-center justify-between w-full min-w-[200px] gap-8">
                                  <span>{variant.name}</span>
-                                 <span className="text-emerald-400 tabular-nums">{formatPrice(finalVariantPrice)}</span>
+                                 {product.showPrice !== false && (
+                                   <span className="text-emerald-400 tabular-nums">{formatPrice(finalVariantPrice)}</span>
+                                 )}
                               </div>
                             </SelectItem>
                           );
@@ -194,37 +240,45 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
 
               {/* Footer con Cantidad, Precio y Botón */}
               <div className="flex flex-col gap-6 pt-4 w-full">
-                 <div className="flex items-center justify-between bg-slate-50 p-3 sm:p-4 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100">
+                  <div className="flex items-center justify-between bg-slate-50 p-3 sm:p-4 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100">
                     <div className="flex items-center gap-2 sm:gap-4 bg-white rounded-2xl p-0.5 sm:p-1 shadow-sm border border-slate-100">
                        <button 
-                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                         onClick={() => setQuantity(Math.max(minQty, quantity - stepQty))}
                          className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-slate-50 text-slate-400 hover:text-black transition-all font-black text-xl"
                        >
                          -
                        </button>
-                       <span className="w-8 text-center font-black tabular-nums text-sm">
+                       <span className="w-10 text-center font-black tabular-nums text-sm text-slate-900 italic">
                          {quantity}
                        </span>
                        <button 
-                         onClick={() => setQuantity(quantity + 1)}
+                         onClick={() => setQuantity(quantity + stepQty)}
                          className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-slate-50 text-slate-400 hover:text-black transition-all font-black text-xl"
                        >
                          +
                        </button>
                     </div>
-                     <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] mb-0.5 pr-1">Subtotal</span>
-                        <div className="flex flex-col items-end">
-                          {hasDiscount && (
-                            <span className="text-[10px] font-bold text-slate-400 line-through decoration-red-400/50 -mb-1 opacity-60">
-                              {formatPrice(originalPrice)}
-                            </span>
-                          )}
-                          <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none tabular-nums">
-                            {formatPrice(displayPrice)}
-                          </span>
-                        </div>
-                     </div>
+                      <div className="flex flex-col items-end">
+                         {product.showPrice !== false ? (
+                           <>
+                             <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] mb-0.5 pr-1">Subtotal</span>
+                             <div className="flex flex-col items-end">
+                               {hasDiscount && (
+                                 <span className="text-[10px] font-bold text-slate-400 line-through decoration-red-400/50 -mb-1 opacity-60">
+                                   {formatPrice(originalPrice)}
+                                 </span>
+                               )}
+                               <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none tabular-nums">
+                                 {formatPrice(displayPrice)}
+                               </span>
+                             </div>
+                           </>
+                         ) : (
+                           <div className="flex flex-col items-end justify-center py-2 h-full">
+                             <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">Elegir Opciones</span>
+                           </div>
+                         )}
+                      </div>
                  </div>
                  
                  <Button 

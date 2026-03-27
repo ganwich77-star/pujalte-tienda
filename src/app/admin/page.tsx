@@ -153,18 +153,28 @@ export default function AdminPage() {
     setMessage(null)
 
     try {
-      const res = await fetch('/api/admin/config', {
+      // 1. Guardar en JSON local (/api/admin/config)
+      const resJson = await fetch('/api/admin/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
       })
-      if (res.ok) {
-        setMessage({ type: 'success', text: 'Cambios guardados correctamente' })
+
+      // 2. Guardar en Firebase (/api/config) para sincronización total
+      const resFirebase = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      })
+
+      if (resJson.ok && resFirebase.ok) {
+        setMessage({ type: 'success', text: 'Configuración guardada en JSON y Firebase' })
+        toast({ title: "Guardado", description: "Configuración sincronizada correctamente" })
       } else {
-        setMessage({ type: 'error', text: 'Error al guardar los cambios' })
+        setMessage({ type: 'error', text: 'Error al sincronizar alguna de las fuentes' })
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error de conexión' })
+      setMessage({ type: 'error', text: 'Error de conexión durante el guardado' })
     } finally {
       setIsSaving(false)
     }

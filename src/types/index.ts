@@ -27,6 +27,9 @@ export interface Product {
   variants: ProductVariant[]
   isNew?: boolean
   salePrice?: number | null
+  minQuantity?: number
+  stepQuantity?: number
+  tierPricing?: { minQty: number; price: number }[] | string | null
 }
 
 export interface Category {

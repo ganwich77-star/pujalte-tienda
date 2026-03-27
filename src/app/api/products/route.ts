@@ -31,8 +31,17 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(products)
   } catch (error: any) {
-    console.error('Error fetching products from MySQL:', error)
-    return NextResponse.json({ error: 'Error al obtener productos' }, { status: 500 })
+    console.error('ERROR EN API PRODUCTS GET:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      meta: error.meta
+    });
+    return NextResponse.json({ 
+      error: 'Error al obtener productos', 
+      details: error.message,
+      code: error.code 
+    }, { status: 500 })
   }
 }
 
@@ -42,7 +51,8 @@ export async function POST(request: NextRequest) {
     const { 
       name, description, price, categoryId, image,
       hasVariants, variantType, variants, sortOrder,
-      variantBehavior, isPack, packItems, showPrice
+      variantBehavior, isPack, packItems, showPrice,
+      isNew, salePrice, minQuantity, stepQuantity, tierPricing
     } = body
     
     const product = await db.product.create({
@@ -50,6 +60,8 @@ export async function POST(request: NextRequest) {
         name: name || "",
         description: description || "",
         price: parseFloat(String(price)) || 0,
+        salePrice: salePrice ? parseFloat(String(salePrice)) : null,
+        isNew: isNew || false,
         categoryId: categoryId === 'none' ? null : categoryId,
         image: image || null,
         active: true,
@@ -60,6 +72,9 @@ export async function POST(request: NextRequest) {
         variantType: variantType || null,
         variantBehavior: variantBehavior || 'add',
         sortOrder: sortOrder || 0,
+        minQuantity: parseInt(String(minQuantity)) || 1,
+        stepQuantity: parseInt(String(stepQuantity)) || 1,
+        tierPricing: typeof tierPricing === 'string' ? tierPricing : JSON.stringify(tierPricing || []),
         variants: {
           create: Array.isArray(variants) ? variants.map((v: any, i: number) => ({
             name: v.name || "",
@@ -90,10 +105,6 @@ export async function PUT(request: NextRequest) {
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
 
-    // If variants are provided, we should update them too
-    // For simplicity, we'll delete and re-create if they are sent as a full set
-    // Or we could perform more complex logic. Given the current Firebase logic, it's a full replace.
-    
     const updateData: any = {
       ...data,
       updatedAt: new Date()
@@ -101,6 +112,12 @@ export async function PUT(request: NextRequest) {
 
     if (data.categoryId === 'none') updateData.categoryId = null;
     if (data.price !== undefined) updateData.price = parseFloat(String(data.price));
+    if (data.salePrice !== undefined) updateData.salePrice = data.salePrice ? parseFloat(String(data.salePrice)) : null;
+    if (data.isNew !== undefined) updateData.isNew = !!data.isNew;
+    if (data.minQuantity !== undefined) updateData.minQuantity = parseInt(String(data.minQuantity)) || 1;
+    if (data.stepQuantity !== undefined) updateData.stepQuantity = parseInt(String(data.stepQuantity)) || 1;
+    if (data.tierPricing !== undefined) updateData.tierPricing = typeof data.tierPricing === 'string' ? data.tierPricing : JSON.stringify(data.tierPricing);
+    
     if (data.packItems) {
         updateData.packItems = typeof data.packItems === 'string' ? data.packItems : JSON.stringify(data.packItems);
     }

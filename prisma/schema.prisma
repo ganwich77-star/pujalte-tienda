@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -41,6 +42,9 @@ model Product {
   firebaseId      String?          @unique
   isNew           Boolean?         @default(false)
   salePrice       Float?
+  minQuantity     Int?             @default(1)
+  stepQuantity    Int?             @default(1)
+  tierPricing     String?          @db.LongText
   category        Category?        @relation(fields: [categoryId], references: [id])
   variants        ProductVariant[]
 
