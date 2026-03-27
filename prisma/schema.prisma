@@ -25,19 +25,22 @@ model Product {
   name            String
   description     String?          @db.Text
   price           Float
-  image           String?          @db.Text
+  image           String?          @db.LongText
   stock           Int              @default(0)
   categoryId      String?
   active          Boolean          @default(true)
-  showPrice       Boolean?         @default(true)
-  isPack          Boolean?         @default(false)
-  packItems       String?          @db.Text
+  showPrice       Boolean          @default(true)
+  isPack          Boolean          @default(false)
+  packItems       String?          @db.LongText
   hasVariants     Boolean          @default(false)
   variantType     String?
-  variantBehavior String?          @default("add")
+  variantBehavior String?
   sortOrder       Int              @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  firebaseId      String?          @unique
+  isNew           Boolean?         @default(false)
+  salePrice       Float?
   category        Category?        @relation(fields: [categoryId], references: [id])
   variants        ProductVariant[]
 
@@ -52,8 +55,8 @@ model ProductVariant {
   sku        String?
   price      Float
   stock      Int      @default(0)
-  attributes String?  @db.Text
-  image      String?  @db.Text
+  attributes String?  @db.LongText
+  image      String?  @db.LongText
   active     Boolean  @default(true)
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())

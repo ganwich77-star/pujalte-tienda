@@ -323,6 +323,7 @@ export default function AdminPage() {
           <div className="overflow-x-auto pb-2 -mx-2 px-2 scrollbar-none">
             <TabsList className="bg-gray-100 p-1 rounded-2xl h-auto gap-1 w-max min-w-full">
               <TabsTrigger value="general" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 md:px-8 py-2 md:py-3 text-[10px] md:text-sm font-bold tracking-widest uppercase">General</TabsTrigger>
+              <TabsTrigger value="galeria" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 md:px-8 py-2 md:py-3 text-[10px] md:text-sm font-bold tracking-widest uppercase">Productos</TabsTrigger>
               <TabsTrigger value="categorias" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 md:px-8 py-2 md:py-3 text-[10px] md:text-sm font-bold tracking-widest uppercase">Categorías</TabsTrigger>
               <TabsTrigger value="servicios" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 md:px-8 py-2 md:py-3 text-[10px] md:text-sm font-bold tracking-widest uppercase">Servicios</TabsTrigger>
               <TabsTrigger value="testimonios" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 md:px-8 py-2 md:py-3 text-[10px] md:text-sm font-bold tracking-widest uppercase">Testimonios</TabsTrigger>

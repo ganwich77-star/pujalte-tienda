@@ -1,18 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, COLLECTIONS } from '@/lib/firebase'
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
-  doc, 
-  updateDoc, 
-  deleteDoc,
-  orderBy,
-  serverTimestamp,
-  getDoc
-} from "firebase/firestore";
+import { db } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,34 +7,31 @@ export async function GET(request: NextRequest) {
     const all = searchParams.get('all') === 'true'
     const categoryId = searchParams.get('categoryId')
     
-    let q = query(collection(db, COLLECTIONS.PRODUCTS), orderBy('sortOrder', 'asc'));
-    
+    const where: any = {}
     if (!all) {
-      q = query(collection(db, COLLECTIONS.PRODUCTS), where('active', '==', true), orderBy('sortOrder', 'asc'));
+      where.active = true
     }
     
     if (categoryId && categoryId !== 'all') {
-      // Note: Firestore might require a composite index if combining filters and orderBy.
-      // For simplicity, we'll filter in memory if categoryId is provided and not 'all'
-      // Or we can try to add the where clause if simple enough.
+      where.categoryId = categoryId
     }
     
-    const querySnapshot = await getDocs(q);
-    let products = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    if (categoryId && categoryId !== 'all') {
-      products = products.filter((p: any) => p.categoryId === categoryId);
-    }
-
-    // Optional: Fetch categories to mimic Prisma's include if needed by frontend
-    // But usually frontend handles category mapping or doesn't strictly need the object if it has categoryId.
-
+    const products = await db.product.findMany({
+      where,
+      orderBy: {
+        sortOrder: 'asc'
+      },
+      include: {
+        variants: {
+          where: all ? undefined : { active: true },
+          orderBy: { sortOrder: 'asc' }
+        }
+      }
+    })
+    
     return NextResponse.json(products)
   } catch (error: any) {
-    console.error('Error fetching products from Firebase:', error)
+    console.error('Error fetching products from MySQL:', error)
     return NextResponse.json({ error: 'Error al obtener productos' }, { status: 500 })
   }
 }
@@ -61,38 +45,40 @@ export async function POST(request: NextRequest) {
       variantBehavior, isPack, packItems, showPrice
     } = body
     
-    const docRef = await addDoc(collection(db, COLLECTIONS.PRODUCTS), {
-      name: name || "",
-      description: description || "",
-      price: parseFloat(String(price)) || 0,
-      categoryId: categoryId === 'none' ? null : categoryId,
-      image: image || null,
-      active: true,
-      showPrice: showPrice !== undefined ? showPrice : true,
-      isPack: isPack || false,
-      packItems: isPack ? (typeof packItems === 'string' ? JSON.parse(packItems || '[]') : (packItems || [])) : [],
-      hasVariants: hasVariants || false,
-      variantType: variantType || null,
-      variantBehavior: variantBehavior || 'add',
-      sortOrder: sortOrder || 0,
-      variants: Array.isArray(variants) ? variants.map((v: any, i: number) => ({
-        id: v.id || `v-${Date.now()}-${i}`,
-        name: v.name || "",
-        sku: v.sku || "",
-        price: parseFloat(String(v.price)) || 0,
-        stock: parseInt(String(v.stock)) || 0,
-        sortOrder: v.sortOrder !== undefined ? v.sortOrder : i,
+    const product = await db.product.create({
+      data: {
+        name: name || "",
+        description: description || "",
+        price: parseFloat(String(price)) || 0,
+        categoryId: categoryId === 'none' ? null : categoryId,
+        image: image || null,
         active: true,
-        createdAt: new Date().toISOString()
-      })) : [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+        showPrice: showPrice !== undefined ? showPrice : true,
+        isPack: isPack || false,
+        packItems: isPack ? (typeof packItems === 'string' ? packItems : JSON.stringify(packItems || [])) : null,
+        hasVariants: hasVariants || false,
+        variantType: variantType || null,
+        variantBehavior: variantBehavior || 'add',
+        sortOrder: sortOrder || 0,
+        variants: {
+          create: Array.isArray(variants) ? variants.map((v: any, i: number) => ({
+            name: v.name || "",
+            sku: v.sku || "",
+            price: parseFloat(String(v.price)) || 0,
+            stock: parseInt(String(v.stock)) || 0,
+            sortOrder: v.sortOrder !== undefined ? v.sortOrder : i,
+            active: true
+          })) : []
+        }
+      },
+      include: {
+        variants: true
+      }
     });
     
-    const newDoc = await getDoc(docRef);
-    return NextResponse.json({ id: docRef.id, ...newDoc.data() })
+    return NextResponse.json(product)
   } catch (error: any) {
-    console.error('Error creating product in Firebase:', error)
+    console.error('Error creating product in MySQL:', error)
     return NextResponse.json({ error: 'Error al crear producto' }, { status: 500 })
   }
 }
@@ -104,39 +90,56 @@ export async function PUT(request: NextRequest) {
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
 
-    const docRef = doc(db, COLLECTIONS.PRODUCTS, id);
+    // If variants are provided, we should update them too
+    // For simplicity, we'll delete and re-create if they are sent as a full set
+    // Or we could perform more complex logic. Given the current Firebase logic, it's a full replace.
     
-    // Process data to match expected types
     const updateData: any = {
       ...data,
-      updatedAt: serverTimestamp()
+      updatedAt: new Date()
     };
 
     if (data.categoryId === 'none') updateData.categoryId = null;
     if (data.price !== undefined) updateData.price = parseFloat(String(data.price));
     if (data.packItems) {
-        updateData.packItems = typeof data.packItems === 'string' ? JSON.parse(data.packItems) : data.packItems;
+        updateData.packItems = typeof data.packItems === 'string' ? data.packItems : JSON.stringify(data.packItems);
     }
 
+    const operations: any = [
+      db.product.update({
+        where: { id },
+        data: updateData
+      })
+    ];
+
     if (variants) {
-      updateData.variants = variants.map((v: any, i: number) => ({
-        id: v.id || `v-${Date.now()}-${i}`,
-        name: v.name || "",
-        sku: v.sku || "",
-        price: parseFloat(String(v.price)) || 0,
-        stock: parseInt(String(v.stock)) || 0,
-        sortOrder: v.sortOrder !== undefined ? v.sortOrder : i,
-        active: v.active !== undefined ? v.active : true,
-        createdAt: v.createdAt || new Date().toISOString()
+      operations.push(db.productVariant.deleteMany({ where: { productId: id } }));
+      operations.push(db.product.update({
+        where: { id },
+        data: {
+          variants: {
+            create: variants.map((v: any, i: number) => ({
+              name: v.name || "",
+              sku: v.sku || "",
+              price: parseFloat(String(v.price)) || 0,
+              stock: parseInt(String(v.stock)) || 0,
+              sortOrder: v.sortOrder !== undefined ? v.sortOrder : i,
+              active: v.active !== undefined ? v.active : true
+            }))
+          }
+        }
       }));
     }
 
-    await updateDoc(docRef, updateData);
-    const updatedSnap = await getDoc(docRef);
+    const results = await db.$transaction(operations);
+    const updatedProduct = await db.product.findUnique({
+      where: { id },
+      include: { variants: true }
+    });
 
-    return NextResponse.json({ id, ...updatedSnap.data() })
+    return NextResponse.json(updatedProduct)
   } catch (error: any) {
-    console.error('Error updating product in Firebase:', error)
+    console.error('Error updating product in MySQL:', error)
     return NextResponse.json({ error: 'Error al actualizar producto' }, { status: 500 })
   }
 }
@@ -148,12 +151,14 @@ export async function DELETE(request: NextRequest) {
     
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
 
-    const docRef = doc(db, COLLECTIONS.PRODUCTS, id);
-    await deleteDoc(docRef);
+    await db.product.delete({
+      where: { id }
+    });
     
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('Error deleting product from Firebase:', error)
+    console.error('Error deleting product from MySQL:', error)
     return NextResponse.json({ error: 'Error al eliminar producto' }, { status: 500 })
   }
 }
+

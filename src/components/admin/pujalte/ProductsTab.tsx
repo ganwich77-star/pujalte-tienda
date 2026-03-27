@@ -217,32 +217,59 @@ function SortableProductRow({
                        placeholder="0.00"
                      />
                   </div>
-                  <div className="flex items-center justify-between bg-slate-50/50 p-3 rounded-xl border border-transparent hover:bg-white transition-colors shadow-inner self-end mb-0.5">
-                     <div className="flex flex-col">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Variantes</Label>
-                        <p className="text-[9px] text-slate-400">{img.hasVariants ? 'Activadas' : 'Desactivadas'}</p>
+                   <div className="flex items-center justify-between bg-slate-50/50 p-3 rounded-xl border border-transparent hover:bg-white transition-colors shadow-inner self-end mb-0.5">
+                      <div className="flex flex-col">
+                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Variantes</Label>
+                         <p className="text-[9px] text-slate-400">{img.hasVariants ? 'Activadas' : 'Desactivadas'}</p>
+                      </div>
+                      <Switch checked={img.hasVariants || false} onCheckedChange={(c) => updateImg({ hasVariants: c })} />
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                   <div className="flex items-center justify-between bg-amber-50/50 p-3 rounded-xl border border-amber-100/50 hover:bg-white transition-colors shadow-inner">
+                      <div className="flex flex-col">
+                         <Label className="text-[10px] font-black uppercase tracking-widest text-amber-600">Novedad</Label>
+                         <p className="text-[9px] text-amber-500/70">{img.isNew ? 'Marcado como nuevo' : 'Normal'}</p>
+                      </div>
+                      <Switch 
+                        checked={img.isNew || false} 
+                        onCheckedChange={(c) => updateImg({ isNew: c })}
+                        className="data-[state=checked]:bg-amber-500"
+                      />
+                   </div>
+
+                   {img.hasVariants && (
+                     <div className="grid grid-cols-2 gap-2 animate-in slide-in-from-top-1 duration-300">
+                        <button
+                          onClick={() => updateImg({ variantBehavior: 'add' })}
+                          className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${
+                            (img.variantBehavior || 'add') === 'add'
+                            ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-200'
+                            : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'
+                          }`}
+                        >
+                           <span className="text-[9px] font-black uppercase tracking-tighter">Suma al base</span>
+                           <PlusCircle className="h-3 w-3 mt-1 opacity-50" />
+                        </button>
+                        <button
+                          onClick={() => updateImg({ variantBehavior: 'replace' })}
+                          className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${
+                            img.variantBehavior === 'replace'
+                            ? 'bg-blue-500 border-blue-400 text-white shadow-lg shadow-blue-200'
+                            : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'
+                          }`}
+                        >
+                           <span className="text-[9px] font-black uppercase tracking-tighter">Sustituye al base</span>
+                           <LayoutGrid className="h-3 w-3 mt-1 opacity-50" />
+                        </button>
                      </div>
-                     <Switch checked={img.hasVariants || false} onCheckedChange={(c) => updateImg({ hasVariants: c })} />
-                  </div>
-               </div>
+                   )}
+                </div>
 
                {img.hasVariants && (
                  <div className="space-y-4 animate-in slide-in-from-top-1 duration-200">
-                    <div className="space-y-1.5">
-                       <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Tipo de Variantes</Label>
-                       <Select 
-                         value={img.variantBehavior || 'replace'} 
-                         onValueChange={(val: any) => updateImg({ variantBehavior: val })}
-                       >
-                          <SelectTrigger className="h-10 bg-black text-white border-none rounded-xl font-bold text-[10px] uppercase tracking-wider shadow-lg">
-                             <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl shadow-2xl border-slate-100">
-                             <SelectItem value="replace" className="text-xs py-2">Precio de Variante (Sustituye al base)</SelectItem>
-                             <SelectItem value="add" className="text-xs py-2">Suplemento (Se suma al base)</SelectItem>
-                          </SelectContent>
-                       </Select>
-                    </div>
+
 
                     <div className="space-y-3">
                        <div className="flex items-center justify-between">

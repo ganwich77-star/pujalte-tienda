@@ -28,7 +28,8 @@ import {
   Fingerprint,
   LogIn,
   Search,
-  Users
+  Users,
+  AlertTriangle
 } from 'lucide-react'
 import {
   Dialog,
@@ -40,8 +41,8 @@ import {
 } from "@/components/ui/dialog"
 import { SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
+import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 import { db, COLLECTIONS } from '@/lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
@@ -117,6 +118,25 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
   const [dniLogin, setDniLogin] = useState('')
   const [showDniInput, setShowDniInput] = useState(false)
   const [cashEnabled, setCashEnabled] = useState(false)
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false)
+  const [showReturnsModal, setShowReturnsModal] = useState(false)
+
+  // Escuchar cambios en el cliente para activar el pago en efectivo en tiempo real
+  useEffect(() => {
+    const dni = formData['dni']?.trim().toUpperCase();
+    if (!dni || dni.length < 8) return;
+
+    const unsub = onSnapshot(doc(db, COLLECTIONS.CLIENTS, dni), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.cashEnabled !== cashEnabled) {
+          setCashEnabled(!!data.cashEnabled);
+        }
+      }
+    });
+
+    return () => unsub();
+  }, [formData['dni'], cashEnabled]);
   const checkCashEnabled = async (dni: string) => {
     try {
       const res = await fetch(`/api/clients/check-cash?dni=${dni.toUpperCase().trim()}`)
@@ -360,6 +380,39 @@ _Pago: ${paymentMethodText}_`
     return path.startsWith('/') ? path : `/${path}`
   }
 
+
+  // FUNCIÓN PARA CONTINUAR DESPUÉS DE RELLENAR DATOS
+  const handleNextStep = async () => {
+    try {
+      const res = await fetch('/api/clients/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dni: formData.dni,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          marketing: formData.marketing
+        })
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.isNewRegistration) {
+          toast({
+            title: "¡Bienvenido!",
+            description: "Te hemos enviado un email de bienvenida. Completa tu pedido ahora.",
+          })
+        }
+      }
+    } catch (e) {
+      console.error("Error registrando cliente preliminarmente:", e)
+    } finally {
+      setCheckoutStep('payment')
+    }
+  }
+
   return (
     <>
       <SheetContent className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden border-l-0 bg-[#FCFDFE]">
@@ -450,7 +503,6 @@ _Pago: ${paymentMethodText}_`
                           key={itemKey} 
                           className="flex gap-3 sm:gap-5 p-3 sm:p-5 rounded-3xl sm:rounded-[2.5rem] bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.06)] hover:border-[#4A7C59]/10 transition-all group relative overflow-hidden"
                         >
-                          {/* Item background accent - Ajustado para evitar glitches en el borde */}
                           <div className="absolute top-[-15%] right-[-15%] w-32 h-32 bg-[#4A7C59]/[0.02] rounded-full pointer-events-none transition-transform duration-700 group-hover:scale-150 z-0" />
                           
                           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-50 shadow-inner">
@@ -536,7 +588,6 @@ _Pago: ${paymentMethodText}_`
                               </div>
                             </div>
 
-                            {/* File Upload Section */}
                             <div className="mt-4 pt-3 border-t border-dashed border-slate-100">
                               {item.fileUrl ? (
                                 <div className="flex items-center justify-between bg-emerald-50/50 p-2.5 rounded-2xl border border-emerald-100/50">
@@ -596,17 +647,12 @@ _Pago: ${paymentMethodText}_`
                     })}
                   </div>
 
-                  {/* Friendly Disclaimer */}
-                  <div className="mt-4 p-4 rounded-[2rem] bg-amber-50/40 border border-amber-100/50 flex gap-3.5 items-start">
-                    <div className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-amber-100 flex items-center justify-center text-amber-500 flex-shrink-0">
-                      <ImageIcon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h5 className="text-[11px] font-black text-amber-800 uppercase tracking-wider mb-0.5">Nota Importante sobre tus Fotos</h5>
-                      <p className="text-[11px] font-medium text-amber-700/80 leading-relaxed">
-                        El acabado final depende del estado de la foto enviada (enfoque y luz). No nos hacemos responsables de la calidad de archivos desenfocados u oscuros. Para retoques profesionales, consulta viabilidad antes de finalizar el pedido.
-                      </p>
-                    </div>
+                  {/* Aviso sobre resolución más pequeño y discreto */}
+                  <div className="mt-4 p-3 rounded-2xl bg-amber-50/20 border border-amber-100/30 flex gap-2 items-center opacity-60">
+                    <AlertTriangle className="h-3 w-3 text-amber-600/50 shrink-0" />
+                    <p className="text-[10px] font-medium text-amber-800/50 leading-tight">
+                      La calidad final depende de la resolución de tu archivo original.
+                    </p>
                   </div>
                   
                   <div className="pt-8 border-t border-slate-100 mt-auto bg-white/80 backdrop-blur-md -mx-8 px-8 pb-4">
@@ -656,154 +702,128 @@ _Pago: ${paymentMethodText}_`
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
-              className="absolute inset-0 flex flex-col p-8"
+              className="absolute inset-0 flex flex-col p-4 sm:p-8"
             >
-              <div className="mb-8">
+              <div className="mb-6 sm:mb-8">
                 <button 
-                  onClick={onClose}
+                  onClick={() => setCheckoutStep('cart')}
                   className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]/40 hover:text-[#4A7C59] transition-all mb-4 group/back"
                 >
                   <ChevronLeft className="h-4 w-4 transform group-hover/back:-translate-x-1 transition-transform" />
-                  Volver a la Tienda
+                  Volver al Carrito
                 </button>
                 <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">
-                  Datos de Envío
+                  Tus Datos
                 </h2>
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-8 rounded-full bg-[#4A7C59]" />
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Fase de Contacto</p>
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Paso 2 de 3</p>
                 </div>
               </div>
 
-              {isReturning && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-[#4A7C59]/10 to-[#4A7C59]/5 border border-[#4A7C59]/20 flex items-center gap-4 shadow-sm"
-                >
-                  <div className="h-12 w-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-[#4A7C59]/20">
-                    <CheckCircle2 className="h-6 w-6 text-[#4A7C59]" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-slate-900">¡Hola de nuevo, {formData.name || 'cliente'}!</p>
-                    <p className="text-xs text-slate-500">Hemos recordado tus datos. Si tienes cualquier duda, no dudes en ponerte en contacto con nosotros.</p>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      setFormData({})
-                      setIsReturning(false)
-                    }}
-                    className="text-[10px] font-black uppercase text-slate-400 hover:text-red-500 hover:bg-transparent"
-                  >
-                    Borrar
-                  </Button>
-                </motion.div>
-              )}
-
               <div className="flex-1 overflow-y-auto pr-3 space-y-6 custom-scrollbar pb-6">
-                {/* Campo DNI añadido manualmente al inicio */}
-                <div className="space-y-2 group">
-                  <div className="flex items-center gap-2 mb-1 px-1">
-                    <Fingerprint className="h-4 w-4 text-[#4A7C59]" />
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">DNI / NIE *</Label>
-                  </div>
-                  <Input 
-                    value={formData.dni || ''} 
-                    onChange={(e) => handleFieldChange('dni', e.target.value)} 
-                    placeholder="Tu DNI/NIE para identificarte" 
-                    className="pl-4 h-14 rounded-2xl bg-white border-slate-100 shadow-[0_4px_12px_rgb(0,0,0,0.02)] focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] transition-all font-bold"
-                  />
-                </div>
-
-                {(config.formFields || []).filter(f => f.active && f.id !== 'dni').map((field) => (
-                  <div key={field.id} className="space-y-2 group">
-                    <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 group-focus-within:text-[#4A7C59] transition-colors ml-1">
-                      {field.label} {field.required && <span className="text-[#4A7C59]">*</span>}
-                    </Label>
-                    <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors pointer-events-none">
-                        {field.id === 'name' && <User className="h-5 w-5" />}
-                        {field.id === 'phone' && <PhoneIcon className="h-5 w-5" />}
-                        {field.id === 'email' && <MailIcon className="h-5 w-5" />}
-                        {field.id === 'address' && <MapPin className="h-5 w-5" />}
-                        {field.id === 'notes' && <FileText className="h-5 w-5" />}
-                      </div>
-                      
-                      {field.type === 'textarea' ? (
+                <div className="grid grid-cols-1 gap-5">
+                  <div className="bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100 space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2 group">
+                        <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1 group-focus-within:text-[#4A7C59] transition-colors">DNI / NIE</Label>
                         <div className="relative">
-                          <div className="absolute left-4 top-4 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors">
-                            <FileText className="h-5 w-5" />
-                          </div>
-                          <Textarea 
-                            value={formData[field.id] || ''} 
-                            onChange={(e) => handleFieldChange(field.id, e.target.value)} 
-                            placeholder={field.placeholder} 
-                            rows={3}
-                            className="pl-12 pt-3.5 rounded-2xl bg-white border-slate-100 shadow-[0_4px_12px_rgb(0,0,0,0.02)] focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] transition-all resize-none min-h-[120px]"
+                          <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors" />
+                          <Input 
+                            value={formData.dni || ''} 
+                            onChange={(e) => handleFieldChange('dni', e.target.value)}
+                            placeholder="12345678X"
+                            className="h-14 pl-12 rounded-2xl bg-white border-transparent focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] text-sm font-bold transition-all shadow-sm"
                           />
                         </div>
-                      ) : (
-                        <Input 
-                          value={formData[field.id] || ''} 
-                          onChange={(e) => handleFieldChange(field.id, e.target.value)} 
-                          placeholder={field.placeholder} 
-                          type={field.type} 
-                          className="pl-12 h-14 rounded-2xl bg-white border-slate-100 shadow-[0_4px_12px_rgb(0,0,0,0.02)] focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] transition-all"
-                        />
-                      )}
+                      </div>
+
+                      <div className="space-y-2 group">
+                        <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1 group-focus-within:text-[#4A7C59] transition-colors">Nombre Completo</Label>
+                        <div className="relative">
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors" />
+                          <Input 
+                            value={formData.name || ''} 
+                            onChange={(e) => handleFieldChange('name', e.target.value)}
+                            placeholder="Tu nombre aquí"
+                            className="h-14 pl-12 rounded-2xl bg-white border-transparent focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] text-sm font-bold transition-all shadow-sm"
+                          />
+                        </div>
+                      </div>
                     </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2 group">
+                        <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1 group-focus-within:text-[#4A7C59] transition-colors">Email de Contacto</Label>
+                        <div className="relative">
+                          <MailIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors" />
+                          <Input 
+                            value={formData.email || ''} 
+                            onChange={(e) => handleFieldChange('email', e.target.value)}
+                            placeholder="hola@ejemplo.com"
+                            className="h-14 pl-12 rounded-2xl bg-white border-transparent focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] text-sm font-bold transition-all shadow-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 group">
+                        <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1 group-focus-within:text-[#4A7C59] transition-colors">Teléfono Móvil</Label>
+                        <div className="relative">
+                          <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors" />
+                          <Input 
+                            value={formData.phone || ''} 
+                            onChange={(e) => handleFieldChange('phone', e.target.value)}
+                            placeholder="600 000 000"
+                            className="h-14 pl-12 rounded-2xl bg-white border-transparent focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] text-sm font-bold transition-all shadow-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {config.formFields?.find(f => f.id === 'address')?.active && (
+                      <div className="space-y-2 group">
+                        <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1 group-focus-within:text-[#4A7C59] transition-colors">Dirección de Entrega</Label>
+                        <div className="relative">
+                          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors" />
+                          <Input 
+                            value={formData.address || ''} 
+                            onChange={(e) => handleFieldChange('address', e.target.value)}
+                            placeholder="Calle, Ciudad, CP"
+                            className="h-14 pl-12 rounded-2xl bg-white border-transparent focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] text-sm font-bold transition-all shadow-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
-                
-                <div className="pt-4 flex items-start gap-3 bg-[#4A7C59]/5 p-4 rounded-2xl border border-[#4A7C59]/10">
-                    <Checkbox 
-                      id="marketing" 
-                      checked={formData.marketing === 'true'}
-                      onCheckedChange={(checked) => handleFieldChange('marketing', checked ? 'true' : 'false')}
-                      className="mt-1 border-[#4A7C59]/20 data-[state=checked]:bg-[#4A7C59]"
-                    />
-                  <div className="grid gap-1.5 leading-none">
-                    <label
-                      htmlFor="marketing"
-                      className="text-xs font-bold text-slate-700 leading-tight cursor-pointer"
-                    >
-                      Deseo recibir información de campañas y ofertas especiales.
-                    </label>
-                    <p className="text-[10px] text-slate-500 font-medium">
-                      Te prometemos que serán avisos muy puntuales (¡no te vamos a agobiar!).
-                    </p>
+
+                  <div className="space-y-4 px-2">
+                    <div className="flex flex-col gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100/50 group/check">
+                      <div className="flex items-start gap-3" onClick={() => setAcceptTerms(!acceptTerms)}>
+                        <Checkbox 
+                          id="terms" 
+                          checked={acceptTerms} 
+                          onCheckedChange={(v) => setAcceptTerms(!!v)}
+                          className="mt-1 border-2 data-[state=checked]:bg-[#4A7C59] data-[state=checked]:border-[#4A7C59]"
+                        />
+                        <Label htmlFor="terms" className="text-xs font-medium text-slate-500 leading-relaxed cursor-pointer group-hover/check:text-slate-700 transition-colors">
+                          Acepto que mis datos sean tratados según la <button type="button" onClick={(e) => { e.stopPropagation(); setShowPrivacyModal(true); }} className="text-[#4A7C59] font-bold underline hover:text-[#3D6649]">política de privacidad</button> y las <button type="button" onClick={(e) => { e.stopPropagation(); setShowReturnsModal(true); }} className="text-[#4A7C59] font-bold underline hover:text-[#3D6649]">condiciones de devolución</button>.
+                        </Label>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100/50 group/check cursor-pointer" onClick={() => handleFieldChange('marketing', (formData.marketing === 'true' ? 'false' : 'true'))}>
+                      <Checkbox 
+                        id="marketing" 
+                        checked={formData.marketing === 'true'} 
+                        onCheckedChange={(v) => handleFieldChange('marketing', v ? 'true' : 'false')}
+                        className="border-2 data-[state=checked]:bg-[#4A7C59] data-[state=checked]:border-[#4A7C59]"
+                      />
+                      <Label htmlFor="marketing" className="text-xs font-medium text-slate-500 cursor-pointer group-hover/check:text-slate-700 transition-colors">
+                        Me gustaría recibir novedades y ofertas exclusivas de Pujalte.
+                      </Label>
+                    </div>
                   </div>
                 </div>
-                
-                <motion.div 
-                  whileHover={{ scale: 1.01 }}
-                  className="p-6 rounded-3xl bg-slate-50 border border-slate-100 shadow-inner mt-4 relative overflow-hidden"
-                >
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-[#4A7C59]/[0.02] rounded-full -mr-12 -mt-12" />
-                  <div className="flex items-start space-x-4 relative z-10">
-                    <Checkbox 
-                      id="terms" 
-                      checked={acceptTerms} 
-                      onCheckedChange={(checked) => setAcceptTerms(!!checked)}
-                      className="mt-1 border-slate-200 data-[state=checked]:bg-[#4A7C59] data-[state=checked]:border-[#4A7C59] rounded-lg h-6 w-6 transition-all"
-                    />
-                    <div className="grid gap-2 leading-none">
-                      <label
-                        htmlFor="terms"
-                        className="text-sm font-bold text-slate-700 leading-tight cursor-pointer select-none"
-                      >
-                        Acepto las <span className="text-[#4A7C59] underline decoration-[#4A7C59]/30 underline-offset-4">políticas de privacidad</span> y envío.
-                      </label>
-                      <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                        Tus datos se tratarán con máxima seguridad según la RGPD para procesar tu pedido de Pujalte Fotografía.
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Checkbox de recordar eliminado según petición: ya hay DNI */}
               </div>
 
               <div className="pt-8 mt-auto grid grid-cols-5 gap-4">
@@ -823,12 +843,10 @@ _Pago: ${paymentMethodText}_`
                     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
                     const isDniValid = dni.length >= 8;
                     const isPhoneValid = phone.replace(/\D/g, '').length >= 9;
-                    const requiredFields = (config.formFields || []).filter(f => f.active && f.required && f.id !== 'dni');
-                    const areAllRequiredFilled = requiredFields.every(f => !!formData[f.id]?.trim());
-                    const isValid = name.length >= 3 && isEmailValid && isDniValid && isPhoneValid && areAllRequiredFilled && acceptTerms;
+                    const isValid = name.length >= 3 && isEmailValid && isDniValid && isPhoneValid && acceptTerms;
                     return !isValid ? 'opacity-30 pointer-events-none' : 'bg-[#4A7C59] hover:bg-[#3D6649] shadow-[#4A7C59]/30';
                   })()}`}
-                  onClick={() => setCheckoutStep('payment')}
+                  onClick={handleNextStep}
                 >
                   SIGUIENTE <ChevronRight className="ml-3 h-6 w-6" />
                 </Button>
@@ -1006,9 +1024,19 @@ _Pago: ${paymentMethodText}_`
                   ) : paymentMethod === 'cash' ? (
                     <><MessageCircle className="mr-3 h-6 w-6" /> REALIZAR PEDIDO</>
                   ) : (
-                    <><CardIcon className="mr-3 h-6 w-6" /> PAGAR AHORA</>
+                    <><CreditCard className="mr-3 h-6 w-6" /> PAGAR AHORA</>
                   )}
                 </Button>
+
+                {/* Pie de marca en el checkout */}
+                <div className="pt-6 flex flex-col items-center gap-1.5 opacity-30">
+                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[#4A7C59]">
+                    LA TECNOLOGÍA AL SERVICIO DE LOS RECUERDOS
+                  </p>
+                  <p className="text-[7px] font-black uppercase tracking-[0.4em] text-slate-900">
+                    powered by pujalte creative studio
+                  </p>
+                </div>
               </div>
             </motion.div>
           )}
@@ -1041,14 +1069,19 @@ _Pago: ${paymentMethodText}_`
               alt="Logo" 
               className="h-24 w-auto mx-auto mb-4 drop-shadow-lg" 
             />
-            <motion.p 
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 border-t border-slate-900/10 pt-3 px-8"
+              className="flex flex-col items-center gap-1.5 border-t border-slate-900/10 pt-3 px-8"
             >
-              POWERED BY PUJALTE CREATIVE STUDIO
-            </motion.p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4A7C59]">
+                LA TECNOLOGÍA AL SERVICIO DE LOS RECUERDOS
+              </p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 opacity-60">
+                POWERED BY PUJALTE CREATIVE STUDIO
+              </p>
+            </motion.div>
           </motion.div>
 
           <motion.div 
@@ -1109,6 +1142,46 @@ _Pago: ${paymentMethodText}_`
         </div>
       )}
       </SheetContent>
+
+      {/* MODALES LEGALES */}
+      <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
+        <DialogContent className="sm:max-w-[500px] rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-slate-900 tracking-tight">Política de Privacidad (LOPD)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-slate-600 leading-relaxed max-h-[400px] overflow-y-auto pr-2">
+            <p><strong>Responsable:</strong> Pepe Pujalte Fotografía.</p>
+            <p><strong>Finalidad:</strong> Gestionar la relación comercial, el procesamiento de pedidos y el envío de comunicaciones si han sido autorizadas.</p>
+            <p><strong>Legitimación:</strong> Ejecución de un contrato y consentimiento del interesado.</p>
+            <p><strong>Derechos:</strong> Podrá ejercer sus derechos de acceso, rectificación, limitación y suprimir los datos en apps@pujaltefotografia.es así como el derecho a presentar una reclamación ante una autoridad de control.</p>
+            <p>Sus datos se conservarán mientras se mantenga la relación comercial o durante los años necesarios para cumplir con las obligaciones legales.</p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowPrivacyModal(false)} className="bg-[#4A7C59] rounded-2xl">Entendido</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showReturnsModal} onOpenChange={setShowReturnsModal}>
+        <DialogContent className="sm:max-w-[500px] rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-slate-900 tracking-tight">Condiciones de Devolución</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-slate-600 leading-relaxed max-h-[400px] overflow-y-auto pr-2">
+            <p className="font-bold text-slate-900">⚠️ MUY IMPORTANTE:</p>
+            <p>De acuerdo con el Art. 103 de la Ley 3/2014 de Consumidores, el derecho de desistimiento **no será aplicable** a productos confeccionados conforme a las especificaciones del consumidor o claramente personalizados.</p>
+            <p>Por tanto, al tratarse de impresiones fotográficas personalizadas con sus propios archivos, **no se admiten devoluciones** una vez realizado el pedido, salvo en los siguientes casos:</p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li><strong>Defecto de fabricación:</strong> Si el soporte físico (marco, lienzo, metacrilato) presenta daños estructurales.</li>
+              <li><strong>Error de Pujalte:</strong> Si el producto enviado no coincide con el solicitado en el pedido.</li>
+            </ul>
+            <p><strong>Detección de Daños en Envío:</strong> Si el paquete llega golpeado, debe indicarlo en el albarán del transportista y notificarnos en un plazo máximo de **24 horas** enviando fotos a apps@pujaltefotografia.es.</p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowReturnsModal(false)} className="bg-[#4A7C59] rounded-2xl">Entendido</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
         <DialogContent className="sm:max-w-[500px] rounded-[40px] p-0 border-none bg-white overflow-hidden shadow-2xl">

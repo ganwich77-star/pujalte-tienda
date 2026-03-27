@@ -26,11 +26,8 @@ export const sendOrderEmails = async (order: any) => {
     </tr>
   `).join('')
 
-  // 1. CORREO PARA EL CLIENTE (RECIBO PREMIUM)
   const customerEmailHtml = `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; background: #ffffff; padding: 0; border: 1px solid #eeeeee; border-radius: 16px; overflow: hidden;">
-      
-      <!-- HEADER ALEGRE -->
       <div style="background: #4A7C59; padding: 40px 20px; text-align: center; color: white;">
         <h1 style="margin: 0; font-size: 28px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">✨ PUJALTE ✨</h1>
         <p style="margin: 5px 0 0 0; font-size: 12px; font-weight: 400; letter-spacing: 4px; opacity: 0.9;">CREATIVE STUDIO · 2026</p>
@@ -43,7 +40,6 @@ export const sendOrderEmails = async (order: any) => {
           <p style="color: #666; font-size: 16px; margin-top: 10px;">Hola <strong>${customerName}</strong>, ¡ya tenemos tu solicitud!</p>
         </div>
 
-        <!-- TRACKING BOX -->
         ${trackingNumber ? `
         <div style="background: #1a1a1a; color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 30px 0;">
           <p style="margin: 0; font-size: 10px; text-transform: uppercase; tracking: 2px; color: #aaa;">Su número de seguimiento:</p>
@@ -62,94 +58,64 @@ export const sendOrderEmails = async (order: any) => {
           </tr>
         </table>
 
-        <!-- INFO BOX -->
         <div style="background: #fdfdfd; border: 1px dashed #4A7C59; padding: 25px; border-radius: 12px; margin-top: 40px;">
           <h4 style="margin: 0 0 15px 0; color: #4A7C59; font-size: 13px; text-transform: uppercase;">💡 Información para ti:</h4>
           <table style="width: 100%;">
-            <tr>
-              <td style="vertical-align: top; padding-bottom: 10px; font-size: 13px; color: #555;">📸 <strong>Fotos:</strong> Las de estudio no están incluidas de serie.</td>
-            </tr>
-            <tr>
-              <td style="vertical-align: top; padding-bottom: 10px; font-size: 13px; color: #555;">🎨 <strong>Procesado:</strong> Si adjuntaste foto, se procesa en su estado original.</td>
-            </tr>
-            <tr>
-              <td style="vertical-align: top; font-size: 13px; color: #555;">🚀 <strong>Próximos Pasos:</strong> Te avisaremos en cuanto esté listo para envío/recogida.</td>
-            </tr>
+            <tr><td style="vertical-align: top; padding-bottom: 10px; font-size: 13px; color: #555;">📸 <strong>Fotos:</strong> Las de estudio no están incluidas de serie.</td></tr>
+            <tr><td style="vertical-align: top; padding-bottom: 10px; font-size: 13px; color: #555;">🎨 <strong>Procesado:</strong> Si adjuntaste foto, se procesa en su estado original.</td></tr>
           </table>
         </div>
 
-        <p style="text-align: center; margin-top: 40px; font-size: 15px; color: #333;">
-          ¡Mil gracias por dejarnos ser parte de vuestros recuerdos! ❤️
-        </p>
+        <p style="text-align: center; margin-top: 40px; font-size: 15px; color: #333;">¡Mil gracias! ❤️</p>
 
-        <!-- LOPD FOOTER -->
         <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; font-size: 10px; color: #aaaaaa; text-align: justify; line-height: 1.4;">
-          <strong>PROTECCIÓN DE DATOS (LOPD):</strong> En cumplimiento del RGPD y la LOPDGDD, le informamos que sus datos personales son tratados por <strong>Pepe Pujalte Molina</strong> para la gestión de su pedido y la relación comercial. Puede ejercer sus derechos de acceso, rectificación, supresión y otros previstos legalmente enviando un email a <a href="mailto:hola@pujaltefotografia.es" style="color: #4A7C59; text-decoration: none;">hola@pujaltefotografia.es</a>. Sus datos se conservarán mientras se mantenga la relación comercial o durante los años necesarios para cumplir con las obligaciones legales.
-        </div>
-
-        <div style="text-align: center; margin-top: 30px;">
-          <p style="font-size: 12px; color: #999; margin: 0;">Pujalte Creative Studio &copy; 2026</p>
-          <a href="https://pujaltefotografia.es" style="font-size: 11px; color: #4A7C59; text-decoration: none; font-weight: bold;">www.pujaltefotografia.es</a>
+          <strong>LOPD:</strong> Responsable: Pepe Pujalte Molina. Finalidad: Gestión de su pedido. Email: hola@pujaltefotografia.es.
         </div>
       </div>
     </div>
   `
 
-    const customFields = order.customFields || {}
-    const dni = customFields.dni || ""
-
-    const adminEmailHtml = `
-      <div style="font-family: sans-serif; padding: 30px; border: 4px solid #4A7C59; border-radius: 12px; background: #f9fffb;">
-        <h2 style="color: #4A7C59; margin: 0 0 20px 0;">🚀 ¡NUEVO PEDIDO RECIBIDO!</h2>
-        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
-          <p><strong>👤 Cliente:</strong> ${customerName}</p>
-          <p><strong>🆔 DNI:</strong> ${dni}</p>
-          <p><strong>📧 Email:</strong> ${customerEmail}</p>
-          <p><strong>🔢 Seguimiento:</strong> <span style="color: #4A7C59; font-weight: bold;">${trackingNumber || 'N/A'}</span></p>
-          <p><strong>💰 Total:</strong> ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(total)}</p>
-        </div>
-        
-        <div style="margin-top: 25px; background: #fff4e5; padding: 20px; border-radius: 12px; border: 1px solid #ffcc80;">
-          <h4 style="margin: 0 0 10px 0; color: #e65100;">💰 Gestión de Pagos:</h4>
-          <p style="font-size: 13px; color: #5d4037;">Si deseas que este cliente pueda pagar en <strong>Efectivo</strong> en sus próximas compras, pulsa el botón:</p>
-          <a href="${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/enable-cash?dni=${encodeURIComponent(dni)}&email=${encodeURIComponent(customerEmail)}" 
-             style="display: inline-block; background: #e65100; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 10px;">
-             ✅ HABILITAR PAGO EN EFECTIVO
-          </a>
-        </div>
-
-        <p style="margin-top: 25px;">Accede al panel de administración para ver detalles:</p>
-        <a href="${process.env.NEXT_PUBLIC_BASE_URL}/admin" style="display: inline-block; background: #4A7C59; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">ABRIR PANEL DE CONTROL</a>
-      </div>
-    `
+  const adminEmailHtml = `
+    <div style="font-family: sans-serif; padding: 30px; border: 4px solid #4A7C59; border-radius: 12px; background: #f9fffb;">
+      <h2 style="color: #4A7C59; margin: 0 0 20px 0;">🚀 NUEVO PEDIDO</h2>
+      <p><strong>Cliente:</strong> ${customerName}</p>
+      <p><strong>Email:</strong> ${customerEmail}</p>
+      <p><strong>Total:</strong> ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(total)}</p>
+    </div>
+  `
 
   try {
-    // Para el cliente
     await transporter.sendMail({
-      from: '"Pujalte Creative Studio" <hola@pujaltefotografia.es>',
+      from: `"Pujalte Creative Studio" <${process.env.MAIL_USER || 'hola@pujaltefotografia.es'}>`,
       to: customerEmail,
-      subject: `✅ Pedido Confirmado - ${trackingNumber || id.slice(-6)} - Pujalte Creative Studio`,
+      subject: `✅ Pedido Confirmado - ${trackingNumber || id.slice(-6)}`,
       html: customerEmailHtml,
     })
 
-    // Para Pujalte (Admin + Apps)
     await transporter.sendMail({
       from: '"Tienda Online" <hola@pujaltefotografia.es>',
       to: 'hola@pujaltefotografia.es, apps@pujaltefotografia.es',
-      subject: `🚀 NUEVO PEDIDO: ${customerName} (${trackingNumber || id.slice(-6)})`,
+      subject: `🚀 NUEVO PEDIDO: ${customerName}`,
       html: adminEmailHtml,
     })
 
-    console.log(`Correos enviados con éxito para el pedido ${trackingNumber || id}`)
+    console.log(`Correos enviados para el pedido ${id}`)
   } catch (error) {
-    console.error('Fallo al enviar correos:', error)
+    console.error('Fallo al enviar correos de pedido:', error)
   }
 }
 
 export const sendWelcomeEmails = async (client: { dni: string, name: string, email: string, phone: string }) => {
   const { dni, name, email, phone } = client
 
-  // 1. EMAIL BIENVENIDA CLIENTE
+  console.log('--- Intentando enviar correos de bienvenida ---')
+  console.log('Cliente:', email)
+  console.log('Configuración SMTP:', {
+    host: process.env.MAIL_HOST || 'smtp.hostinger.com',
+    user: process.env.MAIL_USER || 'hola@pujaltefotografia.es',
+    passDefined: !!process.env.MAIL_PASS
+  })
+
   const customerHtml = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333; border: 1px solid #eee; border-radius: 16px; overflow: hidden; background: #fff;">
        <div style="background: #4A7C59; padding: 30px; text-align: center; color: white;">
@@ -157,55 +123,41 @@ export const sendWelcomeEmails = async (client: { dni: string, name: string, ema
       </div>
       <div style="padding: 30px; text-align: center;">
         <h2 style="color: #1a1a1a;">¡Hola ${name}!</h2>
-        <p style="font-size: 16px; line-height: 1.6; color: #666;">
-          Gracias por registrarte en nuestra plataforma. A partir de ahora podrás realizar tus pedidos de forma más rápida usando solo tu DNI <strong>${dni}</strong>.
-        </p>
+        <p>Gracias por registrarte. A partir de ahora podrás realizar tus pedidos usando solo tu DNI <strong>${dni}</strong>.</p>
         <div style="background: #f9f9f9; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: left;">
-          <p style="margin: 5px 0;"><strong>🆔 DNI:</strong> ${dni}</p>
-          <p style="margin: 5px 0;"><strong>📱 Teléfono:</strong> ${phone}</p>
+          <p><strong>🆔 DNI:</strong> ${dni}</p>
+          <p><strong>📱 Teléfono:</strong> ${phone}</p>
         </div>
-        <p style="font-size: 14px; color: #888;">Si no has sido tú, ignora este correo.</p>
         <p style="margin-top: 30px; font-weight: bold; color: #4A7C59;">Pujalte Creative Studio</p>
       </div>
     </div>
   `
 
-  // 2. EMAIL NOTIFICACIÓN ADMIN
   const adminHtml = `
     <div style="font-family: sans-serif; padding: 30px; border: 4px solid #4A7C59; border-radius: 12px; background: #f9fffb;">
       <h2 style="color: #4A7C59; margin: 0 0 20px 0;">👤 NUEVO CLIENTE REGISTRADO</h2>
-      <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
-        <p><strong>👤 Nombre:</strong> ${name}</p>
-        <p><strong>🆔 DNI:</strong> ${dni}</p>
-        <p><strong>📧 Email:</strong> ${email}</p>
-        <p><strong>📱 Teléfono:</strong> ${phone}</p>
-      </div>
-      
+      <p><strong>Nombre:</strong> ${name}</p>
+      <p><strong>DNI:</strong> ${dni}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Teléfono:</strong> ${phone}</p>
       <div style="margin-top: 25px; background: #fff4e5; padding: 20px; border-radius: 12px; border: 1px solid #ffcc80;">
         <h4 style="margin: 0 0 10px 0; color: #e65100;">💰 Gestión de Pagos:</h4>
-        <p style="font-size: 13px; color: #5d4037;">
-            Pulsa el siguiente botón para permitir que <strong>solo este cliente</strong> pueda realizar pagos mediante <strong>Forma Manual (Efectivo)</strong> en la tienda:
-        </p>
         <a href="${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/enable-cash?dni=${encodeURIComponent(dni)}&email=${encodeURIComponent(email)}" 
            style="display: inline-block; background: #e65100; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 10px;">
            ✅ ACTIVAR PAGO MANUAL PARA ${name}
         </a>
       </div>
-
-      <p style="margin-top: 25px; font-size: 12px; color: #999;">Esta acción solo afectará al DNI: ${dni}</p>
     </div>
   `
 
   try {
-    // Al Cliente
     await transporter.sendMail({
       from: '"Pujalte Creative Studio" <hola@pujaltefotografia.es>',
       to: email,
-      subject: `👋 ¡Bienvenido a Pujalte Creative Studio, ${name}!`,
+      subject: `👋 ¡Bienvenido, ${name}!`,
       html: customerHtml,
     })
 
-    // Al Admin
     await transporter.sendMail({
       from: '"Gestión de Clientes" <hola@pujaltefotografia.es>',
       to: 'hola@pujaltefotografia.es, apps@pujaltefotografia.es',
@@ -216,5 +168,6 @@ export const sendWelcomeEmails = async (client: { dni: string, name: string, ema
     console.log(`Correos de bienvenida enviados para ${dni}`)
   } catch (error) {
     console.error('Error enviando correos de bienvenida:', error)
+    throw error
   }
 }

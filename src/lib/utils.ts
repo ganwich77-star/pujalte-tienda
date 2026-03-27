@@ -13,7 +13,8 @@ export function fixPath(path: string) {
   let cleanPath = path
   if (!cleanPath.startsWith('/')) cleanPath = `/${cleanPath}`
   
-  return cleanPath
+  // Codificamos la URI para manejar espacios y caracteres especiales
+  return encodeURI(cleanPath)
 }
 
 export function formatCurrency(amount: number) {

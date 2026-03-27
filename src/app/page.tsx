@@ -665,6 +665,7 @@ Mi email: ${formData.email}`
             sortOrder: v.sortOrder ?? 0
           })),
           variantBehavior: g.variantBehavior || 'add',
+          isNew: g.isNew || false,
           source: 'json'
         } as Product;
       });
@@ -766,8 +767,12 @@ Mi email: ${formData.email}`
 
           <main className="container mx-auto py-8 px-4 max-w-7xl">
             <div className="text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-              <div className="mb-6">
-                <p className="text-[#4A7C59] uppercase tracking-[0.4em] text-[10px] font-black opacity-80">
+              <div className="mb-4 space-y-3">
+                <h2 className="text-[#4A7C59] uppercase tracking-[0.3em] text-[13px] font-bold opacity-90">
+                  LA TECNOLOGÍA AL SERVICIO DE LOS RECUERDOS
+                </h2>
+                <div className="w-12 h-[1px] bg-[#4A7C59]/20 mx-auto" />
+                <p className="text-[#4A7C59] uppercase tracking-[0.4em] text-[10px] font-black opacity-70">
                   POWERED BY PUJALTE CREATIVE STUDIO
                 </p>
               </div>
@@ -779,16 +784,11 @@ Mi email: ${formData.email}`
               onCategorySelect={setSelectedCategoryId} 
             />
 
-            {/* AVISO IMPORTANTE */}
-            <div className="flex flex-col items-center justify-center mb-12 mt-4 max-w-3xl mx-auto px-6 py-8 bg-gradient-to-br from-[#4A7C59]/[0.02] to-white border border-[#4A7C59]/10 rounded-[3rem] shadow-sm animate-in fade-in zoom-in duration-1000">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-[#4A7C59]/10 flex items-center justify-center text-[#4A7C59]">
-                  <Camera className="h-5 w-5" />
-                </div>
-                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]">Aviso importante</h4>
-              </div>
-              <p className="text-[14px] font-semibold text-slate-600/90 leading-relaxed text-center italic max-w-2xl">
-                "Recordamos que los productos aquí mostrados no incluyen en ningún caso la sesión de fotos."
+            {/* AVISO IMPORTANTE MÁS DISCRETO */}
+            <div className="flex items-center justify-center mb-8 gap-3 opacity-40 hover:opacity-100 transition-opacity">
+              <Camera className="h-3 w-3 text-[#4A7C59]" />
+              <p className="text-[10px] font-bold text-slate-400 tracking-wide">
+                LOS PRODUCTOS NO INCLUYEN LA SESIÓN DE FOTOS
               </p>
             </div>
 
@@ -1208,6 +1208,13 @@ Mi email: ${formData.email}`
                                 alt={img.alt} 
                                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125" 
                               />
+                              {img.isNew && (
+                                <div className="absolute top-4 left-4 z-10">
+                                  <div className="bg-amber-400 text-black text-[10px] font-black px-3 py-1 rounded-full shadow-lg border border-white/20 animate-pulse uppercase tracking-wider">
+                                    Nuevo
+                                  </div>
+                                </div>
+                              )}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4 md:p-8">
                                 <p className="text-white font-bold text-[10px] md:text-xs uppercase tracking-widest">{img.alt}</p>
                               </div>
@@ -1448,8 +1455,10 @@ Mi email: ${formData.email}`
                   viewport={{ once: true }}
                   className="flex flex-col items-center gap-2"
                 >
-                  <p className="text-gray-500 text-[9px] tracking-[0.4em] uppercase font-bold">Concept & Development</p>
-                  <p className="text-white text-sm md:text-lg font-black tracking-[0.2em] italic">
+                  <p className="text-[#4A7C59] text-[10px] sm:text-xs tracking-[0.3em] font-black uppercase mb-1">
+                    LA TECNOLOGÍA AL SERVICIO DE LOS RECUERDOS
+                  </p>
+                  <p className="text-white text-xs sm:text-base font-black tracking-[0.2em] italic opacity-80">
                     POWERED BY <span className="text-[#4A7C59]">PUJALTE</span> CREATIVE STUDIO
                   </p>
                 </motion.div>
