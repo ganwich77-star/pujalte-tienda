@@ -1047,7 +1047,7 @@ _Pago: ${paymentMethodText}_`
               transition={{ delay: 0.5 }}
               className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 border-t border-slate-900/10 pt-3 px-8"
             >
-              La tecnología al servicio de los recuerdos
+              POWERED BY PUJALTE CREATIVE STUDIO
             </motion.p>
           </motion.div>
 

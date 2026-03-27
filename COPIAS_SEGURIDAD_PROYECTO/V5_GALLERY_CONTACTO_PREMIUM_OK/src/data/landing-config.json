@@ -1,0 +1,142 @@
+{
+  "nombre": "Fotodetalles y Recordatorios",
+  "logo": "/logo_ia.png",
+  "slogan": "La tecnología al servicio de los recuerdos",
+  "subtitulo": "Más que fotografía, tus mejores recuerdos",
+  "heroFoto": "/uploads/1774305864936-cropped-image.jpg",
+  "ubicacion": "Las Torres de Cotillas, Murcia",
+  "telefono": "650494728",
+  "whatsapp": "34650494728",
+  "email": "hola@pujaltefotografia.es",
+  "instagram": "pujaltefotografia",
+  "googleReviewsUrl": "https://g.page/r/CTswPlAvjlLXEAo/review",
+  "visibilidad": {
+    "servicios": true,
+    "galeria": true,
+    "testimonios": true,
+    "sobreMi": true
+  },
+  "sobreMi": {
+    "foto": "/uploads/1774346172002-cropped-image.jpg",
+    "texto": "Desde que tomé mi primera cámara, comprendí que la fotografía no se trata de capturar lo que veo, sino lo que siento en ese preciso instante. Mi enfoque se aleja de las poses rígidas para centrarse en la honestidad de los momentos espontáneos.\n\nCreo firmemente que cada persona y cada proyecto tiene una narrativa única. Mi misión es encontrar la luz adecuada y el ángulo preciso para que, años después, al mirar esa fotografía, no solo recuerdes el lugar, sino que vuelvas a experimentar la emoción de aquel día. Mi trabajo es documentar tu historia con sensibilidad, respeto y una mirada cinematográfica."
+  },
+  "servicios": [
+    {
+      "id": "social",
+      "titulo": "Fotografía Social",
+      "descripcion": "Bodas, comuniones, bautizos y eventos familiares. Capturo cada momento especial con naturalidad y emoción.",
+      "icono": "heart",
+      "foto": "/uploads/1774307180567-cropped-image.jpg",
+      "activa": true
+    },
+    {
+      "id": "corporativa",
+      "titulo": "Fotografía Corporativa",
+      "descripcion": "Imagen profesional para empresas, retratos ejecutivos, eventos de empresa y contenido para redes corporativas.",
+      "icono": "briefcase",
+      "foto": "/uploads/1774307041814-cropped-image.jpg",
+      "activa": false
+    },
+    {
+      "id": "infantil",
+      "titulo": "Fotografía Infantil",
+      "descripcion": "Sesiones de recién nacidos, bebés y niños en un ambiente relajado y divertido. Paciencia y juego garantizados.",
+      "icono": "baby",
+      "foto": "/uploads/1774307078491-cropped-image.jpg",
+      "activa": true
+    },
+    {
+      "id": "producto",
+      "titulo": "Fotografía de Producto",
+      "descripcion": "Fotos profesionales para e-commerce, catálogos y publicidad. Destaca tus productos con imágenes que venden.",
+      "icono": "package",
+      "foto": "/uploads/1774307021643-cropped-image.jpg",
+      "activa": true
+    }
+  ],
+  "galeria": [
+    {
+      "id": "1",
+      "src": "/uploads/1774306696835-cropped-image.jpg",
+      "alt": "Foto Boda Pro",
+      "categoria": "social",
+      "activa": true
+    },
+    {
+      "id": "2",
+      "src": "/uploads/1774306747869-cropped-image.jpg",
+      "alt": "Fotografía infantil",
+      "categoria": "infantil",
+      "activa": true
+    },
+    {
+      "id": "5",
+      "src": "/uploads/1774306831789-cropped-image.jpg",
+      "alt": "Fotografía de estudio",
+      "categoria": "infantil",
+      "activa": true
+    },
+    {
+      "id": "6",
+      "src": "/uploads/1774306921429-cropped-image.jpg",
+      "alt": "Fotografía de producto",
+      "categoria": "producto",
+      "activa": true
+    },
+    {
+      "id": "3",
+      "src": "/uploads/1774306941134-cropped-image.jpg",
+      "alt": "Fotografía de producto",
+      "categoria": "producto",
+      "activa": true
+    },
+    {
+      "id": "4",
+      "src": "/uploads/1774306885285-cropped-image.jpg",
+      "alt": "Fotografía de boda",
+      "categoria": "social",
+      "activa": true
+    }
+  ],
+  "testimonios": [
+    {
+      "id": 1,
+      "nombre": "María García",
+      "texto": "Increíble profesional. Capturó cada momento de nuestra boda de forma tan natural que cada foto nos transporta a ese día. ¡Totalmente recomendable!",
+      "rating": 5,
+      "fecha": "2024-01-15",
+      "activo": true
+    },
+    {
+      "id": 2,
+      "nombre": "Carlos Martínez",
+      "texto": "Las fotos de producto que hizo para mi tienda online han multiplicado las ventas. Un trabajo impecable y muy profesional.",
+      "rating": 5,
+      "fecha": "2024-02-20",
+      "activo": true
+    },
+    {
+      "id": 3,
+      "nombre": "Laura Pérez",
+      "texto": "La sesión de fotos de mi bebé fue maravillosa. Tiene una paciencia infinita y el resultado fue espectacular. Volveremos seguro.",
+      "rating": 5,
+      "fecha": "2024-03-10",
+      "activo": true
+    }
+  ],
+  "categorias": [
+    "social",
+    "infantil",
+    "comuniones",
+    "boda",
+    "producto",
+    "otro"
+  ],
+  "storeUrl": "http://localhost:3001",
+  "seo": {
+    "titulo": "Fotodetalles y Recordatorios - Tu tienda de premium",
+    "descripcion": "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. La tecnología al servicio de los recuerdos.",
+    "keywords": "fotografía, cuadros, posters, láminas, impresiones, regalos personalizados, fotógrafo murcia"
+  },
+  "promos": []
+}

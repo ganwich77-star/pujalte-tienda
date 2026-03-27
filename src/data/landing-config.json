@@ -1,7 +1,7 @@
 {
   "nombre": "Fotodetalles y Recordatorios",
   "logo": "/logo_ia.png",
-  "slogan": "La tecnología al servicio de los recuerdos",
+  "slogan": "POWERED BY PUJALTE CREATIVE STUDIO",
   "subtitulo": "Más que fotografía, tus mejores recuerdos",
   "heroFoto": "/uploads/1774305864936-cropped-image.jpg",
   "ubicacion": "Las Torres de Cotillas, Murcia",
@@ -135,7 +135,7 @@
   "storeUrl": "http://localhost:3001",
   "seo": {
     "titulo": "Fotodetalles y Recordatorios - Tu tienda de premium",
-    "descripcion": "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. La tecnología al servicio de los recuerdos.",
+    "descripcion": "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. POWERED BY PUJALTE CREATIVE STUDIO.",
     "keywords": "fotografía, cuadros, posters, láminas, impresiones, regalos personalizados, fotógrafo murcia"
   },
   "promos": []

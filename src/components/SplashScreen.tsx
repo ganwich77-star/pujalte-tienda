@@ -110,9 +110,9 @@ export default function SplashScreen({ onComplete, logo, storeName }: SplashScre
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
-            className="text-2xl md:text-3xl font-light text-gray-600 mb-4 text-center px-4 italic"
+            className="text-xs font-black tracking-[0.4em] text-[#4A7C59] uppercase opacity-80"
           >
-            {storeName || "La tecnología al servicio de los recuerdos."}
+            POWERED BY PUJALTE CREATIVE STUDIO
           </motion.h1>
 
 

@@ -17,7 +17,7 @@ const defaultConfig: StoreConfig = {
   currency: 'EUR',
   phone: landingData.telefono || '650494728',
   email: landingData.email || 'hola@pujaltefotografia.es',
-  slogan: landingData.slogan || 'La tecnología al servicio de los recuerdos',
+  slogan: landingData.slogan || 'POWERED BY PUJALTE CREATIVE STUDIO',
   subtitulo: landingData.subtitulo || 'Más que fotografía, tus mejores recuerdos',
   enableCash: true,
   enableBizum: true,

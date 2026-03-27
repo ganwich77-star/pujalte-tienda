@@ -698,7 +698,7 @@ Mi email: ${formData.email}`
       {showSplash && (
         <SplashScreen 
         logo={fixPath(config.logo || landingData.logo)}
-        storeName={config.slogan || "La tecnología al servicio de los recuerdos."}
+        storeName={config.slogan || "POWERED BY PUJALTE CREATIVE STUDIO"}
         onComplete={() => {
           // Ya habremos cambiado la vista en el onClick, así que aquí solo nos aseguramos
           // de que el splash se desmonte tras el desvanecimiento
@@ -766,12 +766,11 @@ Mi email: ${formData.email}`
 
           <main className="container mx-auto py-8 px-4 max-w-7xl">
             <div className="text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-2">
-                {config.slogan || "La tecnología al servicio de los recuerdos."}
-              </h1>
-              <p className="text-muted-foreground uppercase tracking-[0.3em] text-xs font-bold opacity-60">
-                Tu tienda premium by Creative Pujalte Studio
-              </p>
+              <div className="mb-6">
+                <p className="text-[#4A7C59] uppercase tracking-[0.4em] text-[10px] font-black opacity-80">
+                  POWERED BY PUJALTE CREATIVE STUDIO
+                </p>
+              </div>
             </div>
 
             <CategoryBar 
@@ -979,11 +978,11 @@ Mi email: ${formData.email}`
                       </span>
                     ))}
                   </h1>
-                  {config.slogan && (
-                    <p className="text-lg md:text-xl text-gray-500 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-                      {config.slogan}
+                  <div className="mb-10">
+                    <p className="text-xs font-black tracking-[0.4em] text-[#4A7C59] uppercase opacity-80">
+                      POWERED BY PUJALTE CREATIVE STUDIO
                     </p>
-                  )}
+                  </div>
                   
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <button 
