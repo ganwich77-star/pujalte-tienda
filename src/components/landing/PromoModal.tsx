@@ -15,7 +15,15 @@ interface PromoModalProps {
 
 export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoModalProps) {
   const [index, setIndex] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
   
   const current = promos[index]
   
@@ -159,39 +167,41 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="w-full h-full"
             >
-            {/* MOBILE LAYOUT (Stacked) */}
-            <div className="flex md:hidden flex-col items-center overflow-hidden">
-               <div className="w-full py-6">
-                 <HeaderContent />
+            {isMobile ? (
+               /* MOBILE LAYOUT (Stacked) */
+               <div className="flex flex-col items-center overflow-hidden">
+                  <div className="w-full py-6">
+                    <HeaderContent />
+                  </div>
+                  <div className="w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl border border-white/10">
+                    <MediaContent />
+                  </div>
+                  <div className="w-full py-8">
+                    <FooterContent />
+                  </div>
                </div>
-               <div className="w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl border border-white/10">
-                 <MediaContent />
+             ) : (
+               /* DESKTOP LAYOUT (Overlaid) */
+               <div className="relative w-full aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/20">
+                 <div className="absolute inset-0">
+                   <MediaContent />
+                   <div className="absolute inset-0 bg-black/20" />
+                 </div>
+                 <div className={cn(
+                   "absolute inset-0 flex flex-col z-20 p-16 lg:p-24",
+                   current.contentPosition === 'top-left' && "justify-start items-start text-left",
+                   current.contentPosition === 'top-right' && "justify-start items-end text-right",
+                   current.contentPosition === 'bottom-left' && "justify-end items-start text-left",
+                   current.contentPosition === 'bottom-right' && "justify-end items-end text-right",
+                   (current.contentPosition === 'center' || !current.contentPosition) && "justify-center items-center text-center"
+                 )}>
+                   <div className="space-y-8">
+                     <HeaderContent />
+                     <FooterContent />
+                   </div>
+                 </div>
                </div>
-               <div className="w-full py-8">
-                 <FooterContent />
-               </div>
-            </div>
-
-            {/* DESKTOP LAYOUT (Overlaid) */}
-            <div className="hidden md:block relative w-full aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/20">
-              <div className="absolute inset-0">
-                <MediaContent />
-                <div className="absolute inset-0 bg-black/20" />
-              </div>
-              <div className={cn(
-                "absolute inset-0 flex flex-col z-20 p-16 lg:p-24",
-                current.contentPosition === 'top-left' && "justify-start items-start text-left",
-                current.contentPosition === 'top-right' && "justify-start items-end text-right",
-                current.contentPosition === 'bottom-left' && "justify-end items-start text-left",
-                current.contentPosition === 'bottom-right' && "justify-end items-end text-right",
-                (current.contentPosition === 'center' || !current.contentPosition) && "justify-center items-center text-center"
-              )}>
-                <div className="space-y-8">
-                  <HeaderContent />
-                  <FooterContent />
-                </div>
-              </div>
-            </div>
+             )}
           </motion.div>
         </AnimatePresence>
 
