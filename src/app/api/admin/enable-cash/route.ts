@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, COLLECTIONS } from '@/lib/firebase'
 import { doc, setDoc, deleteDoc } from "firebase/firestore"
-import { db as prisma } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -60,7 +59,6 @@ export async function POST(request: NextRequest) {
       const phone = (searchParams.get('phone') || '').trim()
       const enable = searchParams.get('enable') === 'true'
       
-      // Identificadores para sincronizar pedidos antiguos
       const originalDni = (searchParams.get('originalDni') || '').toUpperCase().trim()
       const originalEmail = (searchParams.get('originalEmail') || '').trim()
       const originalPhone = (searchParams.get('originalPhone') || '').trim()
@@ -88,41 +86,6 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date().toISOString()
       }, { merge: true })
   
-      // MySQL Sync (Opcional)
-      if (originalDni || originalEmail || originalPhone) {
-        try {
-          const conds: any[] = []
-          if (originalDni) conds.push({ customFields: { contains: `"dni":"${originalDni}"` } })
-          if (originalEmail) conds.push({ customerEmail: originalEmail })
-          if (originalPhone) conds.push({ customerPhone: originalPhone })
-  
-          const ordersToUpdate = await prisma.order.findMany({
-              where: { OR: conds }
-          })
-  
-          for (const order of ordersToUpdate) {
-              let customFields: any = {}
-              try {
-                  if (order.customFields) customFields = JSON.parse(order.customFields)
-              } catch (e) { customFields = {} }
-              
-              customFields.dni = dni
-  
-              await prisma.order.update({
-                  where: { id: order.id },
-                  data: {
-                      customerName: name || order.customerName,
-                      customerEmail: email || order.customerEmail,
-                      customerPhone: phone || order.customerPhone,
-                      customFields: JSON.stringify(customFields)
-                  }
-              })
-          }
-        } catch (mysqlError: any) {
-          console.error('[SYNC_MYSQL_ERROR]', mysqlError.message)
-        }
-      }
-  
       return NextResponse.json({ success: true, dni })
   
     } catch (error: any) {
@@ -130,3 +93,4 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
+

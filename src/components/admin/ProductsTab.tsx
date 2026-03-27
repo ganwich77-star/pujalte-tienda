@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react'
 import { 
-  Plus, Package, Edit, Trash2, Eye, EyeOff, Save, ImageIcon, 
-  ImageOff, Upload, MoreVertical, GripVertical, Check, X as CloseIcon, ZoomIn, ZoomOut,
-  ArrowUpDown, ArrowUp, ArrowDown, Info, AlertCircle, Banknote, Sparkles, Tag
+  Plus, Package, Edit, Trash2, Eye, EyeOff, ImageIcon, 
+  ImageOff, Upload, GripVertical, Check, X as CloseIcon, ZoomIn, ZoomOut,
+  ArrowUp, ArrowDown, Info, Sparkles, ArrowUpDown, Search, Filter
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Checkbox } from "@/components/ui/checkbox"
@@ -29,7 +29,6 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { 
   Table, 
   TableBody, 
@@ -45,12 +44,10 @@ import {
   Dialog, 
   DialogContent, 
   DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
+  DialogTitle
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { 
   Select, 
   SelectContent, 
@@ -59,6 +56,7 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -96,7 +94,7 @@ interface ProductsTabProps {
 }
 
 // Helper para arreglar rutas con el basePath de Hostinger
-const fixPath = (path: string) => {
+const fixPath = (path: string | undefined | null) => {
   if (!path) return ''
   if (path.startsWith('http') || path.startsWith('data:')) return path
   let cleanPath = path.replace('/', '')
@@ -106,12 +104,10 @@ const fixPath = (path: string) => {
 
 function SortableProductRow({ 
   product, 
-  showImages, 
   onEditProduct, 
   onUpdateProductField, 
   onToggleActive, 
   onDeleteProduct, 
-  formatPrice,
   categories,
   onImageClick,
   isSelected,
@@ -137,134 +133,117 @@ function SortableProductRow({
     <TableRow 
       ref={setNodeRef} 
       style={style}
-      className={`group border-b border-border/40 transition-colors h-24 sm:h-24 ${isDragging ? 'bg-primary/5 shadow-inner' : 'hover:bg-muted/30'}`}
+      className={`group border-b border-slate-100 transition-colors h-20 ${isDragging ? 'bg-slate-50 shadow-inner' : 'hover:bg-slate-50/50'}`}
     >
-      <TableCell className="w-8 sm:w-10 pl-3 sm:pl-6 h-24 sm:h-24">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1.5 -ml-1 hover:bg-black/5 rounded-lg transition-colors">
-            <GripVertical className="h-4 w-4 text-muted-foreground/40" />
+      <TableCell className="w-16 pl-4">
+        <div className="flex items-center gap-3">
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-2 hover:bg-black/5 rounded-lg transition-colors">
+            <GripVertical className="h-4 w-4 text-slate-300" />
           </div>
           <Checkbox 
             checked={isSelected} 
             onCheckedChange={() => onSelect(product.id)}
-            className="rounded-md border-muted-foreground/30 data-[state=checked]:bg-black data-[state=checked]:border-black h-4 w-4 sm:h-5 sm:w-5"
+            className="h-5 w-5 rounded-md border-slate-200"
           />
         </div>
       </TableCell>
-      <TableCell className="w-16 sm:w-20 pl-1 sm:pl-2">
+      <TableCell className="w-20 px-2">
         <div 
-          className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden bg-muted/30 border border-border/40 group/img cursor-pointer shadow-sm mx-auto sm:ml-2"
+          className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group/img cursor-pointer shadow-sm mx-auto transition-transform hover:scale-105 active:scale-95"
           onClick={() => onImageClick(product)}
         >
           {product.image ? (
             <>
-              <img src={fixPath(product.image)} alt={product.name} className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
+              <img src={fixPath(product.image)} alt={product.name} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
                 <ImageIcon className="text-white h-5 w-5" />
               </div>
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <ImageOff className="h-6 w-6 text-muted-foreground/20" />
+              <ImageOff className="h-6 w-6 text-slate-300" />
             </div>
           )}
         </div>
       </TableCell>
-      <TableCell className="min-w-[140px] sm:min-w-[200px]">
-        <div className="flex flex-col gap-0.5 sm:gap-1 py-1">
+      <TableCell>
+        <div className="flex flex-col gap-1 py-1">
           <input 
             value={product.name} 
             onChange={(e) => onUpdateProductField(product.id, 'name', e.target.value)}
-            className="font-black text-xs sm:text-[13px] uppercase tracking-tight bg-transparent border-none focus:ring-0 p-0 w-full outline-none placeholder:opacity-20 truncate"
-            placeholder="Nombre..."
+            className="font-bold text-base uppercase tracking-tight bg-transparent border-none focus:ring-0 p-0 w-full outline-none placeholder:text-slate-300 truncate"
+            placeholder="Nombre del producto..."
           />
-          <span className="text-[8px] sm:text-[10px] text-muted-foreground uppercase tracking-widest font-black opacity-30 px-0.5">#{product.id.slice(-6).toUpperCase()}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-slate-400 font-bold tracking-wider">REF: {product.id.slice(-6).toUpperCase()}</span>
+            {product.isNew && (
+              <span className="text-[10px] text-amber-500 font-bold flex items-center gap-1">
+                <Sparkles className="h-3 w-3" /> NOVEDAD
+              </span>
+            )}
+          </div>
         </div>
       </TableCell>
-      <TableCell className="w-32 sm:w-48 text-center px-2 sm:px-4">
+      <TableCell className="w-56 px-4">
         <Select 
           value={product.categoryId || 'none'} 
           onValueChange={(val) => onUpdateProductField(product.id, 'categoryId', val === 'none' ? null : val)}
         >
-          <SelectTrigger className="h-8 sm:h-9 border-none bg-muted/30 hover:bg-muted/50 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] uppercase font-black tracking-widest px-2 sm:px-4 focus:ring-1 focus:ring-primary/20">
+          <SelectTrigger className="h-10 border-slate-200 bg-white rounded-lg text-xs font-bold uppercase tracking-wider px-3 shadow-sm transition-all">
             <SelectValue placeholder="Categoría" />
           </SelectTrigger>
-          <SelectContent className="rounded-2xl border-none shadow-2xl">
-            <SelectItem value="none" className="text-[10px] font-bold uppercase tracking-widest py-3">Sin Categoría</SelectItem>
+          <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+            <SelectItem value="none" className="text-xs font-bold uppercase tracking-wider py-2">Sin Categoría</SelectItem>
             {categories.map((cat: any) => (
-              <SelectItem key={cat.id} value={cat.id} className="text-[10px] font-bold uppercase tracking-widest py-3">{cat.name}</SelectItem>
+              <SelectItem key={cat.id} value={cat.id} className="text-xs font-bold uppercase tracking-wider py-2">{cat.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-      </TableCell>
-
-      <TableCell className="min-w-[140px] sm:min-w-[180px] text-center p-2 sm:p-4">
-        <div className="flex items-center justify-center gap-1 sm:gap-2">
-          {/* Toggle Active (Estado) */}
+      </TableCell>      <TableCell className="w-48 px-2">
+        <div className="flex items-center justify-end gap-2">
           <Button 
             size="icon" 
             variant="ghost" 
             onClick={() => onToggleActive(product)}
-            className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl border transition-all shadow-sm active:scale-95 ${
+            className={`h-9 w-9 rounded-lg border transition-all active:scale-90 ${
               product.active 
                 ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' 
-                : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200'
+                : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
             }`}
-            title={product.active ? 'Habilitado' : 'Oculto'}
           >
             {product.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           </Button>
-
-          {/* Novedad */}
-          <Button 
-            size="icon" 
-            variant="ghost" 
-            onClick={() => onUpdateProductField(product.id, 'isNew', !product.isNew)}
-            className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl border transition-all shadow-sm active:scale-95 ${
-              product.isNew 
-                ? 'bg-amber-50 text-amber-500 border-amber-100 hover:bg-amber-100' 
-                : 'bg-slate-50 text-slate-300 border-slate-100 hover:bg-slate-100'
-            }`}
-            title={product.isNew ? 'Novedad Activa' : 'Marcar como Novedad'}
-          >
-            <Sparkles className="h-4 w-4" />
-          </Button>
-
-          {/* Editar */}
           <Button 
             size="icon" 
             variant="ghost" 
             onClick={() => onEditProduct(product)} 
-            className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-900 hover:text-white transition-all shadow-sm active:scale-95"
+            className="h-9 w-9 rounded-lg bg-slate-900 text-white hover:bg-black transition-all active:scale-90"
           >
             <Edit className="h-4 w-4" />
           </Button>
-
-          {/* Delete */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size="icon" variant="ghost" className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95">
+              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white transition-all active:scale-90">
                 <Trash2 className="h-4 w-4" />
               </Button>
             </AlertDialogTrigger>
-
-            <AlertDialogContent className="rounded-[2.5rem] border-none p-8 gap-6 shadow-2xl">
-              <AlertDialogHeader className="gap-3">
-                <div className="h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center mb-2">
-                  <Trash2 className="h-7 w-7 text-red-500" />
+            <AlertDialogContent className="rounded-2xl border-none p-8 gap-6 shadow-2xl">
+              <AlertDialogHeader className="gap-4">
+                <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center mx-auto">
+                  <Trash2 className="h-8 w-8 text-red-500" />
                 </div>
-                <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">¿Eliminar producto?</AlertDialogTitle>
-                <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
-                  Estás a punto de eliminar <span className="font-extrabold text-slate-900">&quot;{product.name}&quot;</span>. Esta acción no se puede deshacer y desaparecerá de la tienda.
+                <AlertDialogTitle className="text-2xl font-bold text-slate-900 text-center uppercase tracking-tight">Eliminar Producto</AlertDialogTitle>
+                <AlertDialogDescription className="text-base text-slate-500 font-medium text-center leading-relaxed">
+                  ¿Confirmas que deseas retirar <span className="text-slate-900 font-bold">&quot;{product.name}&quot;</span> de la colección?
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter className="gap-3 sm:gap-4 mt-2">
-                <AlertDialogCancel className="h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50">Cancelar</AlertDialogCancel>
+              <AlertDialogFooter className="gap-4 justify-center">
+                <AlertDialogCancel className="h-11 px-6 rounded-xl border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-xs">Cancelar</AlertDialogCancel>
                 <AlertDialogAction 
                   onClick={() => onDeleteProduct(product.id)}
-                  className="h-12 px-6 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-lg shadow-red-200 border-none"
+                  className="h-11 px-6 rounded-xl bg-red-500 text-white font-bold uppercase tracking-wider text-xs hover:bg-red-600 border-none shadow-lg shadow-red-200"
                 >
-                  Sí, eliminar ahora
+                  Eliminar
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -286,9 +265,8 @@ export function ProductsTab({
   onReorderProducts, 
   formatPrice,
   showImages,
-  setShowImages,
-  isProductDialogOpen,
   setIsProductDialogOpen,
+  isProductDialogOpen,
   productForm,
   setProductForm,
   editingProduct,
@@ -306,29 +284,43 @@ export function ProductsTab({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [sortConfig, setSortConfig] = useState<{key: string, direction: 'asc' | 'desc' | null}>({ key: '', direction: null })
+  const [searchTerm, setSearchTerm] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
 
   const imageInputRef = React.useRef<HTMLInputElement>(null)
   const formImageInputRef = React.useRef<HTMLInputElement>(null)
 
   const sortedProducts = React.useMemo(() => {
-    if (!sortConfig.key || !sortConfig.direction) return products
+    let filtered = [...products]
 
-    return [...products].sort((a: any, b: any) => {
+    // Filtrado por búsqueda
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(term) || 
+        p.id.toLowerCase().includes(term)
+      )
+    }
+
+    // Filtrado por categoría
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(p => p.categoryId === categoryFilter)
+    }
+
+    if (!sortConfig.key || !sortConfig.direction) return filtered
+
+    return filtered.sort((a: any, b: any) => {
       let aVal = a[sortConfig.key]
       let bVal = b[sortConfig.key]
-
       if (sortConfig.key === 'categoryId') {
-        const catA = categories.find(c => c.id === aVal)?.name || ''
-        const catB = categories.find(c => c.id === bVal)?.name || ''
-        aVal = catA
-        bVal = catB
+        aVal = categories.find(c => c.id === aVal)?.name || ''
+        bVal = categories.find(c => c.id === bVal)?.name || ''
       }
-
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
       if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
       return 0
     })
-  }, [products, sortConfig, categories])
+  }, [products, sortConfig, categories, searchTerm, categoryFilter])
 
   const toggleSort = (key: string) => {
     setSortConfig(current => ({
@@ -338,17 +330,11 @@ export function ProductsTab({
   }
 
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(products.map(p => p.id))
-    } else {
-      setSelectedIds([])
-    }
+    setSelectedIds(checked ? products.map(p => p.id) : [])
   }
 
   const handleSelect = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    )
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
   }
 
   const handleBulkDelete = () => {
@@ -367,15 +353,15 @@ export function ProductsTab({
       if (cropForForm) {
         setProductForm({ ...productForm, image: croppedImage })
         setCropForForm(false)
-        toast({ title: 'Imagen preparada', description: 'La foto se guardará al finalizar' })
       } else if (croppingProduct) {
         onUpdateProductField(croppingProduct.id, 'image', croppedImage)
       }
       setCropImage(null)
       setCroppingProduct(null)
+      toast({ title: 'Éxito', description: 'Imagen procesada correctamente' })
     } catch (e) {
       console.error(e)
-      toast({ title: 'Error', description: 'No se pudo procesar la imagen', variant: 'destructive' })
+      toast({ title: 'Error', description: 'Fallo al procesar imagen', variant: 'destructive' })
     }
   }
 
@@ -410,9 +396,7 @@ export function ProductsTab({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -420,302 +404,265 @@ export function ProductsTab({
     if (over && active.id !== over.id) {
       const oldIndex = products.findIndex((p) => p.id === active.id)
       const newIndex = products.findIndex((p) => p.id === over.id)
-      const newProducts = arrayMove(products, oldIndex, newIndex)
-      onReorderProducts(newProducts)
+      onReorderProducts(arrayMove(products, oldIndex, newIndex))
     }
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header Premium Unificado */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 bg-white p-5 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-8 sm:p-16 bg-black/5 rounded-full blur-3xl -mr-8 -mt-8 sm:-mr-12 sm:-mt-12 transition-all group-hover:bg-black/10" />
-        
-        <div className="flex flex-col gap-1.5 sm:gap-2 relative z-10">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-black flex items-center justify-center text-white shadow-2xl shadow-black/20 transform transition-transform group-hover:scale-110">
-              <Package className="h-4 w-4 sm:h-6 sm:w-6" />
-            </div>
-            <div className="flex flex-col">
-              <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">ELEMENTOS</h2>
-              <p className="text-[9px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Gestión de catálogo</p>
+    <div className="flex flex-col h-full bg-slate-50/50">
+      {/* Cabecera */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 sm:p-8 border-b border-slate-200 shadow-sm relative z-20">
+        <div className="flex items-center gap-6">
+          <div className="h-14 w-14 rounded-2xl bg-black text-white flex items-center justify-center shadow-lg">
+            <Package className="h-7 w-7" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">
+              Catálogo <span className="text-slate-300">2026</span>
+            </h1>
+            <div className="flex items-center gap-3 mt-2">
+              <Badge variant="secondary" className="bg-slate-100 text-slate-500 font-bold uppercase text-[10px] px-3 py-1 rounded-full border-none tracking-wider">
+                {products.length} PRODUCTOS
+              </Badge>
+              {selectedIds.length > 0 && (
+                <Badge className="bg-emerald-500 text-white font-bold uppercase text-[10px] px-3 py-1 rounded-full border-none shadow-md tracking-wider">
+                  {selectedIds.length} SELECCIONADOS
+                </Badge>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto relative z-10">
+        <div className="flex items-center gap-4">
           {selectedIds.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive" 
-                  className="flex-1 sm:flex-none rounded-xl sm:rounded-2xl gap-2 font-bold uppercase tracking-widest text-[9px] sm:text-[10px] px-4 sm:px-6 h-10 sm:h-11 shadow-lg shadow-red-500/20 active:scale-95"
-                >
-                  <Trash2 className="h-3 w-3 sm:h-4 w-4" />
-                  <span>Borrar {selectedIds.length}</span>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="rounded-[1.5rem] sm:rounded-[2.5rem] border-none p-6 sm:p-8 gap-6 shadow-2xl w-[92vw] max-w-md mx-auto">
-                <AlertDialogHeader className="gap-3">
-                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-red-50 flex items-center justify-center mb-2">
-                    <Trash2 className="h-6 w-6 sm:h-7 sm:w-7 text-red-500" />
-                  </div>
-                  <AlertDialogTitle className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">¿Eliminar {selectedIds.length} elementos?</AlertDialogTitle>
-                  <AlertDialogDescription className="text-sm text-slate-500 font-medium leading-relaxed">
-                    Esta acción no se puede deshacer. Los elementos seleccionados se borrarán permanentemente.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="gap-3 sm:gap-4 mt-2">
-                  <AlertDialogCancel className="flex-1 h-11 sm:h-12 px-4 sm:px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50">Cancelar</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleBulkDelete}
-                    className="flex-1 h-11 sm:h-12 px-4 sm:px-6 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-lg shadow-red-200 border-none"
-                  >
-                    Eliminar
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button 
+              variant="destructive" 
+              onClick={handleBulkDelete}
+              className="h-11 px-6 rounded-xl font-bold uppercase tracking-wider text-xs shadow-md"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              ELIMINAR
+            </Button>
           )}
-          <Button onClick={onAddProduct} className="flex-1 sm:flex-none rounded-xl sm:rounded-2xl gap-2 font-bold uppercase tracking-widest text-[9px] sm:text-[10px] px-4 sm:px-6 h-10 sm:h-11 bg-black hover:bg-black/90 text-white shadow-xl shadow-black/10 active:scale-95">
-            <Plus className="h-3 w-3 sm:h-4 w-4" />
-            <span className="truncate">Nuevo Elemento</span>
+          <Button 
+            onClick={onAddProduct}
+            className="bg-black text-white h-11 px-8 rounded-xl font-bold uppercase tracking-wider text-sm shadow-xl hover:bg-slate-800 transition-all active:scale-95 group"
+          >
+            <Plus className="h-5 w-5 mr-3 group-hover:rotate-90 transition-transform duration-500" />
+            NUEVO PRODUCTO
+          </Button>
+        </div>
+      {/* Toolbar - Búsqueda y Filtros */}
+      <div className="bg-white px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row items-center gap-4 shadow-sm relative z-10">
+        <div className="relative flex-1 w-full group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+          <Input 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="BUSCAR PRODUCTO POR NOMBRE O REF..."
+            className="h-11 pl-12 rounded-xl bg-slate-50 border-slate-200 text-sm font-medium focus-visible:ring-black/5 focus-visible:bg-white transition-all shadow-sm"
+          />
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full sm:w-[280px] h-11 rounded-xl bg-slate-50 border-slate-200 px-4 text-sm font-bold uppercase tracking-tight shadow-sm">
+              <div className="flex items-center gap-3">
+                <Filter className="h-4 w-4 text-slate-400" />
+                <SelectValue placeholder="CATEGORÍA" />
+              </div>
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+              <SelectItem value="all" className="text-xs font-bold uppercase py-3">Todas las secciones</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id} className="text-xs font-bold uppercase py-3">
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button 
+            variant="ghost" 
+            onClick={() => {setSearchTerm(''); setCategoryFilter('all')}}
+            className="h-11 w-11 rounded-xl text-slate-300 hover:text-black hover:bg-slate-100 bg-slate-50 border border-slate-200"
+          >
+            <CloseIcon className="h-5 w-5" />
           </Button>
         </div>
       </div>
+      </div>
 
-      <Card className="rounded-[1.5rem] sm:rounded-[2.5rem] border-none shadow-2xl shadow-black/5 overflow-hidden bg-white/60 backdrop-blur-sm">
-        <CardContent className="p-0">
-          <ScrollArea className="h-[calc(100vh-320px)] sm:h-[65vh] w-full">
-            {/* Desktop View */}
-            <div className="hidden sm:block overflow-x-auto min-w-full">
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <Table className="min-w-full">
-                  <TableHeader className="bg-muted/40 sticky top-0 z-20 backdrop-blur-md">
-                    <TableRow className="border-b border-border/40 hover:bg-transparent h-14">
-                      <TableHead className="w-14 pl-6 h-14">
-                        <div className="flex items-center gap-3">
-                          <Checkbox 
-                            checked={selectedIds.length === products.length && products.length > 0}
-                            onCheckedChange={handleSelectAll}
-                            className="rounded-md border-muted-foreground/30 data-[state=checked]:bg-black data-[state=checked]:border-black h-5 w-5"
-                          />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-20 h-14 uppercase text-[10px] font-black tracking-widest opacity-50 pl-4">FOTO</TableHead>
-                      
-                      <TableHead 
-                        className="min-w-[200px] h-14 uppercase text-[10px] font-black tracking-widest opacity-50 cursor-pointer hover:text-black transition-colors"
-                        onClick={() => toggleSort('name')}
-                      >
-                        <div className="flex items-center gap-2">
-                          Nombre
-                          {sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-20" />}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="w-48 h-14 uppercase text-[10px] font-black tracking-widest opacity-50 text-center cursor-pointer hover:text-black transition-colors"
-                        onClick={() => toggleSort('categoryId')}
-                      >
-                        <div className="flex items-center justify-center gap-2">
-                          Cat.
-                          {sortConfig.key === 'categoryId' ? (sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-20" />}
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-52 text-center h-14 uppercase text-[10px] font-black tracking-widest opacity-50">
-                        Acciones
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <SortableContext items={sortedProducts.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                      {sortedProducts.length > 0 ? sortedProducts.map(product => (
-                        <SortableProductRow 
-                          key={product.id}
-                          product={product}
-                          showImages={showImages}
-                          onEditProduct={onEditProduct}
-                          onUpdateProductField={onUpdateProductField}
-                          onToggleActive={onToggleActive}
-                          onDeleteProduct={onDeleteProduct}
-                          formatPrice={formatPrice}
-                          categories={categories}
-                          isSelected={selectedIds.includes(product.id)}
-                          onSelect={handleSelect}
-                          onImageClick={(p: Product) => {
-                            setCroppingProduct(p)
-                            imageInputRef.current?.click()
-                          }}
-                        />
-                      )) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="h-32 text-center text-muted-foreground font-medium">
-                            No hay productos en esta categoría
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </SortableContext>
-                  </TableBody>
-                </Table>
-              </DndContext>
-            </div>
-
-            {/* Mobile View */}
-            <div className="block sm:hidden space-y-3 p-4">
-              {sortedProducts.length > 0 ? sortedProducts.map((product) => (
-                <div key={product.id} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm space-y-4">
-                  <div className="flex items-center gap-4">
+      {/* Tabla Desktop Escalada */}
+      <ScrollArea className="flex-1 hidden md:block">
+        <div className="p-12 lg:p-20">
+          <div className="bg-white rounded-[4rem] border border-slate-100 shadow-[0_60px_120px_-20px_rgba(0,0,0,0.05)] overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-50/50">
+                <TableRow className="hover:bg-transparent h-14 border-b border-slate-200">
+                  <TableHead className="w-16 pl-4 text-center">
+                    <Checkbox 
+                      checked={selectedIds.length === products.length && products.length > 0} 
+                      onCheckedChange={handleSelectAll}
+                      className="h-5 w-5 rounded-md border-slate-200"
+                    />
+                  </TableHead>
+                  <TableHead className="w-24 text-center text-xs font-bold uppercase tracking-wider text-slate-400">Miniatura</TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-slate-100/50 transition-colors text-xs font-bold uppercase tracking-wider text-slate-400"
+                    onClick={() => toggleSort('name')}
+                  >
                     <div className="flex items-center gap-2">
-                      <Checkbox 
-                        checked={selectedIds.includes(product.id)} 
-                        onCheckedChange={() => handleSelect(product.id)}
-                        className="rounded-md border-muted-foreground/30 data-[state=checked]:bg-black data-[state=checked]:border-black h-5 w-5"
+                      Nombre {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center text-xs font-bold uppercase tracking-wider text-slate-400 w-56">Categoría</TableHead>
+                  <TableHead className="text-right pr-6 text-xs font-bold uppercase tracking-wider text-slate-400 w-48">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={sortedProducts} strategy={verticalListSortingStrategy}>
+                    {sortedProducts.map((product) => (
+                      <SortableProductRow 
+                        key={product.id} 
+                        product={product}
+                        onEditProduct={onEditProduct}
+                        onUpdateProductField={onUpdateProductField}
+                        onToggleActive={onToggleActive}
+                        onDeleteProduct={onDeleteProduct}
+                        categories={categories}
+                        onImageClick={(p: any) => {
+                          setCroppingProduct(p)
+                          setCropImage(fixPath(p.image))
+                          setCropForForm(false)
+                        }}
+                        isSelected={selectedIds.includes(product.id)}
+                        onSelect={handleSelect}
                       />
-                    </div>
-                    
-                    <div 
-                      className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted/30 border border-border/40 shrink-0"
-                      onClick={() => {
-                        setCroppingProduct(product)
-                        imageInputRef.current?.click()
-                      }}
-                    >
-                      {product.image ? (
-                        <img src={fixPath(product.image)} alt={product.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageOff className="h-6 w-6 text-muted-foreground/20" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="font-black text-xs uppercase tracking-tight text-slate-900 truncate">
-                        {product.name}
-                      </p>
-                      <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-black opacity-30">
-                        #{product.id.slice(-6).toUpperCase()}
-                      </p>
-                      <div className="mt-1">
-                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest text-slate-500 border-slate-200">
-                          {categories.find(c => c.id === product.categoryId)?.name || 'Sin Categoría'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => onToggleActive(product)}
-                        className={`h-10 w-10 rounded-xl border transition-all ${
-                          product.active 
-                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-                            : 'bg-slate-100 text-slate-400 border-slate-200'
-                        }`}
-                      >
-                        {product.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                      </Button>
-
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => onUpdateProductField(product.id, 'isNew', !product.isNew)}
-                        className={`h-10 w-10 rounded-xl border transition-all ${
-                          product.isNew 
-                            ? 'bg-amber-50 text-amber-500 border-amber-100' 
-                            : 'bg-slate-50 text-slate-300 border-slate-100'
-                        }`}
-                      >
-                        <Sparkles className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => onEditProduct(product)} 
-                        className="h-10 w-10 rounded-xl bg-slate-50 border border-slate-100"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl bg-red-50 text-red-500 border border-red-100">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="rounded-[2.5rem] border-none p-8 gap-6 shadow-2xl w-[92vw] mx-auto">
-                          <AlertDialogHeader className="gap-3">
-                            <div className="h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center mb-2">
-                              <Trash2 className="h-7 w-7 text-red-500" />
-                            </div>
-                            <AlertDialogTitle className="text-xl font-black text-slate-900 tracking-tight">¿Eliminar producto?</AlertDialogTitle>
-                            <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
-                              Estás a punto de eliminar <span className="font-extrabold text-slate-900">"{product.name}"</span>.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter className="gap-3 mt-2">
-                            <AlertDialogCancel className="h-12 px-6 rounded-xl">Cancelar</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => onDeleteProduct(product.id)}
-                              className="h-12 px-6 rounded-xl bg-red-500"
-                            >
-                              Eliminar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                </div>
-              )) : (
-                <div className="text-center py-12">
-                   <Package className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">No hay productos disponibles</p>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-
-      {/* Inputs ocultos para carga de imágenes */}
-      <input 
-        type="file" 
-        ref={imageInputRef} 
-        className="hidden" 
-        accept="image/png,image/jpeg,image/webp,image/*"
-        onChange={handleImageFileChange}
-      />
-      <input 
-        type="file" 
-        ref={formImageInputRef} 
-        className="hidden" 
-        accept="image/png,image/jpeg,image/webp,image/*"
-        onChange={handleFormImageFileChange}
-      />
-
-      {/* Diálogo de Recorte */}
-      <Dialog open={!!cropImage} onOpenChange={() => {
-        setCropImage(null)
-        setCroppingProduct(null)
-        setCropForForm(false)
-      }}>
-        <DialogContent className="max-w-2xl w-[95vw] bg-white rounded-[1.5rem] sm:rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden outline-none mx-auto">
-          <div className="p-5 sm:p-8 pb-4">
-            <DialogTitle className="text-lg sm:text-2xl font-black uppercase tracking-tighter">Ajustar Imagen</DialogTitle>
-            <p className="text-[10px] sm:text-sm text-muted-foreground font-medium uppercase tracking-widest">Reencuadra la foto para que quede perfecta</p>
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              </TableBody>
+            </Table>
           </div>
-          
-          <div className="relative h-[280px] sm:h-[400px] bg-slate-900 w-full overflow-hidden">
-            {cropImage && (
+        </div>
+      </ScrollArea>
+
+      {/* Mobile Experience (Giga Cards) */}
+      <ScrollArea className="flex-1 md:hidden bg-slate-50/50">
+        <div className="space-y-16 px-10 py-16 pb-64">
+          {sortedProducts.map((product) => (
+            <div 
+              key={product.id} 
+              className="bg-white rounded-[4rem] border border-slate-100 p-12 space-y-12 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] active:scale-[0.98] transition-all relative overflow-hidden group"
+            >
+              <div className="flex items-start gap-10">
+                <div 
+                  className="h-48 w-48 rounded-[3rem] overflow-hidden border border-slate-100 flex-shrink-0 bg-slate-50 shadow-inner group-active:scale-95 transition-transform"
+                  onClick={() => {
+                    setCroppingProduct(product)
+                    setCropImage(fixPath(product.image))
+                    setCropForForm(false)
+                  }}
+                >
+                  {product.image ? (
+                    <img src={fixPath(product.image)} alt={product.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageOff className="h-16 w-16 text-slate-200" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-6 py-4">
+                  <div className="flex items-start gap-6">
+                    <Checkbox 
+                      checked={selectedIds.includes(product.id)} 
+                      onCheckedChange={() => handleSelect(product.id)}
+                      className="h-12 w-12 rounded-[1.5rem] border-slate-200 mt-1 border-2"
+                    />
+                    <h3 className="font-black text-4xl uppercase tracking-tighter text-slate-900 leading-[0.8]">{product.name}</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Badge variant="outline" className="rounded-2xl border-slate-100 text-xs font-black uppercase text-slate-400 bg-slate-50 px-6 py-3 tracking-widest">
+                      {categories.find(c => c.id === product.categoryId)?.name || 'Sin Categoría'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-8 pt-4">
+                <Button 
+                  onClick={() => onEditProduct(product)}
+                  className="col-span-1 h-10 rounded-xl bg-slate-900 hover:bg-black text-white shadow-lg"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => onUpdateProductField(product.id, 'active', !product.active)}
+                  className={`col-span-1 h-10 rounded-xl border flex items-center justify-center transition-all ${
+                    product.active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-200'
+                  }`}
+                >
+                  {product.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => onUpdateProductField(product.id, 'isNew', !product.isNew)}
+                  className={`col-span-1 h-10 rounded-xl transition-all border ${
+                    product.isNew ? 'bg-amber-50 text-amber-500 border-amber-200 shadow-sm' : 'bg-white border-slate-200 text-slate-200'
+                  }`}
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="col-span-1 h-10 rounded-xl shadow-sm">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="w-[90vw] max-w-sm rounded-2xl p-6 bg-white border-none shadow-2xl">
+                    <AlertDialogHeader className="gap-2">
+                      <AlertDialogTitle className="text-lg font-bold uppercase tracking-tight text-center">ELIMINAR PRODUCTO</AlertDialogTitle>
+                      <AlertDialogDescription className="text-slate-500 text-sm text-center">Esta acción retirará el elemento de la tienda de forma inmediata.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-6 gap-3 flex-col sm:flex-row justify-center">
+                      <AlertDialogCancel className="h-10 rounded-xl font-bold uppercase tracking-wider text-[10px] flex-1 border-slate-200">Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDeleteProduct(product.id)} className="h-10 rounded-xl bg-red-500 hover:bg-red-600 font-bold uppercase tracking-wider text-[10px] flex-1 border-none shadow-lg">Confirmar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      {/* Hidden File Inputs */}
+      <Input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageFileChange} />
+      <Input type="file" ref={formImageInputRef} className="hidden" accept="image/*" onChange={handleFormImageFileChange} />
+
+      {/* Crop Modal */}
+      <Dialog open={!!cropImage} onOpenChange={(open) => !open && setCropImage(null)}>
+        <DialogContent className="max-w-xl w-[90vw] max-h-[85vh] border-none bg-black rounded-3xl p-0 overflow-hidden shadow-2xl">
+          <div className="flex flex-col h-full">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-white/10 bg-black/40 backdrop-blur-md z-10">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center">
+                  <ImageIcon className="h-5 w-5 text-black" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white uppercase tracking-tight leading-none">Ajustar Imagen</h3>
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">Laboratorio Digital</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setCropImage(null)} className="h-8 w-8 text-white/50 hover:bg-white/10 rounded-lg">
+                <CloseIcon className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <div className="flex-1 relative min-h-[400px]">
               <Cropper
-                image={cropImage}
+                image={cropImage || ''}
                 crop={crop}
                 zoom={zoom}
                 aspect={1}
@@ -723,362 +670,338 @@ export function ProductsTab({
                 onCropComplete={onCropComplete}
                 onZoomChange={setZoom}
               />
-            )}
-          </div>
-
-          <div className="p-6 sm:p-8 pt-6 space-y-6">
-            <div className="flex items-center gap-4">
-              <ZoomOut className="h-4 w-4 text-slate-400" />
-              <input 
-                type="range"
-                value={zoom}
-                min={1}
-                max={3}
-                step={0.1}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                className="flex-1 accent-black h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
-              />
-              <ZoomIn className="h-4 w-4 text-slate-400" />
             </div>
 
-            <DialogFooter className="flex flex-row items-center justify-end gap-3 pt-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => {
-                  setCropImage(null)
-                  setCroppingProduct(null)
-                  setCropForForm(false)
-                }}
-                className="rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-[10px] h-11 px-5 sm:px-8 border border-slate-100"
-              >
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleApplyCrop}
-                className="rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-[10px] h-11 px-5 sm:px-8 bg-black text-white hover:bg-black/90 shadow-lg shadow-black/10 active:scale-95"
-              >
-                Aplicar
-              </Button>
-            </DialogFooter>
+            <div className="px-8 py-8 bg-black border-t border-white/10 space-y-6">
+              <div className="flex items-center gap-4">
+                <ZoomOut className="text-white/40 h-4 w-4" />
+                <input
+                  type="range"
+                  value={zoom}
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="flex-1 accent-white h-1 rounded-full cursor-pointer"
+                />
+                <ZoomIn className="text-white/40 h-4 w-4" />
+              </div>
+              
+              <div className="flex gap-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setCropImage(null)}
+                  className="flex-1 h-11 rounded-xl font-bold uppercase tracking-wider text-[10px] border-white/10 text-white/50 hover:bg-white/5 hover:text-white transition-all"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleApplyCrop}
+                  className="flex-[2] h-11 rounded-xl font-bold uppercase tracking-wider text-[10px] bg-white text-black hover:bg-slate-100 shadow-lg"
+                >
+                  Confirmar Fotografía
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo de Producto (Crear/Editar) */}
+      {/* Product Edit Modal XL */}
       <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
         if (!open) resetProductForm()
         setIsProductDialogOpen(open)
       }}>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-hidden bg-white rounded-[1.5rem] sm:rounded-[2rem] border-none shadow-2xl p-0 flex flex-col mx-auto">
-          <div className="p-5 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-20 border-b border-slate-50">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-slate-900 text-white flex items-center justify-center">
-                {editingProduct ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              </div>
-              <div>
-                <DialogTitle className="text-lg font-black uppercase tracking-tight text-slate-900 leading-none">
-                  {editingProduct ? 'Editar Elemento' : 'Nuevo Elemento'}
-                </DialogTitle>
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Gestión de catálogo</p>
-              </div>
-            </div>
-          </div>
-
-          <ScrollArea className="flex-1">
-            <div className="p-6 sm:p-8 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                {/* Columna Izquierda: Imagen */}
-                <div className="md:col-span-5 space-y-4">
-                  <div className="space-y-2.5">
-                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Imagen Principal</Label>
-                    <div 
-                      className="aspect-square rounded-[2rem] border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center gap-4 overflow-hidden relative group cursor-pointer hover:bg-slate-100 transition-all hover:border-slate-300"
-                      onClick={() => formImageInputRef.current?.click()}
-                    >
-                      {productForm.image ? (
-                        <div className="relative w-full h-full group">
-                          <img src={fixPath(productForm.image)} alt="Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-[2px]">
-                            <Button variant="secondary" className="rounded-2xl font-black uppercase tracking-widest text-[9px] h-9">
-                              <Upload className="h-3 w-3 mr-2" />
-                              Cambiar
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-slate-300 transition-colors group-hover:text-slate-400">
-                          <Upload className="h-8 w-8 mb-2" />
-                          <p className="font-black text-[9px] uppercase tracking-widest leading-none">Subir Imagen</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Novedad Switch */}
-                  <div className="bg-slate-50/50 rounded-[1.5rem] p-4 border border-slate-100 flex items-center justify-between group/switch transition-colors hover:bg-slate-100/50">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                        <Sparkles className={`h-4 w-4 transition-colors ${productForm.isNew ? 'text-amber-500' : 'text-slate-300'}`} />
-                      </div>
-                      <Label htmlFor="isNew" className="text-[10px] font-black uppercase tracking-widest cursor-pointer text-slate-600">
-                        Marcar Novedad
-                      </Label>
-                    </div>
-                    <Switch 
-                      id="isNew" 
-                      checked={productForm.isNew || false}
-                      onCheckedChange={(checked) => setProductForm({...productForm, isNew: checked === true})}
-                      className="data-[state=checked]:bg-amber-500"
-                    />
-                  </div>
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-hidden border-none bg-white rounded-3xl p-0 flex flex-col mx-auto shadow-2xl">
+            <DialogHeader className="px-8 py-6 border-b border-slate-100 flex-shrink-0 bg-white z-10">
+              <div className="flex items-center gap-6">
+                <div className="h-12 w-12 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-lg">
+                  {editingProduct ? <Edit className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
                 </div>
+                <div>
+                  <DialogTitle className="text-2xl font-bold uppercase tracking-tight text-slate-900">
+                    {editingProduct ? 'Modificar' : 'Nuevo'} Producto
+                  </DialogTitle>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Gestión de Catálogo</p>
+                </div>
+              </div>
+            </DialogHeader>
 
-                <div className="md:col-span-7 space-y-6">
-                  <div className="space-y-2.5">
-                    <Label htmlFor="productName" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre del Elemento</Label>
-                    <Input 
-                      id="productName" 
-                      value={productForm.name} 
-                      onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                      className="rounded-xl sm:rounded-2xl h-11 sm:h-12 text-sm font-bold bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-slate-200"
-                      placeholder="Ej: Sesión Infantil Premium..."
-                    />
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <Label htmlFor="category" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoría</Label>
-                    <Select 
-                      value={productForm.categoryId || 'none'} 
-                      onValueChange={(val) => setProductForm({...productForm, categoryId: val === 'none' ? null : val})}
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="px-8 py-8 space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+                  {/* Left: Image Selection */}
+                  <div className="md:col-span-4 space-y-6">
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Imagen del Producto</Label>
+                      <div 
+                        className="aspect-square w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center overflow-hidden relative group cursor-pointer hover:bg-slate-100 transition-all shadow-inner"
+                        onClick={() => formImageInputRef.current?.click()}
+                      >
+                        {productForm.image ? (
+                          <div className="relative w-full h-full">
+                            <img src={fixPath(productForm.image)} alt="Preview" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                              <Button variant="secondary" size="sm" className="rounded-lg font-bold uppercase tracking-wider text-[10px] h-8 px-4">
+                                <Upload className="h-3 w-3 mr-2" />
+                                Cambiar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-slate-300">
+                            <Upload className="h-10 w-10 mb-3 opacity-30" />
+                            <p className="font-bold text-[10px] uppercase tracking-wider text-center px-4">Subir Imagen</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div 
+                      onClick={() => setProductForm({...productForm, isNew: !productForm.isNew})}
+                      className={`rounded-xl p-3 border transition-all cursor-pointer flex items-center gap-3 select-none ${
+                        productForm.isNew 
+                          ? 'bg-amber-50 border-amber-200 shadow-sm' 
+                          : 'bg-slate-50 border-slate-100 hover:bg-slate-100'
+                      }`}
                     >
-                      <SelectTrigger className="rounded-xl sm:rounded-2xl h-11 sm:h-12 text-sm font-bold bg-slate-50 border-none focus:ring-1 focus:ring-slate-200">
-                        <SelectValue placeholder="Categoría" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-none shadow-2xl">
-                        <SelectItem value="none" className="text-[10px] font-bold uppercase tracking-widest py-3">Sin Categoría</SelectItem>
-                        {categories.map((cat: any) => (
-                          <SelectItem key={cat.id} value={cat.id} className="text-[10px] font-bold uppercase tracking-widest py-3">{cat.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${
+                        productForm.isNew ? 'bg-amber-100 text-amber-600' : 'bg-white text-slate-300 shadow-sm'
+                      }`}>
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <Label className={`text-xs font-bold uppercase cursor-pointer tracking-tight block leading-none transition-colors ${
+                          productForm.isNew ? 'text-amber-700' : 'text-slate-400'
+                        }`}>Novedad</Label>
+                        <p className={`text-[9px] font-medium uppercase mt-1 tracking-wider ${
+                          productForm.isNew ? 'text-amber-500' : 'text-slate-400'
+                        }`}>
+                          {productForm.isNew ? 'Etiqueta Activa' : 'Activar Etiqueta'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2.5">
-                      <Label htmlFor="productPrice" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Precio Base (€)</Label>
-                      <div className="relative group">
-                        <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
+                  {/* Right: Core Info */}
+                  <div className="md:col-span-8 space-y-8">
+                    <div className="space-y-3">
+                      <Label htmlFor="productName" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nombre del Producto</Label>
+                      <Input 
+                        id="productName" 
+                        value={productForm.name} 
+                        onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                        className="rounded-xl h-11 text-base font-bold bg-slate-50 border-slate-200 px-4 focus:bg-white transition-all shadow-sm"
+                        placeholder="Ej: Pack Platinum"
+                      />
+                    </div>
+ 
+                     <div className="space-y-3">
+                       <Label htmlFor="category" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Categoría</Label>
+                       <Select 
+                         value={productForm.categoryId || 'none'} 
+                         onValueChange={(val) => setProductForm({...productForm, categoryId: val === 'none' ? null : val})}
+                       >
+                         <SelectTrigger className="rounded-xl h-11 text-sm font-bold bg-slate-50 border-slate-200 px-4 uppercase tracking-tight shadow-sm">
+                           <SelectValue placeholder="Seleccionar categoría" />
+                         </SelectTrigger>
+                         <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                           <SelectItem value="none" className="text-xs font-bold uppercase py-2">Sin Clasificación</SelectItem>
+                           {categories.map((cat: any) => (
+                             <SelectItem key={cat.id} value={cat.id} className="text-xs font-bold uppercase py-2">{cat.name}</SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+ 
+                     <div className="space-y-3">
+                       <Label htmlFor="description" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Descripción</Label>
+                       <Textarea 
+                         id="description" 
+                         value={productForm.description || ''} 
+                         onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                         placeholder="Escribe los detalles del producto..."
+                         className="rounded-xl min-h-[100px] resize-none text-sm bg-slate-50 border-slate-200 px-4 py-3 focus:bg-white transition-all shadow-sm"
+                       />
+                     </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <Label htmlFor="productPrice" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Precio Base (€)</Label>
                         <Input 
                           id="productPrice" 
                           type="number"
                           step="0.01"
                           value={productForm.price} 
                           onChange={(e) => setProductForm({...productForm, price: Number(e.target.value)})}
-                          className="rounded-xl sm:rounded-2xl h-11 sm:h-12 text-sm font-bold bg-slate-50 border-none pl-11 focus-visible:ring-1 focus-visible:ring-slate-200"
+                          className="rounded-xl h-11 text-lg font-bold bg-slate-50 border-slate-200 px-4 text-center shadow-sm"
                         />
                       </div>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <Label htmlFor="productSalePrice" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Precio Oferta (Opcional)</Label>
-                      <div className="relative group">
-                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
+                      <div className="space-y-3">
+                        <Label htmlFor="productSalePrice" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Precio Oferta (€)</Label>
                         <Input 
                           id="productSalePrice" 
                           type="number"
                           step="0.01"
                           value={productForm.salePrice || ''} 
                           onChange={(e) => setProductForm({...productForm, salePrice: e.target.value ? Number(e.target.value) : null})}
-                          className="rounded-xl sm:rounded-2xl h-11 sm:h-12 text-sm font-bold bg-slate-50 border-none pl-11 focus-visible:ring-1 focus-visible:ring-slate-200 text-amber-600 placeholder:text-slate-200"
-                          placeholder="Sin oferta..."
+                          className="rounded-xl h-11 text-lg font-bold bg-emerald-50 text-emerald-600 border-emerald-100 px-4 text-center shadow-sm"
+                          placeholder="Opcional"
                         />
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="space-y-2.5">
-                    <Label htmlFor="productDescription" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Descripción</Label>
-                    <textarea
-                      id="productDescription"
-                      value={productForm.description || ''}
-                      onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                      className="w-full min-h-[80px] sm:min-h-[100px] rounded-xl sm:rounded-2xl p-4 text-xs font-bold bg-slate-50 border-none focus:ring-1 focus:ring-slate-200 resize-none placeholder:text-slate-300"
-                      placeholder="Detalles sobre el producto..."
+                {/* Variants Control */}
+                <div className="pt-8 border-t border-slate-100 space-y-6">
+                  <div className="flex items-center justify-between bg-slate-900 p-4 rounded-2xl shadow-lg border border-white/5 h-16">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center">
+                        <ArrowUpDown className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-bold uppercase text-white leading-none block tracking-tight">Variantes de Producto</Label>
+                        <p className="text-[8px] text-slate-400 font-medium uppercase mt-1 tracking-wider">Tallas o formatos específicos</p>
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={productForm.hasVariants} 
+                      onCheckedChange={(checked) => setProductForm({...productForm, hasVariants: checked})}
+                      className="scale-75 origin-right"
                     />
                   </div>
-                </div>
-              </div>
 
-              {/* Sección de Variantes */}
-              <div className="space-y-6 pt-6 border-t border-slate-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                      <ArrowUpDown className="h-5 w-5 text-slate-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 leading-none">Opciones y Variantes</h3>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Tallas, acabados, etc.</p>
-                    </div>
-                  </div>
-                  <Switch 
-                    checked={productForm.hasVariants} 
-                    onCheckedChange={(checked) => setProductForm({...productForm, hasVariants: checked})}
-                    className="data-[state=checked]:bg-slate-900"
-                  />
-                </div>
-
-                <AnimatePresence>
-                  {productForm.hasVariants && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="space-y-6 overflow-hidden"
-                    >
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Etiqueta (ej: Talla)</Label>
-                          <Input 
-                            value={productForm.variantType || ''} 
-                            onChange={(e) => setProductForm({...productForm, variantType: e.target.value})}
-                            placeholder="Talla, Color, Papel..."
-                            className="bg-slate-50 border-none rounded-xl h-10 text-xs font-bold"
-                          />
+                  <AnimatePresence>
+                    {productForm.hasVariants && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-4 overflow-hidden"
+                      >
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-bold uppercase text-slate-400 ml-1">Tipo de Atributo</Label>
+                            <Input 
+                              value={productForm.variantType || ''} 
+                              onChange={(e) => setProductForm({...productForm, variantType: e.target.value})}
+                              placeholder="Ej: Talla"
+                              className="bg-slate-50 border-slate-200 rounded-lg h-10 text-sm font-bold px-4 uppercase tracking-tight"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-bold uppercase text-slate-400 ml-1">Comportamiento</Label>
+                            <Select 
+                              value={productForm.variantBehavior || 'replace'} 
+                              onValueChange={(val: any) => setProductForm({...productForm, variantBehavior: val})}
+                            >
+                              <SelectTrigger className="bg-slate-50 border-slate-200 rounded-lg h-10 text-xs font-bold px-4 uppercase">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                <SelectItem value="replace" className="text-xs font-bold uppercase py-2">Precio Fijo</SelectItem>
+                                <SelectItem value="add" className="text-xs font-bold uppercase py-2">Añadir al Base</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Comportamiento Precio</Label>
-                          <Select 
-                            value={productForm.variantBehavior || 'replace'} 
-                            onValueChange={(val: any) => setProductForm({...productForm, variantBehavior: val})}
-                          >
-                            <SelectTrigger className="bg-slate-50 border-none rounded-xl h-10 text-xs font-bold">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl border-none shadow-2xl">
-                              <SelectItem value="replace" className="text-xs font-bold">Sustituir Base</SelectItem>
-                              <SelectItem value="add" className="text-xs font-bold">Sumar al Base</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
 
-                      <div className="space-y-3">
-                        {productForm.variants?.map((variant: any, index: number) => (
-                          <div key={index} className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl group/variant">
-                            <div className="flex-1 space-y-2">
+                        <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                          {productForm.variants?.map((variant: any, index: number) => (
+                            <div key={index} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 group transition-all">
                               <Input 
-                                placeholder="Nombre (ej: XL)" 
+                                placeholder="Opción..." 
                                 value={variant.name} 
                                 onChange={(e) => updateVariant(index, 'name', e.target.value)}
-                                className="bg-white border-none h-9 text-xs font-bold"
+                                className="bg-white border-slate-200 h-10 text-sm font-bold flex-[3] rounded-lg px-4 uppercase tracking-tight"
                               />
-                            </div>
-                            <div className="w-24">
                               <Input 
                                 type="number" 
-                                placeholder="Precio" 
+                                placeholder="€" 
                                 value={variant.price} 
                                 onChange={(e) => updateVariant(index, 'price', Number(e.target.value))}
-                                className="bg-white border-none h-9 text-xs font-bold"
+                                className="bg-white border-slate-200 h-10 text-sm font-bold flex-1 rounded-lg text-center"
                               />
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => removeVariant(index)}
+                                className="h-10 w-10 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all rounded-lg"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
-                            <div className="w-20">
-                              <Input 
-                                type="number" 
-                                placeholder="Stock" 
-                                value={variant.stock} 
-                                onChange={(e) => updateVariant(index, 'stock', Number(e.target.value))}
-                                className="bg-white border-none h-9 text-xs font-bold"
-                              />
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => removeVariant(index)}
-                              className="h-9 w-9 text-slate-300 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                         <Button 
                           variant="outline" 
+                          size="sm"
                           onClick={addVariant}
-                          className="w-full h-10 border-dashed border-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all"
+                          className="w-full h-10 border-dashed border-2 rounded-xl text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:bg-slate-50 transition-all"
                         >
                           <Plus className="h-3 w-3 mr-2" />
                           Añadir Variante
                         </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Visibility Controls */}
+                <div className="grid grid-cols-2 gap-6 pt-4">
+                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-white text-slate-400 flex items-center justify-center shadow-sm">
+                        <Info className="h-4 w-4" />
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <div>
+                        <Label className="text-sm font-bold uppercase text-slate-900 block tracking-tight">Mostrar Precio</Label>
+                        <p className="text-[9px] text-slate-400 font-medium uppercase mt-1">{productForm.showPrice ? 'Público' : 'Privado'}</p>
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={productForm.showPrice !== false} 
+                      onCheckedChange={(checked) => setProductForm({...productForm, showPrice: checked})}
+                      className="scale-90"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-900 rounded-2xl border border-slate-800">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-white/10 text-emerald-400 flex items-center justify-center">
+                        <Eye className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-bold uppercase text-white block tracking-tight">Visible Web</Label>
+                        <p className="text-[9px] text-slate-500 font-medium uppercase mt-1">{productForm.active ? 'Activo' : 'Borrador'}</p>
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={productForm.active !== false} 
+                      onCheckedChange={(checked) => setProductForm({...productForm, active: checked})}
+                      className="data-[state=checked]:bg-emerald-500 scale-90"
+                    />
+                  </div>
+                </div>
               </div>
+            </ScrollArea>
 
-              {/* Configuración Avanzada */}
-              <div className="grid grid-cols-2 gap-4 pt-4">
-                <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Info className="h-4 w-4 text-slate-400" />
-                    <Label className="text-[9px] font-black uppercase tracking-widest text-slate-600">Mostrar Precio</Label>
-                  </div>
-                  <Switch 
-                    checked={productForm.showPrice !== false} 
-                    onCheckedChange={(checked) => setProductForm({...productForm, showPrice: checked})}
-                  />
-                </div>
-                <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Package className="h-4 w-4 text-slate-400" />
-                    <Label className="text-[9px] font-black uppercase tracking-widest text-slate-600">Es un Pack</Label>
-                  </div>
-                  <Switch 
-                    checked={productForm.isPack || false} 
-                    onCheckedChange={(checked) => setProductForm({...productForm, isPack: checked})}
-                    className="data-[state=checked]:bg-emerald-500"
-                  />
-                </div>
-              </div>
-
-              {/* Visibilidad Switch */}
-              <div className="flex items-center justify-between p-5 bg-slate-900 rounded-[1.5rem] text-white shadow-xl shadow-slate-200">
-                <div className="flex items-center gap-4">
-                  <div className={`h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center`}>
-                    <Eye className={`h-5 w-5 ${productForm.active !== false ? 'text-emerald-400' : 'text-slate-500'}`} />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest block leading-none">Estado de Visibilidad</Label>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">{productForm.active !== false ? 'Activo en la web' : 'Oculto para todos'}</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={productForm.active !== false} 
-                  onCheckedChange={(checked) => setProductForm({...productForm, active: checked})}
-                  className="data-[state=checked]:bg-emerald-500"
-                />
-              </div>
+            <div className="px-8 py-6 border-t border-slate-100 flex items-center gap-4 bg-white z-20">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsProductDialogOpen(false)}
+                className="flex-1 h-11 rounded-xl font-bold uppercase tracking-wider text-[10px] text-slate-400 border-slate-200 hover:bg-slate-50 transition-all"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={onSaveProduct}
+                className="flex-[2] h-11 rounded-xl font-bold uppercase tracking-wider text-xs bg-black text-white hover:bg-slate-800 shadow-lg active:scale-95 transition-all border-none"
+              >
+                {editingProduct ? 'Guardar Cambios' : 'Publicar Producto'}
+              </Button>
             </div>
-          </ScrollArea>
-
-          <div className="p-6 border-t border-slate-50 flex items-center gap-3 sm:gap-4 bg-white">
-            <Button 
-              variant="ghost" 
-              onClick={() => setIsProductDialogOpen(false)}
-              className="flex-1 h-11 sm:h-12 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[10px] text-slate-400 border border-slate-50"
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={onSaveProduct}
-              className="flex-[1.5] h-11 sm:h-12 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[10px] bg-black text-white hover:bg-slate-800 shadow-xl shadow-black/10 active:scale-95"
-            >
-              {editingProduct ? 'Guardar Cambios' : 'Crear Producto'}
-            </Button>
-          </div>
-        </DialogContent>
+          </DialogContent>
       </Dialog>
     </div>
   )
 }
-

@@ -500,51 +500,81 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-slate-200 shadow-xl">
                           <SelectItem value="top-left" className="font-semibold py-2">↖️ Arriba Izq</SelectItem>
-                          <SelectItem value="top" className="font-semibold py-2">⬆️ Arriba Centro (Layout Externo)</SelectItem>
                           <SelectItem value="top-right" className="font-semibold py-2">↗️ Arriba Der</SelectItem>
                           <SelectItem value="bottom-left" className="font-semibold py-2">↙️ Abajo Izq</SelectItem>
-                          <SelectItem value="bottom-center" className="font-semibold py-2">⬇️ Abajo Centro (Layout Externo)</SelectItem>
                           <SelectItem value="bottom-right" className="font-semibold py-2">↘️ Abajo Der</SelectItem>
                           <SelectItem value="center" className="font-semibold py-2">🎯 Centro (Superpuesto)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="sm:col-span-2 mt-4">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-slate-500/80 mb-2 tracking-wider flex items-center gap-2">
                           Zoom & Audio
                         </Label>
-                        <div className="flex flex-col gap-4">
-                          {/* CONTROL DE ZOOM - PANEL PRINCIPAL */}
-                          <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-4 shadow-inner">
-                            <div className="flex items-center justify-between pb-3 border-b border-white">
+                        <div className="bg-slate-50/80 rounded-[2.5rem] border border-slate-200 p-6 shadow-[-4px_-4px_12px_rgba(255,255,255,0.8),inset_2px_2px_8px_rgba(0,0,0,0.05)] space-y-6">
+                          {/* FILA DE INTERRUPTORES */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* ZOOM TOGGLE */}
+                            <div className={cn(
+                              "flex items-center justify-between p-4 rounded-[1.5rem] border transition-all duration-300",
+                              promo.zoom ? "bg-white border-[#4A7C59]/20 shadow-sm" : "bg-slate-100/50 border-slate-200"
+                            )}>
                               <div className="flex items-center gap-3">
                                 <div className={cn(
-                                  "p-2 rounded-xl transition-all duration-300",
-                                  promo.zoom ? "bg-[#4A7C59]/10 shadow-sm" : "bg-slate-200/50"
+                                  "p-2 rounded-xl transition-colors",
+                                  promo.zoom ? "bg-[#4A7C59] text-white" : "bg-white border border-slate-200 text-slate-300 shadow-sm"
                                 )}>
-                                  <Maximize2 className={cn("h-4 w-4", promo.zoom ? "text-[#4A7C59]" : "text-slate-400")} />
+                                  <Maximize2 className="h-4 w-4" />
                                 </div>
-                                <div>
-                                  <span className="block text-xs font-black text-slate-700 uppercase tracking-tight">Efecto Zoom</span>
-                                  <span className="text-[10px] text-slate-400 font-medium">Auto-animar entrada de media</span>
-                                </div>
+                                <span className="text-xs font-black text-slate-700 uppercase tracking-tight">Efecto Zoom</span>
                               </div>
                               <Switch 
                                 checked={promo.zoom || false} 
                                 onCheckedChange={(checked) => handleUpdatePromo(promo.id, 'zoom', checked)}
-                                className="data-[state=checked]:bg-[#4A7C59]"
+                                className="data-[state=checked]:bg-[#4A7C59] scale-90"
                               />
                             </div>
 
+                            {/* AUDIO TOGGLE (Si es video) */}
+                            {(promo.type === 'video' || promo.url?.match(/\.(mp4|mov|webm|m4v)/i)) && (
+                              <div className={cn(
+                                "flex items-center justify-between p-4 rounded-[1.5rem] border transition-all duration-300",
+                                promo.muted ? "bg-white border-amber-200 shadow-sm" : "bg-slate-100/50 border-slate-200"
+                              )}>
+                                <div className="flex items-center gap-3">
+                                  <div className={cn(
+                                    "p-2 rounded-xl transition-colors",
+                                    promo.muted ? "bg-amber-500 text-white" : "bg-white border border-slate-200 text-slate-300 shadow-sm"
+                                  )}>
+                                    {promo.muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                                  </div>
+                                  <span className="text-xs font-black text-slate-700 uppercase tracking-tight">Silenciar Vídeo</span>
+                                </div>
+                                <Switch 
+                                  checked={promo.muted !== false} 
+                                  onCheckedChange={(checked) => handleUpdatePromo(promo.id, 'muted', checked)}
+                                  className="data-[state=checked]:bg-amber-500 scale-90"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* FILA DE SLIDERS (Solo si zoom está activo) */}
+                          <AnimatePresence>
                             {promo.zoom && (
-                              <div className="pt-4 space-y-6 animate-in fade-in zoom-in-95 duration-300">
-                                {/* Intensidad */}
-                                <div className="space-y-3">
-                                  <div className="flex justify-between items-end">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Intensidad del Zoom</label>
-                                    <span className="text-xs font-black text-[#4A7C59] bg-white px-3 py-1 rounded-lg border border-[#4A7C59]/20 shadow-sm">
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2 px-2"
+                              >
+                                {/* Slider Intensidad */}
+                                <div className="space-y-4">
+                                  <div className="flex justify-between items-center">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Intensidad</label>
+                                    <span className="text-[10px] font-black text-[#4A7C59] bg-[#4A7C59]/5 px-2 py-0.5 rounded-md border border-[#4A7C59]/10">
                                       {(promo.zoomScale || 1.25).toFixed(2)}x
                                     </span>
                                   </div>
@@ -558,19 +588,16 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                                   />
                                 </div>
 
-                                {/* Posición Vertical */}
-                                <div className="space-y-3">
-                                  <div className="flex justify-between items-end">
-                                    <div className="flex items-center gap-2 pl-1">
-                                      <MoveVertical className="h-3 w-3 text-slate-400" />
-                                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Punto de Enfoque (Eje Y)</label>
-                                    </div>
-                                    <span className="text-xs font-black text-[#4A7C59] bg-white px-3 py-1 rounded-lg border border-[#4A7C59]/20 shadow-sm">
+                                {/* Slider Eje Y */}
+                                <div className="space-y-4">
+                                  <div className="flex justify-between items-center">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Punto Enfoque</label>
+                                    <span className="text-[10px] font-black text-[#4A7C59] bg-[#4A7C59]/5 px-2 py-0.5 rounded-md border border-[#4A7C59]/10">
                                       {Math.round(promo.zoomY ?? 50)}%
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-3 bg-white/50 p-2 rounded-xl border border-white/80">
-                                    <span className="text-[9px] font-black text-slate-400 tracking-tighter w-8 text-center bg-slate-100 py-1 rounded">SUPERIOR</span>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-[8px] font-black text-slate-300">UP</span>
                                     <Slider
                                       defaultValue={[promo.zoomY ?? 50]}
                                       max={100}
@@ -579,35 +606,12 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                                       onValueChange={([val]) => handleUpdatePromo(promo.id, 'zoomY', val)}
                                       className="flex-1 py-1 cursor-pointer"
                                     />
-                                    <span className="text-[9px] font-black text-slate-400 tracking-tighter w-8 text-center bg-slate-100 py-1 rounded">INFERIOR</span>
+                                    <span className="text-[8px] font-black text-slate-300">DW</span>
                                   </div>
                                 </div>
-                              </div>
+                              </motion.div>
                             )}
-                          </div>
-
-                          {/* CONTROL DE AUDIO (SOLO SI ES VIDEO) */}
-                          {(promo.type === 'video' || promo.url?.match(/\.(mp4|mov|webm|m4v)/i)) && (
-                            <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl shadow-sm transition-all hover:border-[#4A7C59]/30 group">
-                              <div className="flex items-center gap-4">
-                                <div className={cn(
-                                  "p-3 rounded-xl transition-all duration-300",
-                                  promo.muted ? "bg-slate-100 group-hover:bg-slate-200" : "bg-amber-50 group-hover:bg-amber-100 shadow-sm"
-                                )}>
-                                  {promo.muted ? <VolumeX className="h-4 w-4 text-slate-400 text-slate-500" /> : <Volume2 className="h-4 w-4 text-amber-500" />}
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="text-xs font-bold text-slate-800">Silenciar Video</span>
-                                  <span className="text-[10px] text-slate-500 font-medium">El vídeo empezará sin sonido</span>
-                                </div>
-                              </div>
-                              <Switch 
-                                checked={promo.muted ?? true} 
-                                onCheckedChange={(checked) => handleUpdatePromo(promo.id, 'muted', checked)}
-                                className="data-[state=checked]:bg-[#4A7C59]"
-                              />
-                            </div>
-                          )}
+                          </AnimatePresence>
                         </div>
                       </div>
                     </div>

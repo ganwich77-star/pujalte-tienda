@@ -16,28 +16,33 @@ model Category {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   products    Product[]
+
+  @@map("category")
 }
 
 model Product {
-  id          String           @id @default(cuid())
-  name        String
-  description String?
-  price       Float
-  image       String?
-  stock       Int              @default(0)
-  categoryId  String?
-  active      Boolean          @default(true)
-  showPrice   Boolean?         @default(true)
-  isPack      Boolean?         @default(false)
-  packItems   String?          @db.Text
-  hasVariants Boolean          @default(false)
+  id              String           @id @default(cuid())
+  name            String
+  description     String?          @db.Text
+  price           Float
+  image           String?          @db.Text
+  stock           Int              @default(0)
+  categoryId      String?
+  active          Boolean          @default(true)
+  showPrice       Boolean?         @default(true)
+  isPack          Boolean?         @default(false)
+  packItems       String?          @db.Text
+  hasVariants     Boolean          @default(false)
   variantType     String?
   variantBehavior String?          @default("add")
   sortOrder       Int              @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-  category    Category?        @relation(fields: [categoryId], references: [id])
-  variants    ProductVariant[]
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  variants        ProductVariant[]
+
+  @@index([categoryId], map: "product_categoryId_fkey")
+  @@map("product")
 }
 
 model ProductVariant {
@@ -47,13 +52,16 @@ model ProductVariant {
   sku        String?
   price      Float
   stock      Int      @default(0)
-  attributes String?
-  image      String?
+  attributes String?  @db.Text
+  image      String?  @db.Text
   active     Boolean  @default(true)
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId], map: "productvariant_productId_fkey")
+  @@map("productvariant")
 }
 
 model Order {
@@ -61,17 +69,19 @@ model Order {
   customerName  String
   customerPhone String
   customerEmail String?
-  address       String?
-  notes         String?
+  address       String?     @db.Text
+  notes         String?     @db.Text
   total         Float
   status        String      @default("pending")
   paymentMethod String?
   paymentStatus String      @default("pending")
   paymentId     String?
-  customFields  String?
+  customFields  String?     @db.Text
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
+
+  @@map("order")
 }
 
 model OrderItem {
@@ -83,7 +93,10 @@ model OrderItem {
   variantName String?
   quantity    Int
   price       Float
-  note        String?
+  note        String?  @db.Text
   createdAt   DateTime @default(now())
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId], map: "orderitem_orderId_fkey")
+  @@map("orderitem")
 }
