@@ -61,23 +61,20 @@ jobs:
             # 1. Navegar a la carpeta real
             cd /home/u348231268/domains/pujaltefotografia.basecode.es/public_html
             
-            # 2. Matar cualquier proceso que esté usando el puerto 3000
+            # 2. Matar cualquier proceso que esté usando el puerto 3000 (Node o Bun)
             fuser -k 3000/tcp || true
             
-            # 3. Lanzar Prisma para asegurar base de datos (con Bun si está disponible)
-            if command -v bun &> /dev/null; then
-              bun npx prisma db push --accept-data-loss
-              # 4. Reiniciar el servidor con BUN (Ultra rápido)
-              nohup bun run server.js > out.log 2>&1 &
-            else
-              npx prisma db push --accept-data-loss
-              # 4. Reiniciar con Node si Bun no está en el path directo
-              nohup node server.js > out.log 2>&1 &
-            fi
+            # 3. Lanzar Prisma (usando npx para ser 100% seguros)
+            npx prisma db push --accept-data-loss
+            
+            # 4. Reiniciar el servidor con NODE (El estándar de oro para estabilidad)
+            # Forzamos HOSTNAME para que el mapeo de rutas sea perfecto y no de 404 en la API
+            HOSTNAME=0.0.0.0 PORT=3000 nohup node server.js > out.log 2>&1 &
             
             sleep 5
             echo "--- ESTADO FINAL ---"
-            ps aux | grep -E 'node server|bun server' | grep -v grep
+            ps aux | grep 'node server.js' | grep -v grep
+            tail -n 20 out.log
 
 
 
