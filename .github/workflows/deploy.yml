@@ -54,32 +54,43 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
           script: |
-            # Forzar la carga de Node.js y NVM (común en Hostinger)
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            # 🔍 RASTREADOR DE BINARIOS ULTRA-AGRESIVO
+            # Intentar cargar perfiles estándar
             [ -f ~/.bashrc ] && source ~/.bashrc
+            [ -f ~/.profile ] && source ~/.profile
             
-            # Asegurar que el PATH incluya rutas comunes de binarios si fallan las anteriores
-            export PATH=$PATH:$HOME/bin:$HOME/.local/bin:$HOME/nodevenv/bin
+            # 1. Intentar localizar Node/NVM automáticamente
+            export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/bin:$HOME/.local/bin
             
+            # Buscar la ruta de Node si no está en el PATH
+            if ! command -v node &> /dev/null; then
+              NODE_LOC=$(find $HOME -name node -type f -executable 2>/dev/null | head -n 1)
+              if [ ! -z "$NODE_LOC" ]; then
+                export PATH=$(dirname "$NODE_LOC"):$PATH
+              fi
+            fi
+            
+            # 2. Navegar al proyecto
             cd ${{ secrets.HOSTINGER_REMOTE_TARGET }}
             
-            # Verificar si npx existe antes de lanzar
-            if ! command -v npx &> /dev/null; then
-              echo "ERROR: npx no encontrado. Intentando cargar configuración de Hostinger..."
-              export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
-            fi
+            # 3. Lanzar Prisma (usando ruta absoluta de npx si es necesario)
+            NPX_BIN=$(command -v npx || find $HOME -name npx -type f -executable 2>/dev/null | head -n 1)
+            $NPX_BIN prisma db push --accept-data-loss
             
-            # Sincronizar base de datos
-            npx prisma db push --accept-data-loss
-            
-            # Reiniciar pm2 o arrancar si no existe
+            # 4. Reiniciar con PM2 (Búsqueda exhaustiva)
             PM2_NAME="pujalte-store"
-            if command -v pm2 &> /dev/null && pm2 list | grep -q "$PM2_NAME"; then
-              pm2 restart $PM2_NAME
+            PM2_BIN=$(command -v pm2 || find $HOME -name pm2 -type f -executable 2>/dev/null | head -n 1)
+            
+            if [ ! -z "$PM2_BIN" ]; then
+              if $PM2_BIN list | grep -q "$PM2_NAME"; then
+                $PM2_BIN restart $PM2_NAME
+              else
+                $PM2_BIN start server.js --name $PM2_NAME
+              fi
+              $PM2_BIN save
             else
-              # Si pm2 no está en el PATH, intentamos lanzarlo con npx o buscar la ruta nvm
-              npx pm2 start server.js --name $PM2_NAME || pm2 start server.js --name $PM2_NAME || echo "Fallo crítico al arrancar PM2"
+              # Último recurso: intentar con npx o lanzar directo
+              $NPX_BIN pm2 restart $PM2_NAME || $NPX_BIN pm2 start server.js --name $PM2_NAME || node server.js &
             fi
-            pm2 save || npx pm2 save
+
 
