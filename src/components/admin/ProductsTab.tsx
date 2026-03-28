@@ -589,15 +589,44 @@ export function ProductsTab({
                     </TableHead>
                     <TableHead className="w-20 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">Miniatura</TableHead>
                     <TableHead 
-                      className="cursor-pointer hover:bg-slate-100/50 transition-colors text-xs font-bold uppercase tracking-wider text-slate-400"
+                      className="cursor-pointer hover:bg-slate-100/50 transition-colors group"
                       onClick={() => toggleSort('name')}
                     >
-                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                        Nombre {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-900">
+                        Nombre 
+                        {sortConfig.key === 'name' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-black" /> : <ArrowDown className="h-3 w-3 text-black" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 text-slate-200 group-hover:text-slate-400" />
+                        )}
                       </div>
                     </TableHead>
-                    <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-40">Categoría</TableHead>
-                    <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest text-slate-400 w-40">Precio</TableHead>
+                    <TableHead 
+                      className="text-center w-40 cursor-pointer hover:bg-slate-100/50 transition-colors group"
+                      onClick={() => toggleSort('categoryId')}
+                    >
+                      <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-900">
+                        Categoría
+                        {sortConfig.key === 'categoryId' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-black" /> : <ArrowDown className="h-3 w-3 text-black" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 text-slate-200 group-hover:text-slate-400" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-right pr-6 w-40 cursor-pointer hover:bg-slate-100/50 transition-colors group"
+                      onClick={() => toggleSort('price')}
+                    >
+                      <div className="flex items-center justify-end gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-900">
+                        Precio
+                        {sortConfig.key === 'price' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-black" /> : <ArrowDown className="h-3 w-3 text-black" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 text-slate-200 group-hover:text-slate-400" />
+                        )}
+                      </div>
+                    </TableHead>
                     <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest text-slate-400 w-44">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
