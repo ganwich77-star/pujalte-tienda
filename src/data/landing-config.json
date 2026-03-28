@@ -138,5 +138,17 @@
     "descripcion": "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. POWERED BY PUJALTE CREATIVE STUDIO.",
     "keywords": "fotografía, cuadros, posters, láminas, impresiones, regalos personalizados, fotógrafo murcia"
   },
-  "promos": []
+  "promos": [
+    {
+      "id": "welcome-promo",
+      "titulo": "¡BIENVENIDOS A FOTODETALLES!",
+      "subtitulo": "TUS MEJORES RECUERDOS MERECEN SER ETERNOS",
+      "descripcion": "Descubre nuestra selección de productos premium diseñados para conservar tus momentos más especiales. Calidad profesional en cada detalle.",
+      "botonTexto": "VER CATÁLOGO PREMIUM",
+      "enlace": "shop",
+      "imagen": "/uploads/1774305864936-cropped-image.jpg",
+      "fechaExpiracion": "2026-12-31",
+      "activo": true
+    }
+  ]
 }
