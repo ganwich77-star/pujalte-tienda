@@ -47,7 +47,7 @@ jobs:
           REMOTE_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
           REMOTE_USER: ${{ secrets.HOSTINGER_SSH_USER }}
           REMOTE_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
-          TARGET: "/home/u348231268/domains/pujaltefotografia.basecode.es/public_html"
+          TARGET: "domains/pujaltefotografia.basecode.es/public_html"
           EXCLUDE: "/node_modules/"
 
       - name: 🔄 Reiniciar Proceso en Hostinger
@@ -58,23 +58,21 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
           script: |
-            # 1. Navegar a la carpeta real
-            cd /home/u348231268/domains/pujaltefotografia.basecode.es/public_html
+            # 1. Navegar a la carpeta (ruta relativa al home)
+            cd domains/pujaltefotografia.basecode.es/public_html
             
-            # 2. Matar cualquier proceso que esté usando el puerto 3000 (Node o Bun)
+            # 2. Matar proceso antiguo (Node o Bun)
             fuser -k 3000/tcp || true
             
-            # 3. Lanzar Prisma (usando npx para ser 100% seguros)
+            # 3. Base de datos
             npx prisma db push --accept-data-loss
             
-            # 4. Reiniciar el servidor con NODE (El estándar de oro para estabilidad)
-            # Forzamos HOSTNAME para que el mapeo de rutas sea perfecto y no de 404 en la API
+            # 4. Arrancar (Node standard + Host fix)
             HOSTNAME=0.0.0.0 PORT=3000 nohup node server.js > out.log 2>&1 &
             
-            sleep 5
-            echo "--- ESTADO FINAL ---"
+            sleep 3
             ps aux | grep 'node server.js' | grep -v grep
-            tail -n 20 out.log
+            tail -n 10 out.log
 
 
 
