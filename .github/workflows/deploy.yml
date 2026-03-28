@@ -28,6 +28,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING: '1'
           # Las variables de entorno para la construcción se leen de los Secrets de GitHub
 
       - name: 🚀 Subir archivos a Hostinger (via SSH rsync)
