@@ -1,0 +1,73 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+      - nueva-version
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🚚 Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: 🟢 Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: 📦 Instalar dependencias
+        run: npm install
+
+      - name: 🔨 Construir aplicación (standalone)
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING: '1'
+          # Las variables de entorno para la construcción se leen de los Secrets de GitHub
+
+      - name: 🚀 Subir archivos a Hostinger (via SSH rsync)
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          ARGS: "-rlgoDzvc -i --delete"
+          SOURCE: ".next/standalone/"
+          REMOTE_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          REMOTE_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          REMOTE_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+          TARGET: ${{ secrets.HOSTINGER_REMOTE_TARGET }}
+          EXCLUDE: "/node_modules/, /public/, /.next/static/" # rsync solo standalone, el build script ya maneja la copia interna
+
+      # El script de build de package.json ya copia public y static dentro de standalone.
+      # rsync los subirá al servidor de forma eficiente.
+
+      - name: 🔄 Reiniciar Proceso Node en Hostinger
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+          script: |
+            # Forzar carga del entorno Node en Hostinger
+            [ -f ~/.bashrc ] && source ~/.bashrc
+            [ -f ~/.bash_profile ] && source ~/.bash_profile
+            
+            cd ${{ secrets.HOSTINGER_REMOTE_TARGET }}
+            
+            # Sincronizar base de datos
+            npx prisma db push --accept-data-loss
+            
+            # Reiniciar pm2 o arrancar si no existe
+            PM2_NAME="pujalte-store"
+            if pm2 list | grep -q "$PM2_NAME"; then
+              pm2 restart $PM2_NAME
+            else
+              pm2 start server.js --name $PM2_NAME
+            fi
+            pm2 save
