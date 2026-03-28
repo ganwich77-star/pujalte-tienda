@@ -79,18 +79,17 @@ jobs:
               fi
             fi
             
-            # 🔍 OPERACIÓN SABUESO: Rastrear ruta del proceso vivo
-            echo "--- INFORME DE RASTREO ---"
-            ACTIVE_PATH=$(ps aux | grep "node server.js" | grep -v grep | awk '{print $11}' | xargs -I {} dirname {})
-            if [ -z "$ACTIVE_PATH" ]; then
-              ACTIVE_PATH=$(ps aux | grep "node" | grep -v grep | head -n 1)
-            fi
-            echo "El proceso vivo está en: $ACTIVE_PATH"
-            echo "Tu TARGET actual es: $(pwd)"
+            # 🔍 OPERACIÓN DRON: Localizar el nido de la aplicación
+            echo "--- INFORME DE RECONOCIMIENTO ---"
+            echo "Buscando instalaciones de Next.js en todo el servidor..."
+            find $HOME -name "next.config.js" 2>/dev/null
+            echo "Buscando procesos vivos de BUN..."
+            ps aux | grep bun | grep -v grep || echo "No hay procesos Bun activos."
             echo "--- FIN DEL INFORME ---"
             
-            # 2. Navegar al proyecto (asegurarse de que estamos donde dice el proceso)
+            # 2. Navegar al proyecto
             cd ${{ secrets.HOSTINGER_REMOTE_TARGET }}
+
             
             # 3. Lanzar Prisma
             NPX_BIN=$(command -v npx || find $HOME -name npx -type f -executable 2>/dev/null | head -n 1)
