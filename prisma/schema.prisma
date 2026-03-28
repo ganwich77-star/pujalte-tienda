@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -26,13 +26,13 @@ model Product {
   name            String
   description     String?          @db.Text
   price           Float
-  image           String?          @db.LongText
+  image           String?          @db.Text
   stock           Int              @default(0)
   categoryId      String?
   active          Boolean          @default(true)
   showPrice       Boolean          @default(true)
   isPack          Boolean          @default(false)
-  packItems       String?          @db.LongText
+  packItems       String?          @db.Text
   hasVariants     Boolean          @default(false)
   variantType     String?
   variantBehavior String?
@@ -44,11 +44,11 @@ model Product {
   salePrice       Float?
   minQuantity     Int?             @default(1)
   stepQuantity    Int?             @default(1)
-  tierPricing     String?          @db.LongText
+  tierPricing     String?          @db.Text
   category        Category?        @relation(fields: [categoryId], references: [id])
   variants        ProductVariant[]
 
-  @@index([categoryId], map: "product_categoryId_fkey")
+  @@index([categoryId])
   @@map("product")
 }
 
@@ -59,15 +59,15 @@ model ProductVariant {
   sku        String?
   price      Float
   stock      Int      @default(0)
-  attributes String?  @db.LongText
-  image      String?  @db.LongText
+  attributes String?  @db.Text
+  image      String?  @db.Text
   active     Boolean  @default(true)
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@index([productId], map: "productvariant_productId_fkey")
+  @@index([productId])
   @@map("productvariant")
 }
 
@@ -104,6 +104,6 @@ model OrderItem {
   createdAt   DateTime @default(now())
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@index([orderId], map: "orderitem_orderId_fkey")
+  @@index([orderId])
   @@map("orderitem")
 }
