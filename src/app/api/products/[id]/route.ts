@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, COLLECTIONS } from '@/lib/firebase'
-import { 
-  doc, 
-  getDoc, 
-  updateDoc, 
-  deleteDoc,
-  serverTimestamp
-} from "firebase/firestore";
+import { db } from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
@@ -14,17 +7,25 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const docRef = doc(db, COLLECTIONS.PRODUCTS, id);
-    const docSnap = await getDoc(docRef);
+    const product = await db.product.findUnique({
+      where: { id },
+      include: {
+        variants: {
+          orderBy: {
+            sortOrder: 'asc'
+          }
+        }
+      }
+    });
     
-    if (!docSnap.exists()) {
-      return NextResponse.json({ error: 'Producto no encontrado en Firebase' }, { status: 404 })
+    if (!product) {
+      return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
     }
     
-    return NextResponse.json({ id: docSnap.id, ...docSnap.data() })
+    return NextResponse.json(product)
   } catch (error: any) {
-    console.error('Error fetching product from Firebase:', error)
-    return NextResponse.json({ error: 'Error al obtener producto de Firebase' }, { status: 500 })
+    console.error('Error fetching product from MySQL:', error)
+    return NextResponse.json({ error: 'Error al obtener producto' }, { status: 500 })
   }
 }
 
@@ -35,39 +36,42 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const {
-      name, description, price, categoryId, image, active,
-      hasVariants, variantType, sortOrder, variants,
-      variantBehavior, isNew, salePrice, showPrice
-    } = body
-
-    const docRef = doc(db, COLLECTIONS.PRODUCTS, id);
-
-    const updateData: any = {
-      updatedAt: serverTimestamp()
-    };
-
-    if (name !== undefined) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
-    if (price !== undefined) updateData.price = parseFloat(String(price));
-    if (categoryId !== undefined) updateData.categoryId = categoryId;
-    if (image !== undefined) updateData.image = image;
-    if (active !== undefined) updateData.active = active;
-    if (body.showPrice !== undefined) updateData.showPrice = body.showPrice;
-    if (hasVariants !== undefined) updateData.hasVariants = hasVariants;
-    if (variantType !== undefined) updateData.variantType = variantType;
-    if (sortOrder !== undefined) updateData.sortOrder = parseInt(String(sortOrder));
-    if (variantBehavior !== undefined) updateData.variantBehavior = variantBehavior;
-    if (variants !== undefined) updateData.variants = variants;
-    if (isNew !== undefined) updateData.isNew = isNew;
-    if (salePrice !== undefined) updateData.salePrice = salePrice ? parseFloat(String(salePrice)) : null;
-
-    await updateDoc(docRef, updateData);
     
-    return NextResponse.json({ id, ...updateData })
+    // Lista de campos permitidos en el esquema Prisma para evitar errores de tipo si el front envía datos extra
+    const allowedFields = [
+      'name', 'description', 'price', 'categoryId', 'active', 'image', 'stock',
+      'hasVariants', 'variantType', 'variantBehavior', 'sortOrder', 'showPrice',
+      'isPack', 'packItems', 'isNew', 'salePrice', 'minQuantity', 'stepQuantity', 'tierPricing'
+    ];
+
+    const filteredData: any = {};
+    allowedFields.forEach(field => {
+      if (body[field] !== undefined) {
+        if (field === 'price' || field === 'salePrice') {
+           // Gestión de decimales (punto o coma)
+           const cleanVal = String(body[field]).replace(',', '.').replace(/[^\d.]/g, '');
+           filteredData[field] = parseFloat(cleanVal) || 0;
+        } else if (field === 'stock' || field === 'sortOrder' || field === 'minQuantity' || field === 'stepQuantity') {
+           filteredData[field] = parseInt(String(body[field])) || 0;
+        } else {
+           filteredData[field] = body[field];
+        }
+      }
+    });
+
+    const result = await db.$transaction(async (tx) => {
+      // Si el producto actualiza variantes de golpe, el manejador general /api/products es el encargado.
+      // Aquí manejamos solo la actualización del registro principal.
+      return await tx.product.update({
+        where: { id },
+        data: filteredData
+      });
+    });
+    
+    return NextResponse.json(result)
   } catch (error: any) {
-    console.error('Error updating product in Firebase:', error)
-    return NextResponse.json({ error: 'Error al actualizar producto en Firebase' }, { status: 500 })
+    console.error('Error updating product in MySQL:', error)
+    return NextResponse.json({ error: 'Error al actualizar producto' }, { status: 500 })
   }
 }
 
@@ -77,13 +81,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const docRef = doc(db, COLLECTIONS.PRODUCTS, id);
-    
-    await deleteDoc(docRef);
-    
+    await db.product.delete({
+      where: { id }
+    });
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('Error deleting product from Firebase:', error)
-    return NextResponse.json({ error: 'Error al eliminar producto de Firebase' }, { status: 500 })
+    console.error('Error deleting product from MySQL:', error)
+    return NextResponse.json({ error: 'Error al eliminar producto' }, { status: 500 })
   }
 }

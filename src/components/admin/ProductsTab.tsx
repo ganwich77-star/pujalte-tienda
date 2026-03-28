@@ -974,15 +974,17 @@ export function ProductsTab({
                                   type="number" 
                                   value={productForm.minQuantity} 
                                   onChange={(e) => setProductForm({...productForm, minQuantity: Number(e.target.value)})} 
-                                  className="rounded-2xl h-12 text-md font-black bg-slate-50 border-transparent text-left px-5 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                  className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                  placeholder="0"
                                 />
                                 <Input 
                                   type="number" 
                                   value={productForm.stepQuantity} 
                                   onChange={(e) => setProductForm({...productForm, stepQuantity: Number(e.target.value)})} 
-                                  className="rounded-2xl h-12 text-md font-black bg-slate-50 border-transparent text-left px-5 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                  className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                  placeholder="0"
                                 />
-                                <div /> {/* Hueco para simetría con Escalado */}
+                                <div />
                               </div>
 
                               {/* BLOQUE DE EJEMPLO ABAJO COMO ESTABA */}
@@ -1000,7 +1002,16 @@ export function ProductsTab({
                                   </div>
                                   <div className="flex items-center justify-between p-2.5 bg-blue-600 rounded-xl shadow-md border border-blue-400/20">
                                      <span className="text-[9px] font-black text-blue-50/90 uppercase">Con Mínimo ({productForm.minQuantity}):</span>
-                                     <span className="text-[12px] font-black text-white">{(productForm.price * 0.9).toFixed(2)}€</span>
+                                     <span className="text-[12px] font-black text-white">
+                                       {(() => {
+                                         const tiers = Array.isArray(productForm.tierPricing) ? productForm.tierPricing : [];
+                                         const applicableTier = [...tiers]
+                                           .sort((a, b) => b.minQty - a.minQty)
+                                           .find(t => productForm.minQuantity >= t.minQty);
+                                         const displayPrice = applicableTier ? applicableTier.price : (productForm.price || 0);
+                                         return displayPrice.toLocaleString('es-ES', { minimumFractionDigits: 2 });
+                                       })()}€
+                                     </span>
                                   </div>
                                   <p className="text-[9px] text-blue-500/80 font-medium italic text-center pt-1">
                                     * El carrito forzará múltiplos de {productForm.stepQuantity}.
@@ -1050,9 +1061,9 @@ export function ProductsTab({
                           >
                             <div className="p-5 flex flex-col h-full gap-5">
                               {/* CABECERA DE TABLA: SIMETRÍA TOTAL CON PANEL IZQUIERDO */}
-                              <div className="grid grid-cols-[1fr_1fr_40px] gap-4 px-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Mínimo</span>
-                                <span className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest ml-1">Precio</span>
+                              <div className="grid grid-cols-[1fr_1fr_40px] gap-2 px-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center">Mínimo</span>
+                                <span className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest ml-1 text-center">Precio</span>
                                 <div />
                               </div>
 
@@ -1067,7 +1078,7 @@ export function ProductsTab({
                                 ) : (
                                   <div className="w-full space-y-3 pt-1">
                                     {(Array.isArray(productForm.tierPricing) ? productForm.tierPricing : []).map((tier: any, index: number) => (
-                                      <div key={index} className="grid grid-cols-[1fr_1fr_40px] gap-4 items-center group/tier">
+                                      <div key={index} className="grid grid-cols-[1fr_1fr_40px] gap-2 items-center group/tier">
                                         <Input 
                                           type="number" 
                                           value={tier.minQty} 
@@ -1076,7 +1087,8 @@ export function ProductsTab({
                                             tiers[index].minQty = Number(e.target.value);
                                             setProductForm({...productForm, tierPricing: tiers});
                                           }} 
-                                          className="bg-slate-50 border-transparent h-12 text-md font-black text-slate-900 rounded-2xl text-left px-5 w-full focus-visible:ring-emerald-100 shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                          className="bg-slate-50 border-transparent h-12 text-sm font-black text-slate-900 rounded-2xl text-center px-1 w-full focus-visible:ring-emerald-100 shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                          placeholder="0"
                                         />
                                         
                                         <Input 
@@ -1088,7 +1100,8 @@ export function ProductsTab({
                                             tiers[index].price = Number(e.target.value);
                                             setProductForm({...productForm, tierPricing: tiers});
                                           }} 
-                                          className="bg-emerald-50/20 border-transparent h-12 text-md font-black text-emerald-600 rounded-2xl text-left px-5 w-full focus-visible:ring-emerald-200/30 shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                          className="bg-emerald-50/20 border-transparent h-12 text-sm font-black text-emerald-600 rounded-2xl text-center px-1 w-full focus-visible:ring-emerald-200/30 shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                          placeholder="0"
                                         />
 
                                         <button 
@@ -1096,7 +1109,7 @@ export function ProductsTab({
                                             const tiers = productForm.tierPricing.filter((_: any, i: number) => i !== index);
                                             setProductForm({...productForm, tierPricing: tiers});
                                           }}
-                                          className="h-10 w-10 flex items-center justify-center text-slate-100 hover:text-red-400 hover:bg-red-50 rounded-xl transition-all"
+                                          className="h-10 w-10 flex items-center justify-center text-slate-200 hover:text-red-400 hover:bg-red-50 rounded-xl transition-all"
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </button>
@@ -1134,7 +1147,7 @@ export function ProductsTab({
                                  ) : (
                                     productForm.tierPricing.map((t: any, idx: number) => (
                                       <Badge key={idx} className="bg-white border-emerald-100 text-emerald-600 rounded-lg text-[9px] font-black px-2 shadow-sm border">
-                                        +{t.minQty} uds. → {t.price}€
+                                        +{t.minQty} uds. → {(t.price || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}€
                                       </Badge>
                                     ))
                                  )}

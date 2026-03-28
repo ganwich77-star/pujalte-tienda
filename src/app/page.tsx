@@ -142,7 +142,7 @@ export default function Home() {
     packItems: '[]',
     variantType: '',
     variantBehavior: 'add',
-    variants: [] as { id?: string; name: string; price: string; stock: string; sortOrder: number }[],
+    variants: [] as { id?: string; name: string; sku?: string; price: string; stock: string; sortOrder: number }[],
     minQuantity: '1',
     stepQuantity: '1',
     tierPricing: [] as { minQty: number; price: number }[]
@@ -250,7 +250,8 @@ Mi email: ${formData.email}`
         const data = await res.json()
         setProducts(data)
       }
-    } catch (error) { console.error(error) }
+    } catch (error) { console.error('Error fetching all products:', error) }
+    finally { setLoading(false) }
   }
 
   const fetchCategories = async () => {
@@ -275,18 +276,21 @@ Mi email: ${formData.email}`
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/stats')
-      if (res.ok) {
-        const data = await res.json()
-        setStats(data)
+      // Calculamos estadísticas basadas en los pedidos de MySQL
+      if (orders.length > 0) {
+        const totalSales = orders.length
+        const totalRevenue = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0)
+        setStats({ totalSales, totalOrders: totalSales, totalRevenue })
       } else {
-        if (orders.length > 0) {
-          const totalSales = orders.length
-          const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0)
+        const res = await fetch('/api/orders')
+        if (res.ok) {
+          const data = await res.json()
+          const totalSales = data.length
+          const totalRevenue = data.reduce((sum: any, o: any) => sum + (Number(o.total) || 0), 0)
           setStats({ totalSales, totalOrders: totalSales, totalRevenue })
         }
       }
-    } catch (error) { console.error(error) }
+    } catch (error) { console.error('Error calculating stats:', error) }
   }
 
   const fetchConfig = async () => {
@@ -379,34 +383,48 @@ Mi email: ${formData.email}`
     }
 
     try {
-      const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products'
-      const method = editingProduct ? 'PUT' : 'POST'
+      const isUpdate = !!editingProduct
+      const url = '/api/products' // Unificado para usar el manejador de MySQL que incluye todas las lógicas
+      const method = isUpdate ? 'PUT' : 'POST'
       
+      // Función auxiliar para parsear números con coma o punto
+      const parseSafePrice = (val: any) => {
+        if (!val && val !== 0) return 0;
+        const s = String(val).replace(',', '.').replace(/[^\d.]/g, '');
+        return parseFloat(s) || 0;
+      };
+
       const body = {
+        id: editingProduct?.id,
         name: productForm.name,
         description: productForm.description,
-        price: parseFloat(productForm.price) || 0,
-        stock: productForm.hasVariants ? 0 : parseInt(productForm.stock) || 0,
-        categoryId: productForm.categoryId || null,
+        price: parseSafePrice(productForm.price),
+        categoryId: (productForm.categoryId === 'none' || !productForm.categoryId) ? null : productForm.categoryId,
+        active: (productForm as any).active !== undefined ? !!(productForm as any).active : true,
         image: productForm.image || null,
-        imagePosition: (productForm as any).imagePosition || 'center',
-        hasVariants: productForm.hasVariants,
+        hasVariants: !!productForm.hasVariants,
         showPrice: (productForm as any).showPrice ?? true,
         isPack: (productForm as any).isPack ?? false,
         packItems: (productForm as any).packItems ?? '[]',
         variantType: productForm.hasVariants ? productForm.variantType : null,
         variantBehavior: productForm.variantBehavior || 'add',
         isNew: (productForm as any).isNew || false,
-        salePrice: (productForm as any).salePrice ? parseFloat(String((productForm as any).salePrice)) : null,
-        minQuantity: parseInt(productForm.minQuantity) || 1,
-        stepQuantity: parseInt(productForm.stepQuantity) || 1,
+        salePrice: (productForm as any).salePrice ? parseSafePrice((productForm as any).salePrice) : null,
+        minQuantity: parseInt(String(productForm.minQuantity)) || 1,
+        stepQuantity: parseInt(String(productForm.stepQuantity)) || 1,
         tierPricing: Array.isArray(productForm.tierPricing) && productForm.tierPricing.length > 0 
-          ? JSON.stringify(productForm.tierPricing) 
+          ? JSON.stringify(productForm.tierPricing.map(t => ({
+              minQty: parseInt(String(t.minQty)) || 1,
+              price: parseSafePrice(t.price)
+            })))
           : null,
         variants: productForm.variants.map(v => ({
-          ...v,
-          price: parseFloat(String(v.price)) || 0,
-          stock: parseInt(String(v.stock)) || 0
+          name: v.name || "",
+          sku: v.sku || "",
+          price: parseSafePrice(v.price),
+          stock: parseInt(String(v.stock)) || 0,
+          sortOrder: v.sortOrder || 0,
+          active: true
         }))
       }
       
@@ -433,8 +451,9 @@ Mi email: ${formData.email}`
   }
 
   const handleDeleteProduct = async (id: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) return
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/products?id=${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Error al eliminar')
       toast({ title: 'Eliminado', description: 'Producto eliminado correctamente' })
       fetchAllProducts()

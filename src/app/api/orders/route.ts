@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, COLLECTIONS } from '@/lib/firebase'
-import * as firestore from "firebase/firestore";
-import { sendWelcomeEmails } from '@/lib/mail'
+import { db } from '@/lib/db'
 
 export async function GET() {
   try {
-    const q = firestore.query(
-      firestore.collection(db, COLLECTIONS.ORDERS),
-      firestore.orderBy('createdAt', 'desc')
-    );
-    const querySnapshot = await firestore.getDocs(q);
-    const orders = querySnapshot.docs.map(item => ({
-      id: item.id,
-      ...item.data()
-    }));
+    const orders = await db.order.findMany({
+      include: {
+        items: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
     return NextResponse.json(orders);
   } catch (error) {
-    console.error('Error fetching orders:', error);
+    console.error('Error fetching orders from MySQL:', error);
     return NextResponse.json({ error: 'Error al obtener pedidos' }, { status: 500 });
   }
 }
@@ -27,62 +24,41 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const { items, total, customer, status = 'pending', paymentMethod = 'cash' } = data;
 
-    // 1. Persistencia/Activación del cliente en la colección unificada
-    const clientRef = firestore.doc(db, COLLECTIONS.CLIENTS, customer.dni);
-    const clientSnap = await firestore.getDoc(clientRef);
+    // Nota: El modelo cliente no existe en este prisma simplificado, 
+    // pero guardamos los datos del cliente dentro del Pedido (Order)
     
-    let isNewClient = !clientSnap.exists();
-
-    const clientData = {
-      ...customer,
-      updatedAt: firestore.serverTimestamp(),
-      lastOrderDate: firestore.serverTimestamp(),
-    };
-
-    if (isNewClient) {
-      // Si es nuevo, inicializamos campos base
-      await firestore.setDoc(clientRef, {
-        ...clientData,
-        createdAt: firestore.serverTimestamp(),
-        cashEnabled: false, // Por defecto deshabilitado para nuevos
-        status: 'active'
-      });
-      
-      // ENVIAR EMAILS DE BIENVENIDA (incluye enlace de activación para admin)
-      try {
-        await sendWelcomeEmails(customer);
-      } catch (mailError) {
-        console.error('Error enviando emails de bienvenida:', mailError);
-      }
-    } else {
-      // Si ya existe, actualizamos sus datos
-      await firestore.updateDoc(clientRef, clientData);
-    }
-
-    // 2. Crear el pedido
-    const orderData = {
-      items,
-      total,
-      customer: {
-        dni: customer.dni,
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone
+    // 1. Crear el pedido en MySQL
+    const order = await db.order.create({
+      data: {
+        customerName: customer.name,
+        customerEmail: customer.email,
+        customerPhone: customer.phone,
+        total: parseFloat(String(total)) || 0,
+        status: status,
+        paymentMethod: paymentMethod,
+        items: {
+          create: items.map((item: any) => ({
+            productId: item.productId || item.id,
+            productName: item.name,
+            variantId: item.variantId || null,
+            variantName: item.variantName || null,
+            quantity: parseInt(String(item.quantity)) || 1,
+            price: parseFloat(String(item.price || item.basePrice)) || 0,
+            note: item.notes || ""
+          }))
+        }
       },
-      status,
-      paymentMethod,
-      createdAt: firestore.serverTimestamp(),
-      updatedAt: firestore.serverTimestamp()
-    };
-
-    const docRef = await firestore.addDoc(firestore.collection(db, COLLECTIONS.ORDERS), orderData);
+      include: {
+        items: true
+      }
+    });
     
     return NextResponse.json({ 
-      id: docRef.id,
-      isNewClient 
+        id: order.id,
+        success: true 
     });
   } catch (error) {
-    console.error('Error creating order:', error);
+    console.error('Error creating order in MySQL:', error);
     return NextResponse.json({ error: 'Error al crear el pedido' }, { status: 500 });
   }
 }
@@ -96,10 +72,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
     }
 
-    await firestore.deleteDoc(firestore.doc(db, COLLECTIONS.ORDERS, id));
+    // El esquema tiene onDelete: Cascade para OrderItem
+    await db.order.delete({
+      where: { id }
+    });
+    
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting order:', error);
+    console.error('Error deleting order from MySQL:', error);
     return NextResponse.json({ error: 'Error al eliminar el pedido' }, { status: 500 });
   }
 }

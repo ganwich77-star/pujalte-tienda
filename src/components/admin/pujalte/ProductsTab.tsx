@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useToast } from '@/hooks/use-toast'
 import ProductEditModal from './ProductEditModal'
 import { LandingConfig, GalleryImage } from '@/lib/landing-config'
 // Función de seguridad local para evitar ReferenceError
@@ -48,26 +49,59 @@ export default function ProductsTab({
   presets,
   categories
 }: ProductsTabProps) {
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [editingProduct, setEditingProduct] = useState<GalleryImage | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<string | number | null>(null)
+  const [sortBy, setSortBy] = useState<keyof GalleryImage | 'none'>('none')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
   const products = config.galeria || []
 
+  const handleSort = (field: keyof GalleryImage) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortOrder('asc')
+    }
+  }
+
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
+    let result = products.filter(product => {
       const matchesSearch = product.alt.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            (product.descripcion || '').toLowerCase().includes(searchTerm.toLowerCase())
       const matchesCategory = selectedCategory === 'all' || product.categoria === selectedCategory
       return matchesSearch && matchesCategory
     })
-  }, [products, searchTerm, selectedCategory])
+
+    if (sortBy !== 'none') {
+      result.sort((a, b) => {
+        const valA = a[sortBy]
+        const valB = b[sortBy]
+
+        if (valA === undefined || valA === null) return 1
+        if (valB === undefined || valB === null) return -1
+
+        let comparison = 0
+        if (typeof valA === 'string' && typeof valB === 'string') {
+          comparison = valA.localeCompare(valB)
+        } else {
+          comparison = (valA as any) > (valB as any) ? 1 : -1
+        }
+
+        return sortOrder === 'asc' ? comparison : -comparison
+      })
+    }
+
+    return result
+  }, [products, searchTerm, selectedCategory, sortBy, sortOrder])
 
   const handleToggleField = (id: string | number, field: keyof GalleryImage) => {
     const updatedGaleria = config.galeria.map(item => {
-      if (item.id === id) {
+      if (String(item.id) === String(id)) {
         return { ...item, [field]: !item[field] }
       }
       return item
@@ -76,7 +110,7 @@ export default function ProductsTab({
   }
 
   const handleDelete = (id: string | number) => {
-    const updatedGaleria = config.galeria.filter(item => item.id !== id)
+    const updatedGaleria = config.galeria.filter(item => String(item.id) !== String(id))
     setConfig({ ...config, galeria: updatedGaleria })
     setProductToDelete(null)
   }
@@ -88,11 +122,18 @@ export default function ProductsTab({
 
   const handleSaveProduct = (updatedProduct: GalleryImage) => {
     const updatedGaleria = config.galeria.map(item => 
-      item.id === updatedProduct.id ? updatedProduct : item
+      String(item.id) === String(updatedProduct.id) ? updatedProduct : item
     )
     setConfig({ ...config, galeria: updatedGaleria })
     setIsEditModalOpen(false)
     setEditingProduct(null)
+    
+    // Notificación clara para el usuario español
+    toast({
+      title: "Producto actualizado localmente",
+      description: "Recuerda pulsar el botón GUARDAR de arriba para aplicar los cambios permanentemente.",
+      duration: 5000,
+    })
   }
 
   const formatPrice = (price: number) => {
@@ -196,12 +237,51 @@ export default function ProductsTab({
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-slate-50 bg-slate-50/30">
-                <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-2/5">Producto</th>
-                <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[120px]">Categoría</th>
-                <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[150px]">Precio</th>
-                <th className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[100px]">PVP</th>
-                <th className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[100px]">Novedad</th>
-                <th className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[100px]">Estado</th>
+                <th 
+                  className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-2/5 cursor-pointer hover:text-slate-900 transition-colors group"
+                  onClick={() => handleSort('alt')}
+                >
+                  <div className="flex items-center gap-2">
+                    Producto
+                    {sortBy === 'alt' && (sortOrder === 'asc' ? <SlidersHorizontal className="h-3 w-3 rotate-90" /> : <SlidersHorizontal className="h-3 w-3 -rotate-90" />)}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[120px] cursor-pointer hover:text-slate-900 transition-colors group"
+                  onClick={() => handleSort('categoria')}
+                >
+                  <div className="flex items-center gap-2">
+                    Categoría
+                    {sortBy === 'categoria' && (sortOrder === 'asc' ? <SlidersHorizontal className="h-3 w-3 rotate-90" /> : <SlidersHorizontal className="h-3 w-3 -rotate-90" />)}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[150px] cursor-pointer hover:text-slate-900 transition-colors group"
+                  onClick={() => handleSort('precio')}
+                >
+                  <div className="flex items-center gap-2">
+                    Precio
+                    {sortBy === 'precio' && (sortOrder === 'asc' ? <SlidersHorizontal className="h-3 w-3 rotate-90" /> : <SlidersHorizontal className="h-3 w-3 -rotate-90" />)}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[100px] cursor-pointer hover:text-slate-900 transition-colors group"
+                  onClick={() => handleSort('mostrarPrecio')}
+                >
+                  PVP
+                </th>
+                <th 
+                  className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[100px] cursor-pointer hover:text-slate-900 transition-colors group"
+                  onClick={() => handleSort('isNew')}
+                >
+                  Novedad
+                </th>
+                <th 
+                  className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[100px] cursor-pointer hover:text-slate-900 transition-colors group"
+                  onClick={() => handleSort('activa')}
+                >
+                  Estado
+                </th>
                 <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Acciones</th>
               </tr>
             </thead>
@@ -364,6 +444,7 @@ export default function ProductsTab({
           product={editingProduct} 
           categories={categories}
           onSave={handleSaveProduct}
+          handleFileUpload={handleFileUpload}
         />
       )}
 

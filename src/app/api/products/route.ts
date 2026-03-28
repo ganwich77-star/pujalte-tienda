@@ -105,21 +105,36 @@ export async function PUT(request: NextRequest) {
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
 
+    // Filtrar explícitamente solo los campos que existen en el modelo Product de Prisma
+    const allowedFields = [
+      'name', 'description', 'price', 'categoryId', 'image', 'active', 
+      'showPrice', 'isPack', 'packItems', 'hasVariants', 'variantType', 
+      'variantBehavior', 'sortOrder', 'minQuantity', 'stepQuantity', 'tierPricing',
+      'isNew', 'salePrice'
+    ];
+    
+    const filteredData: any = {};
+    allowedFields.forEach(field => {
+      if (body[field] !== undefined) {
+        filteredData[field] = body[field];
+      }
+    });
+
     const updateData: any = {
-      ...data,
+      ...filteredData,
       updatedAt: new Date()
     };
 
-    if (data.categoryId === 'none') updateData.categoryId = null;
-    if (data.price !== undefined) updateData.price = parseFloat(String(data.price));
-    if (data.salePrice !== undefined) updateData.salePrice = data.salePrice ? parseFloat(String(data.salePrice)) : null;
-    if (data.isNew !== undefined) updateData.isNew = !!data.isNew;
-    if (data.minQuantity !== undefined) updateData.minQuantity = parseInt(String(data.minQuantity)) || 1;
-    if (data.stepQuantity !== undefined) updateData.stepQuantity = parseInt(String(data.stepQuantity)) || 1;
-    if (data.tierPricing !== undefined) updateData.tierPricing = typeof data.tierPricing === 'string' ? data.tierPricing : JSON.stringify(data.tierPricing);
+    if (filteredData.categoryId === 'none') updateData.categoryId = null;
+    if (filteredData.price !== undefined) updateData.price = parseFloat(String(filteredData.price)) || 0;
+    if (filteredData.salePrice !== undefined) updateData.salePrice = filteredData.salePrice ? parseFloat(String(filteredData.salePrice)) : null;
+    if (filteredData.isNew !== undefined) updateData.isNew = !!filteredData.isNew;
+    if (filteredData.minQuantity !== undefined) updateData.minQuantity = parseInt(String(filteredData.minQuantity)) || 1;
+    if (filteredData.stepQuantity !== undefined) updateData.stepQuantity = parseInt(String(filteredData.stepQuantity)) || 1;
+    if (filteredData.tierPricing !== undefined) updateData.tierPricing = typeof filteredData.tierPricing === 'string' ? filteredData.tierPricing : JSON.stringify(filteredData.tierPricing);
     
-    if (data.packItems) {
-        updateData.packItems = typeof data.packItems === 'string' ? data.packItems : JSON.stringify(data.packItems);
+    if (filteredData.packItems) {
+        updateData.packItems = typeof filteredData.packItems === 'string' ? filteredData.packItems : JSON.stringify(filteredData.packItems);
     }
 
     const operations: any = [
@@ -129,7 +144,7 @@ export async function PUT(request: NextRequest) {
       })
     ];
 
-    if (variants) {
+    if (variants && Array.isArray(variants)) {
       operations.push(db.productVariant.deleteMany({ where: { productId: id } }));
       operations.push(db.product.update({
         where: { id },

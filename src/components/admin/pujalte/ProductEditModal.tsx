@@ -41,10 +41,11 @@ interface ProductEditModalProps {
   product: GalleryImage | null;
   onSave: (updatedProduct: GalleryImage) => void;
   categories: string[];
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, aspect: number, callback: (url: string) => void) => void;
 }
 
 interface TierPrice {
-  qty: number;
+  minQty: number;
   price: number;
 }
 
@@ -53,7 +54,8 @@ export default function ProductEditModal({
   onClose, 
   product, 
   onSave, 
-  categories
+  categories,
+  handleFileUpload
 }: ProductEditModalProps) {
   const [editedProduct, setEditedProduct] = useState<GalleryImage | null>(null);
   const [tierPrices, setTierPrices] = useState<TierPrice[]>([]);
@@ -63,9 +65,20 @@ export default function ProductEditModal({
     if (product) {
       setEditedProduct({ ...product });
       try {
-        const tiers = product.tierPricing ? JSON.parse(product.tierPricing) : [];
-        setTierPrices(Array.isArray(tiers) ? tiers : []);
+        let tiers: any[] = [];
+        if (product.tierPricing) {
+          tiers = typeof product.tierPricing === 'string' 
+            ? JSON.parse(product.tierPricing) 
+            : product.tierPricing;
+        }
+        // Normalizar qty -> minQty por si acaso
+        const normalizedTiers = (Array.isArray(tiers) ? tiers : []).map(t => ({
+          minQty: Number(t.minQty || t.qty || 0),
+          price: Number(t.price || 0)
+        }));
+        setTierPrices(normalizedTiers);
       } catch (e) {
+        console.error("Error al cargar tramos:", e);
         setTierPrices([]);
       }
     }
@@ -78,17 +91,38 @@ export default function ProductEditModal({
   };
 
   const handleSave = () => {
-    const validTiers = tierPrices.filter(t => t.qty > 0 && t.price > 0).sort((a,b) => a.qty - b.qty);
-    const finalProduct = {
-      ...editedProduct,
-      tierPricing: JSON.stringify(validTiers)
+    if (!editedProduct) return;
+    
+    // Función auxiliar para parsear números de forma segura (soporta coma decimal)
+    const parseSafeNumber = (val: any) => {
+      if (val === null || val === undefined || val === '') return 0;
+      if (typeof val === 'number') return val;
+      const parsed = parseFloat(String(val).replace(',', '.'));
+      return isNaN(parsed) ? 0 : parsed;
     };
+
+    // Filtrar, limpiar y ordenar tramos de forma robusta
+    const validTiers = tierPrices
+      .filter(t => (parseSafeNumber(t.minQty) > 0 && parseSafeNumber(t.price) > 0))
+      .map(t => ({
+        minQty: Math.round(parseSafeNumber(t.minQty)),
+        price: parseSafeNumber(t.price)
+      }))
+      .sort((a, b) => a.minQty - b.minQty);
+
+    const finalProduct: GalleryImage = {
+      ...editedProduct,
+      precio: parseSafeNumber(editedProduct.precio),
+      salePrice: editedProduct.salePrice ? parseSafeNumber(editedProduct.salePrice) : undefined,
+      tierPricing: validTiers.length > 0 ? JSON.stringify(validTiers) : undefined
+    };
+
     onSave(finalProduct);
     onClose();
   };
 
   const addTier = () => {
-    setTierPrices([...tierPrices, { qty: 0, price: 0 }]);
+    setTierPrices([...tierPrices, { minQty: 0, price: 0 }]);
   };
 
   const removeTier = (index: number) => {
@@ -181,7 +215,12 @@ export default function ProductEditModal({
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Pencil className="h-6 w-6 text-white" />
                           </div>
-                          <input type="file" className="hidden" accept="image/*" />
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*" 
+                            onChange={(e) => handleFileUpload(e, 1, (url) => updateProduct({ src: url }))} 
+                          />
                         </label>
                         <div className="mt-4 px-2">
                           <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest italic text-center">Formato: JPG/PNG/WEBP</p>
@@ -334,8 +373,9 @@ export default function ProductEditModal({
                                  <label className="text-[7px] font-black text-slate-300 uppercase tracking-widest">MIN QTY</label>
                                  <Input 
                                    type="number" 
-                                   value={tier.qty} 
-                                   onChange={(e) => updateTier(idx, { qty: parseInt(e.target.value) || 0 })}
+                                   step="any"
+                                   value={tier.minQty} 
+                                   onChange={(e) => updateTier(idx, { minQty: parseInt(e.target.value) || 0 })}
                                    className="h-10 border-none bg-white rounded-lg font-black text-sm no-spinner italic"
                                  />
                               </div>
@@ -343,6 +383,7 @@ export default function ProductEditModal({
                                  <label className="text-[7px] font-black text-emerald-400 uppercase tracking-widest">PRECIO UNID.</label>
                                  <Input 
                                    type="number" 
+                                   step="any"
                                    value={tier.price} 
                                    onChange={(e) => updateTier(idx, { price: parseFloat(e.target.value) || 0 })}
                                    className="h-10 border-none bg-white rounded-lg font-black text-sm no-spinner text-emerald-500 italic"
@@ -451,6 +492,7 @@ export default function ProductEditModal({
                                       <div className="w-32 relative">
                                          <Input 
                                            type="number"
+                                           step="any"
                                            value={v.price} 
                                            onChange={(e) => {
                                              const newVariants = [...(editedProduct.variants || [])];
@@ -552,6 +594,7 @@ function CompactPriceControl({ label, value, onChange, icon, suffix, highlight }
        <div className="relative">
           <Input 
             type="number"
+            step="any"
             value={value || ''} 
             onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
             className={`h-12 border-none bg-slate-50/50 rounded-xl font-black text-xl text-center focus:bg-white no-spinner transition-all italic tracking-tighter ${highlight ? 'text-emerald-500' : ''}`}

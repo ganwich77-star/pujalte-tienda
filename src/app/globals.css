@@ -130,3 +130,15 @@
   75%       { transform: translateX(-3px); }
   90%       { transform: translateX(3px); }
 }
+
+/* Hide number input spinners */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

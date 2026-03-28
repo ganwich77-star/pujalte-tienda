@@ -1,31 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, COLLECTIONS } from '@/lib/firebase'
-import { 
-  collection, 
-  query, 
-  getDocs, 
-  addDoc, 
-  doc, 
-  updateDoc, 
-  deleteDoc,
-  orderBy,
-  serverTimestamp,
-  getDoc
-} from "firebase/firestore";
+import { db } from '@/lib/db'
 
 export async function GET() {
   try {
-    const q = query(collection(db, COLLECTIONS.CATEGORIES), orderBy('name', 'asc'));
-    const querySnapshot = await getDocs(q);
-    
-    const categories = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const categories = await db.category.findMany({
+      orderBy: {
+        name: 'asc'
+      }
+    });
     
     return NextResponse.json(categories)
   } catch (error: any) {
-    console.error('Error fetching categories from Firebase:', error)
+    console.error('Error fetching categories from MySQL:', error)
     return NextResponse.json({ error: 'Error al obtener categorías' }, { status: 500 })
   }
 }
@@ -33,21 +19,21 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, slug, active, order } = body
+    const { name, description, image, sortOrder } = body
     
-    const docRef = await addDoc(collection(db, COLLECTIONS.CATEGORIES), {
-      name: name || "",
-      slug: slug || "",
-      active: active !== undefined ? active : true,
-      order: order || 0,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+    // El modelo Category usa id cuid() por defecto
+    const category = await db.category.create({
+      data: {
+        name: name || "",
+        description: description || null,
+        image: image || null,
+        sortOrder: parseInt(String(sortOrder)) || 0
+      }
     });
     
-    const newDoc = await getDoc(docRef);
-    return NextResponse.json({ id: docRef.id, ...newDoc.data() })
+    return NextResponse.json(category)
   } catch (error: any) {
-    console.error('Error creating category in Firebase:', error)
+    console.error('Error creating category in MySQL:', error)
     return NextResponse.json({ error: 'Error al crear categoría' }, { status: 500 })
   }
 }
@@ -55,20 +41,23 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, ...data } = body
+    const { id, name, description, image, sortOrder } = body
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
 
-    const docRef = doc(db, COLLECTIONS.CATEGORIES, id);
-    await updateDoc(docRef, {
-      ...data,
-      updatedAt: serverTimestamp()
+    const category = await db.category.update({
+      where: { id },
+      data: {
+        name: name !== undefined ? name : undefined,
+        description: description !== undefined ? description : undefined,
+        image: image !== undefined ? image : undefined,
+        sortOrder: sortOrder !== undefined ? parseInt(String(sortOrder)) : undefined
+      }
     });
-    
-    const updatedSnap = await getDoc(docRef);
-    return NextResponse.json({ id, ...updatedSnap.data() })
+
+    return NextResponse.json(category)
   } catch (error: any) {
-    console.error('Error updating category in Firebase:', error)
+    console.error('Error updating category in MySQL:', error)
     return NextResponse.json({ error: 'Error al actualizar categoría' }, { status: 500 })
   }
 }
@@ -80,12 +69,15 @@ export async function DELETE(request: NextRequest) {
     
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
 
-    const docRef = doc(db, COLLECTIONS.CATEGORIES, id);
-    await deleteDoc(docRef);
+    // Nota: Si hay productos en la categoría, Prisma dará error si no se maneja
+    // pero el esquema permite borrar si categoryId es nulo en el producto.
+    await db.category.delete({
+      where: { id }
+    });
     
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('Error deleting category from Firebase:', error)
+    console.error('Error deleting category from MySQL:', error)
     return NextResponse.json({ error: 'Error al eliminar categoría' }, { status: 500 })
   }
 }

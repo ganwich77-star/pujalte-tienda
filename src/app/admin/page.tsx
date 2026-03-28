@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
 import {
   Alert, AlertDescription
 } from '@/components/ui/alert'
@@ -54,7 +55,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const { toast } = useToast()
 
   const PRESETS = {
     'Social Basico': [
@@ -95,6 +96,13 @@ export default function AdminPage() {
     reader.onload = (event) => {
       const text = event.target?.result as string
       const lines = text.split('\n')
+      
+      const parseSafe = (val: string) => {
+        const cleaned = (val || '0').replace(',', '.').trim();
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+
       // Se espera: Nombre;Descripcion;Precio;Stock;Categoria
       const newItems = lines.slice(1).filter(l => l.trim()).map(line => {
         const parts = line.split(/[;,]/)
@@ -103,13 +111,19 @@ export default function AdminPage() {
           src: '',
           alt: (parts[0] || 'Nuevo Item').trim(),
           descripcion: (parts[1] || '').trim(),
-          precio: parseFloat(parts[2]) || 0,
+          precio: parseSafe(parts[2]),
           stock: parseInt(parts[3]) || 0,
           categoria: (parts[4] || 'social').trim().toLowerCase(),
           activa: true
         }
       })
       setConfig({ ...config, galeria: [...config.galeria, ...newItems] })
+      
+      toast({ 
+        title: "Importación completada", 
+        description: `Se han añadido ${newItems.length} productos. ¡No olvides pulsar GUARDAR para finalizar!`,
+        variant: "default"
+      })
     }
     reader.readAsText(file)
   }
@@ -130,7 +144,8 @@ export default function AdminPage() {
   })
 
   useEffect(() => {
-    fetch('/api/admin/config')
+    // Cache buster para evitar problemas tras limpiezas de caché del usuario
+    fetch(`/api/admin/config?cb=${Date.now()}`)
       .then(res => res.json())
       .then(data => setConfig(data))
   }, [])
@@ -150,7 +165,6 @@ export default function AdminPage() {
   const handleSave = async () => {
     if (!config) return
     setIsSaving(true)
-    setMessage(null)
 
     try {
       // 1. Guardar en JSON local (/api/admin/config)
@@ -168,13 +182,24 @@ export default function AdminPage() {
       })
 
       if (resJson.ok && resFirebase.ok) {
-        setMessage({ type: 'success', text: 'Configuración guardada en JSON y Firebase' })
-        toast({ title: "Guardado", description: "Configuración sincronizada correctamente" })
+        toast({ 
+          title: "¡Guardado con éxito!", 
+          description: "La configuración se ha sincronizado en el servidor y Firebase.",
+          variant: "default"
+        })
       } else {
-        setMessage({ type: 'error', text: 'Error al sincronizar alguna de las fuentes' })
+        toast({ 
+          title: "Error al guardar", 
+          description: "Hubo un problema al sincronizar con alguna de las fuentes.",
+          variant: "destructive"
+        })
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error de conexión durante el guardado' })
+      toast({ 
+        title: "Error de conexión", 
+        description: "No se pudo establecer conexión con el servidor.",
+        variant: "destructive"
+      })
     } finally {
       setIsSaving(false)
     }
@@ -322,12 +347,7 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-10 max-w-6xl">
-        {message && (
-          <Alert className={`mb-8 border-none shadow-sm ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-            <AlertDescription className="text-sm font-medium">{message.text}</AlertDescription>
-          </Alert>
-        )}
+<main className="container mx-auto px-6 py-10 max-w-6xl">
 
         <Tabs defaultValue="general" className="space-y-6 md:space-y-8">
           <div className="overflow-x-auto pb-2 -mx-2 px-2 scrollbar-none">
