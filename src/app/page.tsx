@@ -122,7 +122,7 @@ export default function Home() {
   
   // Admin state
   const [categories, setCategories] = useState<Category[]>([])
-  const [showPromo, setShowPromo] = useState(true)
+  const [showPromo, setShowPromo] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
   const [stats, setStats] = useState({ totalSales: 0, totalOrders: 0, totalRevenue: 0 })
   const [config, setConfig] = useState<StoreConfig>(defaultConfig)
