@@ -58,19 +58,23 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
           script: |
-            # 1. Navegar a la carpeta (ruta relativa al home)
+            # 1. Navegar y LIMPIEZA TOTAL (Para no dejar nada viejo)
             cd domains/pujaltefotografia.basecode.es/public_html
             
-            # 2. Matar proceso antiguo (Node o Bun)
-            fuser -k 3000/tcp || true
+            # 2. Matar proceso antiguo (Forzado)
+            fuser -k 3000/tcp || killall node || true
             
-            # 3. Base de datos
+            # 3. Borrar basura de caché de Next.js
+            rm -rf .next/cache
+            
+            # 4. Base de datos
             npx prisma db push --accept-data-loss
             
-            # 4. Arrancar (Node standard + Host fix)
+            # 5. Arrancar Limpio
             HOSTNAME=0.0.0.0 PORT=3000 nohup node server.js > out.log 2>&1 &
             
-            sleep 3
+            sleep 5
+            echo "--- LOGS DE ARRANQUE ---"
             ps aux | grep 'node server.js' | grep -v grep
             tail -n 10 out.log
 
