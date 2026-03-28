@@ -31,26 +31,33 @@ jobs:
           PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING: '1'
           # Las variables de entorno para la construcción se leen de los Secrets de GitHub
 
-      - name: 📦 Preparar Standalone (incluyendo estáticos)
+      - name: 📦 Preparar Despliegue (sacar estáticos a la luz)
         run: |
-          mkdir -p .next/standalone/.next/static
-          cp -r public .next/standalone/ || true
-          cp -r .next/static/* .next/standalone/.next/static/ || true
-          echo "Desplegado el: $(date)" > .next/standalone/public/version.txt
+          # 1. Creamos un pack de despliegue limpio
+          mkdir -p deploy/public
+          mkdir -p deploy/_next/static
           
-      - name: 🚀 Subir archivos a Hostinger (via SSH rsync)
+          # 2. Copiamos el servidor standalone
+          cp -r .next/standalone/* deploy/
+          
+          # 3. SACAMOS los estáticos fuera de carpetas ocultas
+          # Esto es vital para que Hostinger no bloquee el acceso al diseño
+          cp -r .next/static/* deploy/_next/static/
+          cp -r public/* deploy/public/
+          
+      - name: 🚀 Subir archivos a Hostinger (Lanzallamas - Limpieza Total)
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
           ARGS: "-rlgoDzvc -i --delete"
-          SOURCE: ".next/standalone/"
+          SOURCE: "deploy/"
           REMOTE_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
           REMOTE_USER: ${{ secrets.HOSTINGER_SSH_USER }}
           REMOTE_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
           TARGET: "domains/pujaltefotografia.basecode.es/public_html"
           EXCLUDE: "/node_modules/"
 
-      - name: 🔄 Reiniciar Proceso en Hostinger
+      - name: 🔄 Reiniciar Proceso (Fresco y Directo)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
@@ -58,23 +65,19 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
           script: |
-            # 1. Navegar y LIMPIEZA TOTAL (Para no dejar nada viejo)
             cd domains/pujaltefotografia.basecode.es/public_html
             
-            # 2. Matar proceso antiguo (Forzado)
+            # Limpieza total del motor
             fuser -k 3000/tcp || killall node || true
-            
-            # 3. Borrar basura de caché de Next.js
             rm -rf .next/cache
             
-            # 4. Base de datos
+            # Base de datos
             npx prisma db push --accept-data-loss
             
-            # 5. Arrancar Limpio
+            # Arrancar con visibilidad total
             HOSTNAME=0.0.0.0 PORT=3000 nohup node server.js > out.log 2>&1 &
             
             sleep 5
-            echo "--- LOGS DE ARRANQUE ---"
             ps aux | grep 'node server.js' | grep -v grep
             tail -n 10 out.log
 
