@@ -202,18 +202,19 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                       }
                     }}
                   >
-                    <SelectTrigger className="w-full h-14 rounded-3xl border-none bg-slate-900 text-white hover:bg-black transition-all text-[14px] font-bold px-6 shadow-xl">
-                      <SelectValue placeholder="Seleccionar..." />
+                    <SelectTrigger className="w-full h-14 rounded-3xl border-none bg-slate-900 text-white hover:bg-black transition-all text-[12px] font-black uppercase tracking-widest px-6 shadow-xl active:scale-[0.98]">
+                      <SelectValue placeholder="ELIGE UNA OPCIÓN..." />
                     </SelectTrigger>
-                    <SelectContent className="rounded-3xl border-none shadow-2xl p-2 bg-slate-900 text-white">
+                    <SelectContent className="rounded-3xl border-none shadow-2xl p-2 bg-slate-900 text-white min-w-[280px]">
                       {/* Opción Base */}
-                      <SelectItem value="base" className="text-[13px] font-bold rounded-2xl py-3.5 cursor-pointer focus:bg-white/10 focus:text-emerald-400">
-                        <div className="flex items-center justify-between w-full min-w-[200px]">
-                           <span className="mr-8">{product.name}</span>
+                      <SelectItem value="base" className="text-[11px] font-black uppercase tracking-widest rounded-2xl py-4 cursor-pointer focus:bg-white/10 focus:text-white border-b border-white/5">
+                        <div className="flex items-center justify-between w-full">
+                           <span>VERSIÓN ESTÁNDAR</span>
+                           <span className="text-white/40 font-bold ml-4">{formatPrice(activeBasePrice)}</span>
                         </div>
                       </SelectItem>
 
-                      {/* Variantes - Solo mostrar las que tienen nombre */}
+                      {/* Variantes */}
                       {product.variants
                         .filter(v => v.name && v.name.trim() !== '')
                         .sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0))
@@ -223,12 +224,10 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                             : activeBasePrice + Number(variant.price);
                             
                           return (
-                            <SelectItem key={variant.id} value={variant.id} className="text-[13px] font-bold rounded-2xl py-3.5 cursor-pointer focus:bg-white/10 focus:text-emerald-400">
-                              <div className="flex items-center justify-between w-full min-w-[200px] gap-8">
+                            <SelectItem key={variant.id} value={variant.id} className="text-[11px] font-black uppercase tracking-widest rounded-2xl py-4 cursor-pointer focus:bg-white/10 focus:text-white">
+                              <div className="flex items-center justify-between w-full gap-8">
                                  <span>{variant.name}</span>
-                                 {product.showPrice !== false && (
-                                   <span className="text-emerald-400 tabular-nums">{formatPrice(finalVariantPrice)}</span>
-                                 )}
+                                 <span className="text-white/40 font-bold">{formatPrice(finalVariantPrice)}</span>
                               </div>
                             </SelectItem>
                           );
