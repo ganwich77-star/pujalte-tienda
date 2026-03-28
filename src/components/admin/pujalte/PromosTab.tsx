@@ -235,7 +235,7 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
             value={`item-${promo.id}`} 
             className={cn(
               "border-2 rounded-[2rem] overflow-hidden transition-all duration-300 bg-white",
-              promo.activa ? 'border-slate-100 shadow-md' : 'border-slate-100 opacity-70 grayscale'
+              promo.activa ? 'border-slate-100 shadow-md' : 'border-slate-100 opacity-80'
             )}
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 md:px-6 py-4 bg-slate-50/50">
@@ -243,8 +243,10 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                 <div className="h-12 w-12 rounded-xl bg-slate-900 overflow-hidden shrink-0 border border-slate-200">
                   {promo.type === 'video' ? (
                     <div className="w-full h-full flex items-center justify-center bg-slate-800"><Video className="h-4 w-4 text-white" /></div>
+                  ) : promo.url ? (
+                    <img src={fixPathLocal(promo.url)} className="w-full h-full object-cover" alt="" />
                   ) : (
-                    <img src={fixPath(promo.url)} className="w-full h-full object-cover" />
+                    <div className="w-full h-full bg-slate-100 flex items-center justify-center"><ImageIcon className="h-4 w-4 text-slate-300" /></div>
                   )}
                 </div>
                 
@@ -342,9 +344,9 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
             <AccordionContent className="p-8 pt-0 border-t border-slate-100 bg-white">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
                 <div className="relative aspect-video rounded-3xl bg-slate-900 overflow-hidden shadow-inner group">
-                  {promo.type === 'video' || promo.url?.match(/\.(mp4|mov|webm|m4v)/i) ? (
+                  {promo.url && (promo.type === 'video' || promo.url?.match(/\.(mp4|mov|webm|m4v)/i)) ? (
                     <video 
-                      src={fixPath(promo.url)} 
+                      src={fixPathLocal(promo.url)} 
                       muted 
                       playsInline 
                       autoPlay 
@@ -355,9 +357,9 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                         transformOrigin: `center ${promo.zoomY ?? 50}%`
                       }}
                     />
-                  ) : (
+                  ) : promo.url ? (
                     <img 
-                      src={fixPath(promo.url)} 
+                      src={fixPathLocal(promo.url)} 
                       alt="" 
                       className="w-full h-full object-cover opacity-80 transition-all duration-300" 
                       style={{ 
@@ -365,6 +367,10 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                         transformOrigin: `center ${promo.zoomY ?? 50}%`
                       }}
                     />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                      <ImageIcon className="h-8 w-8 text-slate-600" />
+                    </div>
                   )}
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
                     <div className={cn(
@@ -395,24 +401,40 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                 </div>
 
                 <div className="space-y-8 lg:col-span-2">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-slate-400">Título</Label>
-                      <Input value={promo.title} onChange={(e) => handleUpdatePromo(promo.id, 'title', e.target.value)} className="rounded-xl font-bold h-11" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-400">Título</Label>
+                        <Input 
+                          value={promo.title || ''} 
+                          onChange={(e) => handleUpdatePromo(promo.id, 'title', e.target.value)} 
+                          className="rounded-xl font-bold h-11" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-400">Badge</Label>
+                        <Input 
+                          value={promo.badge || ''} 
+                          onChange={(e) => handleUpdatePromo(promo.id, 'badge', e.target.value)} 
+                          className="rounded-xl font-bold h-11" 
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-slate-400">Badge</Label>
-                      <Input value={promo.badge} onChange={(e) => handleUpdatePromo(promo.id, 'badge', e.target.value)} className="rounded-xl font-bold h-11" />
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Subtítulo</Label>
+                      <Input 
+                        value={promo.subtitle || ''} 
+                        onChange={(e) => handleUpdatePromo(promo.id, 'subtitle', e.target.value)} 
+                        className="rounded-xl font-bold h-11" 
+                      />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-400">Subtítulo</Label>
-                    <Input value={promo.subtitle} onChange={(e) => handleUpdatePromo(promo.id, 'subtitle', e.target.value)} className="rounded-xl font-bold h-11" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-400">Media URL</Label>
-                    <div className="flex gap-2">
-                      <Input value={promo.url} onChange={(e) => handleUpdatePromo(promo.id, 'url', e.target.value)} className="rounded-xl font-bold h-11 flex-1" />
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Media URL</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          value={promo.url || ''} 
+                          onChange={(e) => handleUpdatePromo(promo.id, 'url', e.target.value)} 
+                          className="rounded-xl font-bold h-11 flex-1" 
+                        />
                       <Button 
                         variant="outline" 
                         className={cn("h-11 rounded-xl px-4 border-dashed", isUploading && "animate-pulse")}

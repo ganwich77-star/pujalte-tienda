@@ -16,7 +16,11 @@ import {
   Edit2,
   CheckCircle2,
   XCircle,
-  Trash2
+  Trash2,
+  Plus,
+  Save,
+  Check,
+  X as CloseIcon
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -41,9 +45,11 @@ import {
   doc, 
   deleteDoc, 
   updateDoc,
+  setDoc,
   query,
   orderBy,
-  where
+  where,
+  serverTimestamp
 } from 'firebase/firestore'
 
 interface CustomersTabProps {
@@ -54,6 +60,14 @@ interface CustomersTabProps {
 export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [editingCustomer, setEditingCustomer] = useState<any>(null)
+  const [isAddingCustomer, setIsAddingCustomer] = useState(false)
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    dni: '',
+    email: '',
+    phone: '',
+    cashEnabled: false
+  })
   const [deletingCustomer, setDeletingCustomer] = useState<any>(null)
   const [updating, setUpdating] = useState(false)
   const [firebaseClients, setFirebaseClients] = useState<Record<string, any>>({})
@@ -84,21 +98,91 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
   const handleDeleteCustomer = async () => {
     if (!deletingCustomer) return
     try {
-      // Eliminar de Firebase usando la clave (DNI, email o teléfono)
-      const key = deletingCustomer.dni || deletingCustomer.email || deletingCustomer.phone
+      const key = (deletingCustomer.dni || deletingCustomer.email || deletingCustomer.phone || '').trim().toUpperCase()
       if (key) {
-        const { doc: firestoreDoc, deleteDoc: firestoreDelete } = await import('firebase/firestore')
-        await firestoreDelete(firestoreDoc(db, 'clients', key))
-        // También limpiar de la selección si estaba
+        await deleteDoc(doc(db, COLLECTIONS.CLIENTS, key))
         const nextSelected = new Set(selectedIds)
         nextSelected.delete(key)
         setSelectedIds(nextSelected)
       }
-      toast({ title: 'Cliente eliminado', description: 'El cliente ha sido eliminado de la base de datos.' })
+      toast({ title: 'CLIENTE ELIMINADO', description: 'EL REGISTRO HA SIDO BORRADO DEL SISTEMA.' })
       await reloadFirebase()
       setDeletingCustomer(null)
     } catch (e) {
-      toast({ title: 'Error', description: 'No se pudo eliminar el cliente.', variant: 'destructive' })
+      toast({ title: 'ERROR', description: 'NO SE PUDO ELIMINAR EL CLIENTE.', variant: 'destructive' })
+    }
+  }
+
+  const handleSaveCustomer = async () => {
+    if (!editingCustomer) return
+    setUpdating(true)
+    try {
+      const key = (editingCustomer.dni || editingCustomer.email || editingCustomer.phone || '').trim().toUpperCase()
+      if (!key) throw new Error('Se requiere DNI, Email o Teléfono')
+      
+      const docRef = doc(db, COLLECTIONS.CLIENTS, key)
+      await updateDoc(docRef, {
+        name: editingCustomer.name,
+        dni: editingCustomer.dni.trim().toUpperCase(),
+        email: editingCustomer.email.trim().toLowerCase(),
+        phone: editingCustomer.phone.trim(),
+        cashEnabled: editingCustomer.cashEnabled,
+        updatedAt: serverTimestamp()
+      })
+      
+      toast({ title: 'CAMBIOS GUARDADOS', description: 'DATOS ACTUALIZADOS CORRECTAMENTE.' })
+      await reloadFirebase()
+      setEditingCustomer(null)
+    } catch (e: any) {
+      toast({ title: 'ERROR AL GUARDAR', description: e.message || 'FALLO EN LA ACCIÓN.', variant: 'destructive' })
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const handleAddCustomer = async () => {
+    setUpdating(true)
+    try {
+      const key = (newCustomer.dni || newCustomer.email || newCustomer.phone || '').trim().toUpperCase()
+      if (!key) throw new Error('Se requiere al menos un identificador (DNI, Email o Teléfono)')
+      
+      const docRef = doc(db, COLLECTIONS.CLIENTS, key)
+      await setDoc(docRef, {
+        ...newCustomer,
+        dni: newCustomer.dni.trim().toUpperCase(),
+        email: newCustomer.email.trim().toLowerCase(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+      
+      toast({ title: 'CLIENTE CREADO', description: 'EL NUEVO CLIENTE YA ESTÁ EN EL SISTEMA.' })
+      await reloadFirebase()
+      setIsAddingCustomer(false)
+      setNewCustomer({ name: '', dni: '', email: '', phone: '', cashEnabled: false })
+    } catch (e: any) {
+      toast({ title: 'ERROR', description: e.message || 'NO SE PUDO CREAR EL CLIENTE.', variant: 'destructive' })
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const toggleCashStatus = async (customer: any) => {
+    const key = (customer.dni || customer.email || customer.phone || '').trim().toUpperCase()
+    if (!key) return
+    
+    try {
+      const docRef = doc(db, COLLECTIONS.CLIENTS, key)
+      await updateDoc(docRef, {
+        cashEnabled: !customer.cashEnabled,
+        updatedAt: serverTimestamp()
+      })
+      await reloadFirebase()
+      toast({ 
+        title: !customer.cashEnabled ? 'EFECTIVO HABILITADO' : 'EFECTIVO BLOQUEADO',
+        description: `ESTADO CAMBIADO PARA ${customer.name.toUpperCase()}`
+      })
+    } catch (e) {
+      toast({ title: 'ERROR', description: 'NO SE PUDO CAMBIAR EL ESTADO.', variant: 'destructive' })
     }
   }
 
@@ -258,7 +342,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
           </div>
         </div>
 
-        <div className="flex w-full sm:w-auto">
+        <div className="flex w-full sm:w-auto items-center gap-2">
           <div className="relative group w-full sm:w-64">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors" />
             <Input
@@ -268,13 +352,19 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
               className="pl-11 h-10 sm:h-12 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 shadow-inner focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 transition-all font-medium text-sm"
             />
           </div>
+          <Button 
+            onClick={() => setIsAddingCustomer(true)}
+            className="bg-[#4A7C59] hover:bg-[#3D6649] text-white h-10 sm:h-12 px-6 flex items-center justify-center rounded-xl sm:rounded-2xl shadow-lg transition-all active:scale-95 font-black uppercase text-xs tracking-widest whitespace-nowrap"
+          >
+            Alta Cliente
+          </Button>
           {selectedIds.size > 0 && (
             <Button 
               variant="destructive" 
               onClick={handleBulkDelete}
-              className="ml-2 h-10 sm:h-12 rounded-xl sm:rounded-2xl px-4 flex items-center gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-100"
+              className="h-10 sm:h-12 rounded-xl sm:rounded-2xl px-4 flex items-center gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-100"
             >
-              <Trash2 className="h-4 w-4" /> Borrar ({selectedIds.size})
+              <Trash2 className="h-4 w-4" /> ({selectedIds.size})
             </Button>
           )}
         </div>
@@ -349,6 +439,17 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
 
               <div className="flex gap-2 pt-1">
                 <Button 
+                  variant="ghost" 
+                  className={`h-11 w-11 rounded-xl border shadow-sm transition-all ${
+                    customer.cashEnabled 
+                      ? 'bg-emerald-50 text-emerald-500 border-emerald-100' 
+                      : 'bg-slate-50 text-slate-300 border-slate-100'
+                  }`}
+                  onClick={() => toggleCashStatus(customer)}
+                >
+                  {customer.cashEnabled ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+                </Button>
+                <Button 
                   variant="outline" 
                   className="flex-1 h-11 rounded-xl bg-white text-slate-900 border-slate-100 font-bold text-xs gap-2 shadow-sm"
                   onClick={() => setEditingCustomer({
@@ -362,7 +463,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                 </Button>
                 <Button 
                   variant="ghost" 
-                  className="h-11 w-11 rounded-xl bg-[#4A7C59]/5 text-[#4A7C59] border border-[#4A7C59]/10 shadow-sm"
+                  className="h-11 w-11 rounded-xl bg-white text-slate-400 border border-slate-100 shadow-sm"
                   onClick={() => window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}`, '_blank')}
                 >
                   <MessageSquare className="h-4.5 w-4.5" />
@@ -395,11 +496,10 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Cliente / DNI</th>
+                <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 w-1/3">Cliente / DNI</th>
                 <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Contacto</th>
                 <th className="px-4 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Pedidos</th>
                 <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Inversión</th>
-                <th className="px-4 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Efectivo</th>
                 <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Acción</th>
               </tr>
             </thead>
@@ -427,19 +527,19 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[#4A7C59] font-black text-sm">
                           {customer.name.charAt(0)}
                         </div>
-                        <div>
-                          <p className="font-black text-xs sm:text-sm text-slate-800 tracking-tight">{customer.name}</p>
-                          <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate max-w-[100px] sm:max-w-none">{customer.dni || 'SIN DNI'}</p>
+                        <div className="min-w-0">
+                          <p className="font-black text-xs sm:text-sm text-slate-800 tracking-tight truncate">{customer.name}</p>
+                          <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-tighter truncate">{customer.dni || 'SIN DNI'}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                          <Mail className="h-3 w-3" /> {customer.email}
+                      <div className="space-y-0.5 max-w-[150px]">
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 truncate">
+                          <Mail className="h-2.5 w-2.5 text-slate-300 shrink-0" /> {customer.email}
                         </div>
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                          <Phone className="h-3 w-3" /> {customer.phone}
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 truncate">
+                          <Phone className="h-2.5 w-2.5 text-slate-300 shrink-0" /> {customer.phone}
                         </div>
                       </div>
                     </td>
@@ -448,29 +548,28 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                         {customer.orders.length}
                       </Badge>
                     </td>
-                    <td className="px-5 sm:px-6 py-4 sm:py-5 text-right sm:text-left">
-                      <p className="font-black text-sm sm:text-base text-[#4A7C59] tracking-tighter">{formatPrice(customer.totalSpent)}</p>
-                      <p className="text-[8px] sm:text-[9px] font-medium text-slate-400 mt-0.5">Media: {formatPrice(customer.totalSpent / Math.max(1, customer.orders.length))}</p>
-                    </td>
-                    <td className="px-6 py-5 text-center">
-                      {customer.cashEnabled ? (
-                        <div className="flex flex-col items-center gap-1">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                          <span className="text-[8px] font-black text-emerald-600 uppercase">Habilitado</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-1 opacity-100">
-                          <XCircle className="h-5 w-5 text-slate-300" />
-                          <span className="text-[8px] font-black text-slate-400 uppercase">Bloqueado</span>
-                        </div>
-                      )}
+                    <td className="px-5 sm:px-6 py-4 sm:py-5">
+                      <p className="font-black text-sm text-[#4A7C59] tracking-tighter">{formatPrice(customer.totalSpent)}</p>
+                      <p className="text-[8px] font-medium text-slate-400 mt-0.5 truncate">Media: {formatPrice(customer.totalSpent / Math.max(1, customer.orders.length))}</p>
                     </td>
                     <td className="px-5 sm:px-6 py-4 sm:py-5 text-right">
-                      <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white shadow-sm transition-all"
+                          onClick={() => toggleCashStatus(customer)}
+                          className={`h-8 w-8 rounded-lg border transition-all ${
+                            customer.cashEnabled 
+                              ? 'bg-emerald-50 text-emerald-500 border-emerald-100' 
+                              : 'bg-slate-50 text-slate-300 border-slate-100'
+                          }`}
+                        >
+                          {customer.cashEnabled ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 rounded-lg bg-slate-900 text-white hover:bg-black shadow-sm transition-all"
                           onClick={() => setEditingCustomer({
                             ...customer,
                             originalEmail: customer.email,
@@ -478,25 +577,23 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                             originalDni: customer.dni
                           })}
                         >
-                          <Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <Edit2 className="h-3.5 w-3.5" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white shadow-sm transition-all"
-                          onClick={() => {
-                              window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}`, '_blank')
-                          }}
+                          className="h-8 w-8 rounded-lg bg-white border border-slate-100 text-slate-400 hover:text-emerald-500 shadow-sm transition-all"
+                          onClick={() => window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}`, '_blank')}
                         >
-                          <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <MessageSquare className="h-3.5 w-3.5" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-red-50 text-red-300 hover:text-red-600 hover:bg-red-100 shadow-sm transition-all"
+                          className="h-8 w-8 rounded-lg bg-red-50 text-red-400 border border-red-50 hover:bg-red-500 hover:text-white shadow-sm transition-all"
                           onClick={() => setDeletingCustomer(customer)}
                         >
-                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </td>
@@ -587,13 +684,90 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setEditingCustomer(null)} className="rounded-xl sm:rounded-2xl text-xs sm:text-sm h-10 sm:h-12 w-full sm:w-auto mt-0">Cancelar</Button>
             <Button 
-                onClick={async () => {
-                    // ... (lógica de guardado que no cambia)
-                }}
+                onClick={handleSaveCustomer}
                 disabled={updating}
                 className="bg-[#4A7C59] hover:bg-[#3D6649] rounded-xl sm:rounded-2xl px-8 text-xs sm:text-sm h-10 sm:h-12 w-full sm:w-auto"
             >
               {updating ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
+      {/* Modal de Alta Cliente */}
+      <Dialog open={isAddingCustomer} onOpenChange={setIsAddingCustomer}>
+        <DialogContent className="w-[95vw] sm:max-w-[500px] rounded-[2rem] p-6 sm:p-8">
+          <DialogHeader>
+            <DialogTitle className="text-xl sm:text-2xl font-black">Nuevo Cliente</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-slate-400 font-bold uppercase tracking-widest">
+              Añadir registro a la audiencia
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 sm:space-y-6 py-4">
+            <div className="space-y-1.5">
+              <Label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Nombre Completo</Label>
+              <Input 
+                value={newCustomer.name} 
+                onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                placeholder="Nombre del cliente..."
+                className="rounded-xl sm:rounded-2xl h-10 sm:h-12 text-sm bg-slate-50 border-none shadow-inner"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">DNI / NIE</Label>
+                <Input 
+                  value={newCustomer.dni} 
+                  onChange={(e) => setNewCustomer({...newCustomer, dni: e.target.value})}
+                  placeholder="12345678X"
+                  className="rounded-xl sm:rounded-2xl h-10 sm:h-12 text-sm bg-slate-50 border-none shadow-inner uppercase"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Teléfono</Label>
+                <Input 
+                  value={newCustomer.phone} 
+                  onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                  placeholder="600000000"
+                  className="rounded-xl sm:rounded-2xl h-10 sm:h-12 text-sm bg-slate-50 border-none shadow-inner"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Email (Opcional)</Label>
+              <Input 
+                value={newCustomer.email} 
+                onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
+                placeholder="email@ejemplo.com"
+                className="rounded-xl sm:rounded-2xl h-10 sm:h-12 text-sm bg-slate-50 border-none shadow-inner"
+              />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-sm font-bold text-emerald-900">Pago en Efectivo</p>
+                <p className="text-[10px] text-emerald-600/70 font-medium">Permitir pago al recoger para este cliente</p>
+              </div>
+              <Switch 
+                checked={newCustomer.cashEnabled} 
+                onCheckedChange={(checked) => setNewCustomer({...newCustomer, cashEnabled: checked})}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="ghost" onClick={() => setIsAddingCustomer(false)} className="rounded-xl sm:rounded-2xl h-12 flex-1 w-full order-2 sm:order-1">Cancelar</Button>
+            <Button 
+                onClick={handleAddCustomer}
+                disabled={updating || !newCustomer.name}
+                className="bg-[#4A7C59] hover:bg-[#3D6649] rounded-xl sm:rounded-2xl h-12 px-8 flex-1 w-full order-1 sm:order-2 shadow-lg"
+            >
+              {updating ? 'Creando...' : 'Crear Cliente'}
             </Button>
           </DialogFooter>
         </DialogContent>

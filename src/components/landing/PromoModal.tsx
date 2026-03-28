@@ -13,35 +13,39 @@ interface PromoModalProps {
   onContact: () => void
 }
 
-const HeaderContent = ({ current }: { current: Promo }) => (
-  <div className={cn(
-    "flex flex-col space-y-3 md:space-y-4",
-    "items-center text-center",
-    current.contentPosition?.includes('left') && "md:items-start md:text-left",
-    current.contentPosition?.includes('right') && "md:items-end md:text-right",
-    current.contentPosition === 'center' && "md:items-center md:text-center"
-  )}>
+const HeaderContent = ({ current }: { current: Promo }) => {
+  if (!current) return null
+  return (
     <div className={cn(
-      "inline-flex items-center gap-2 rounded-full px-5 py-2 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-white shadow-2xl transition-all",
-      current.color || 'from-amber-400 to-orange-500',
-      "bg-gradient-to-r"
+      "flex flex-col space-y-3 md:space-y-4",
+      "items-center text-center",
+      current.contentPosition?.includes('left') && "md:items-start md:text-left",
+      current.contentPosition?.includes('right') && "md:items-end md:text-right",
+      current.contentPosition === 'center' && "md:items-center md:text-center"
     )}>
-      <Sparkles className="h-3 w-3" />
-      {current.badge}
+      <div className={cn(
+        "inline-flex items-center gap-2 rounded-full px-5 py-2 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-white shadow-2xl transition-all",
+        current.color || 'from-amber-400 to-orange-500',
+        "bg-gradient-to-r"
+      )}>
+        <Sparkles className="h-3 w-3" />
+        {current.badge}
+      </div>
+      <h2 className={cn(
+        "font-black text-white leading-[0.9] tracking-tighter drop-shadow-2xl italic transition-all",
+        "text-3xl md:text-4xl lg:text-5xl"
+      )}>
+        {current.title}
+      </h2>
+      <p className="text-xs md:text-base lg:text-lg text-white/80 font-medium leading-tight max-w-lg">
+        {current.subtitle}
+      </p>
     </div>
-    <h2 className={cn(
-      "font-black text-white leading-[0.9] tracking-tighter drop-shadow-2xl italic transition-all",
-      "text-3xl md:text-4xl lg:text-5xl"
-    )}>
-      {current.title}
-    </h2>
-    <p className="text-xs md:text-base lg:text-lg text-white/80 font-medium leading-tight max-w-lg">
-      {current.subtitle}
-    </p>
-  </div>
-)
+  )
+}
 
 const FooterContent = ({ current, handleAction }: { current: Promo, handleAction: (a: string) => void }) => {
+  if (!current) return null
   const getActionIcon = (action: string) => {
     if (action === 'shop') return <ShoppingBag className="w-5 h-5" />
     if (action === 'contact') return <MessageCircle className="w-5 h-5" />
@@ -73,6 +77,7 @@ const FooterContent = ({ current, handleAction }: { current: Promo, handleAction
 }
 
 const MediaContent = ({ current, videoRef }: { current: Promo, videoRef: React.RefObject<HTMLVideoElement | null> }) => {
+  if (!current) return null
   const isVideo = current.type === 'video' || 
                  (current.url && (
                    current.url.toLowerCase().endsWith('.mp4') || 
@@ -128,6 +133,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
   }, [index, promos.length])
 
   useEffect(() => {
+    if (!current || !current.url) return
     const video = videoRef.current
     if (video) {
         video.muted = true
@@ -140,7 +146,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
         }
         playVideo()
     }
-  }, [current.url])
+  }, [current?.url])
   
   const handleAction = (action: string) => {
     if (action === 'shop') onOpenStore()
@@ -154,7 +160,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
   const prev = () => setIndex((index - 1 + promos.length) % promos.length)
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -164,106 +170,79 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
       />
 
       <motion.div
-        layoutId="promo-container"
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-6xl md:aspect-video overflow-hidden pointer-events-auto"
+        className="relative w-full max-w-6xl overflow-hidden pointer-events-auto rounded-[2rem] md:rounded-[2.5rem] shadow-2xl"
       >
-
-
-        {/* CONTENEDOR PRINCIPAL - Flex col en móvil para separar los bloques */}
-        <div className="relative w-full h-full flex flex-col md:block bg-zinc-900 md:bg-black overflow-x-hidden overflow-y-auto md:overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl">
+        <div className="relative w-full flex flex-col md:block bg-transparent overflow-hidden">
           
-          {/* HEADER MÓVIL (Fuera de la imagen) */}
-          <div className="md:hidden w-full p-6 pt-10 text-center z-20">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={index}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.6, ease: "easeInOut" }}
-              >
-                <HeaderContent current={current} />
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* SHARED MEDIA CONTAINER - Persistente y en el centro en móvil */}
-          <div className="relative w-full aspect-video md:absolute md:inset-0 md:h-full md:aspect-auto z-0 overflow-hidden">
-            <div className="relative w-full h-full">
+          {/* --- VERSIÓN MÓVIL (FLOTANTE SIN MARCOS) --- */}
+          <div className="flex md:hidden flex-col w-full h-full bg-transparent">
+            {/* Texto Arriba (Flotante) */}
+            <div className="p-6 text-center">
+              <AnimatePresence mode="wait">
+                <motion.div key={index} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <HeaderContent current={current} />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+            
+            {/* Imagen Horizontal en el Centro (Aspect Video) */}
+            <div className="relative w-full aspect-video overflow-hidden rounded-[1.5rem] shadow-2xl border border-white/10">
               <MediaContent current={current} videoRef={videoRef} />
-              {/* Capa de fundido para suavizar el cambio de contenido */}
-              <motion.div 
-                key={`overlay-${index}`}
-                initial={{ opacity: 1 }}
-                animate={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="absolute inset-0 bg-black z-10 pointer-events-none"
-              />
-              <div className="absolute inset-0 bg-black/10 md:bg-black/20" />
+            </div>
+
+            {/* Botón Abajo (Flotante) */}
+            <div className="p-8 text-center bg-transparent">
+              <AnimatePresence mode="wait">
+                <motion.div key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
+                  <FooterContent current={current} handleAction={handleAction} />
+                </motion.div>
+              </AnimatePresence>
             </div>
           </div>
 
-          {/* FOOTER MÓVIL (Fuera de la imagen) */}
-          <div className="md:hidden w-full p-8 pb-12 text-center z-20">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={index}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.6, ease: "easeInOut" }}
-              >
-                <FooterContent current={current} handleAction={handleAction} />
-              </motion.div>
-            </AnimatePresence>
+          {/* --- VERSIÓN DESKTOP (CINEMATOGRÁFICA) --- */}
+          <div className="hidden md:block relative w-full aspect-video">
+            {/* Fondo Multimedia */}
+            <div className="absolute inset-0 z-0">
+               <MediaContent current={current} videoRef={videoRef} />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+            </div>
+
+            {/* Contenido Único Superpuesto (Sin duplicados) */}
+            <div className="absolute inset-0 z-20 flex flex-col justify-between p-12 lg:p-16">
+              <AnimatePresence mode="wait">
+                <motion.div key={index} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                  <HeaderContent current={current} />
+                </motion.div>
+              </AnimatePresence>
+
+              <AnimatePresence mode="wait">
+                <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
+                  <FooterContent current={current} handleAction={handleAction} />
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
 
-          {/* DESKTOP CONTENT OVERLAY */}
-          <div className="hidden md:block absolute inset-0 z-20 pointer-events-none">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={index}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
-                className="w-full h-full pointer-events-auto"
-              >
-                <div className={cn(
-                  "absolute inset-0 flex flex-col p-16 lg:p-24",
-                  current.contentPosition === 'top-left' && "justify-start items-start text-left",
-                  current.contentPosition === 'top-right' && "justify-start items-end text-right",
-                  current.contentPosition === 'bottom-left' && "justify-end items-start text-left",
-                  current.contentPosition === 'bottom-right' && "justify-end items-end text-right",
-                  (current.contentPosition === 'center' || !current.contentPosition) && "justify-center items-center text-center"
-                )}>
-                  <div className="space-y-8">
-                    <HeaderContent current={current} />
-                    <FooterContent current={current} handleAction={handleAction} />
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
+          {/* Navegación Lateral */}
+          {promos.length > 1 && (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); prev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 md:h-14 md:w-14 rounded-full bg-black/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/50 transition-all border border-white/10 shadow-2xl">
+                <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); next(); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 md:h-14 md:w-14 rounded-full bg-black/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/50 transition-all border border-white/10 shadow-2xl">
+                <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
+              </button>
+            </>
+          )}
 
-          {/* Botones de Navegación Lateral */}
-          <button 
-            onClick={(e) => { e.stopPropagation(); prev(); }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 rounded-full border border-white/10 bg-black/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/50 transition-all shadow-xl"
-          >
-            <ChevronLeft className="h-6 w-6" />
+          {/* Botón Cerrar */}
+          <button onClick={onClose} className="absolute top-4 right-4 z-[60] p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md transition-all border border-white/10">
+            <X className="w-5 h-5 focus:outline-none" />
           </button>
-          <button 
-            onClick={(e) => { e.stopPropagation(); next(); }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 rounded-full border border-white/10 bg-black/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/50 transition-all shadow-xl"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </button>
-
-          {/* Botón Cerrar eliminado por petición */}
         </div>
       </motion.div>
     </div>

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { PrismaClient } from '@prisma/client'
 import landingData from '@/data/landing-config.json'
 import { StoreConfig } from '@/types'
+
+// Cliente singleton local con timeout agresivo
+const prisma = new PrismaClient()
 
 const defaultConfig: StoreConfig = {
   ...landingData,
@@ -27,17 +30,21 @@ const defaultConfig: StoreConfig = {
 
 export async function GET() {
   try {
-    const config = await db.systemConfig.findUnique({
-      where: { id: 'default' }
-    })
-    
-    if (config) {
-      return NextResponse.json({ ...defaultConfig, ...(config.data as any) })
+    // Intento 1: SQL Directo (Raw) - Supervivencia ante fallos de Prisma
+    try {
+      const result: any[] = await prisma.$queryRawUnsafe("SELECT data FROM systemconfig WHERE id = 'default' LIMIT 1")
+      if (result && result.length > 0) {
+        const rawData = result[0].data
+        // Aseguramos que devolvemos un objeto, no un string
+        const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData
+        return NextResponse.json({ ...defaultConfig, ...parsedData })
+      }
+    } catch (rawError: any) {
+      console.error('❌ Error Raw SQL en GET:', rawError.message)
     }
     
     return NextResponse.json(defaultConfig)
   } catch (error: any) {
-    console.error('Error fetching config from Neon:', error)
     return NextResponse.json(defaultConfig)
   }
 }
@@ -45,19 +52,38 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
-    await db.systemConfig.upsert({
-      where: { id: 'default' },
-      update: { data: body as any },
-      create: { 
-        id: 'default',
-        data: body as any 
+    if (!body) return NextResponse.json({ error: 'Datos vacíos' }, { status: 400 })
+
+    const jsonString = JSON.stringify(body)
+
+    console.log('Guardando en Neon vía Raw SQL...')
+
+    // Intento de guardado vía SQL directísimo: "UPSERT" manual
+    try {
+      // Intentamos actualizar
+      const count = await prisma.$executeRawUnsafe(
+        `UPDATE systemconfig SET data = $1::jsonb, "updatedAt" = NOW() WHERE id = 'default'`,
+        jsonString
+      )
+
+      if (count === 0) {
+        // Si no existe, creamos
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO systemconfig (id, data, "updatedAt") VALUES ('default', $1::jsonb, NOW())`,
+          jsonString
+        )
       }
-    })
-    
-    return NextResponse.json({ success: true, ...body })
+
+      console.log('✅ Guardado con éxito vía Raw SQL.')
+      return NextResponse.json({ success: true })
+    } catch (sqlError: any) {
+      console.error('Error detallado Raw SQL:', sqlError.message)
+      return NextResponse.json({ 
+        error: 'Fallo Crítico Neon', 
+        details: `SQL Error: ${sqlError.message}` 
+      }, { status: 500 })
+    }
   } catch (error: any) {
-    console.error('Error saving config in Neon:', error)
-    return NextResponse.json({ error: 'Error al guardar configuración en Neon' }, { status: 500 })
+    return NextResponse.json({ error: 'Error', details: error.message }, { status: 500 })
   }
 }

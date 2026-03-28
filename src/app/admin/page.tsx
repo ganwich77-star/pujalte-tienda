@@ -162,6 +162,44 @@ export default function AdminPage() {
     }
   }
 
+  // FUNCIONES DE PERSISTENCIA MYSQL PARA PRODUCTOS (GALERÍA)
+  const reloadConfig = async () => {
+    const res = await fetch(`/api/admin/config?cb=${Date.now()}`);
+    const data = await res.json();
+    setConfig(data);
+  };
+
+  const onSaveProductToMySQL = async (productData: any) => {
+    try {
+      const isEdit = !!productData.id;
+      const res = await fetch('/api/products', {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productData)
+      });
+      if (res.ok) {
+        await reloadConfig(); // Sincronizar estado global
+        return true;
+      }
+    } catch (err) {
+      console.error("Error MySQL Save:", err);
+    }
+    return false;
+  };
+
+  const onDeleteProductFromMySQL = async (productId: any) => {
+    try {
+      const res = await fetch(`/api/products?id=${productId}`, { method: 'DELETE' });
+      if (res.ok) {
+        await reloadConfig();
+        return true;
+      }
+    } catch (err) {
+      console.error("Error MySQL Delete:", err);
+    }
+    return false;
+  };
+
   const handleSave = async () => {
     if (!config) return
     setIsSaving(true)
@@ -575,13 +613,16 @@ export default function AdminPage() {
 
           <TabsContent value="galeria" className="space-y-6">
             <ProductsTab
-              config={config}
+              products={config.galeria || []}
+              categories={config.categorias || []}
+              onSaveProduct={onSaveProductToMySQL}
+              onDeleteProduct={onDeleteProductFromMySQL}
               setConfig={setConfig}
+              config={config}
               handleFileUpload={handleFileUpload}
               injectPreset={injectPreset}
               handleImportCSV={handleImportCSV}
               presets={PRESETS}
-              categories={config.categorias || []}
             />
           </TabsContent>
 

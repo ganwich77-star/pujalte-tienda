@@ -101,9 +101,9 @@ model OrderItem {
   quantity    Int
   price       Float
   note        String?
-  fileUrl     String?   // Campo nuevo para la foto del imán
-  fileName    String?   // Nombre del archivo original
   createdAt   DateTime @default(now())
+  fileName    String?
+  fileUrl     String?
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
@@ -114,6 +114,6 @@ model SystemConfig {
   id        String   @id @default("default")
   data      Json
   updatedAt DateTime @updatedAt
-
+  
   @@map("systemconfig")
 }

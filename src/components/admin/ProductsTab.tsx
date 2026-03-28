@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import ProductEditModal from './ProductEditModal'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -88,6 +89,7 @@ interface ProductsTabProps {
   onUpdateProductField: (id: string, field: string, value: any) => void
   onToggleActive: (product: Product) => void
   onDeleteProduct: (id: string) => void
+  onSaveProduct: (data: any) => Promise<boolean>
   onReorderProducts: (products: Product[]) => void
   formatPrice: (price: number) => string
   showImages: boolean
@@ -97,10 +99,9 @@ interface ProductsTabProps {
   productForm: any
   setProductForm: (form: any) => void
   editingProduct: Product | null
-  onSaveProduct: () => void
   addVariant: () => void
   updateVariant: (index: number, field: string, value: any) => void
-  removeVariant: (index: number) => void,
+  removeVariant: (index: number) => void
   resetProductForm: () => void
 }
 
@@ -446,7 +447,6 @@ export function ProductsTab({
     try {
       if (isBulkAction) {
         const total = selectedIds.length
-        // Se itera para poder mostrar el progreso exacto y no saturar la conexión
         for (let i = 0; i < selectedIds.length; i++) {
           await onDeleteProduct(selectedIds[i])
           setDeleteProgress(Math.round(((i + 1) / total) * 100))
@@ -477,6 +477,14 @@ export function ProductsTab({
       setDeleteProgress(0)
       setProductToDeleteId(null)
       setIsBulkAction(false)
+    }
+  }
+
+  const onLocalSaveProduct = async (data: any) => {
+    const success = await onSaveProduct(data)
+    if (success) {
+      setIsProductDialogOpen(false)
+      // El resetting se hace desde el padre o simplemente cerramos
     }
   }
 
@@ -584,9 +592,8 @@ export function ProductsTab({
           )}
           <Button 
             onClick={onAddProduct}
-            className="bg-black text-white h-11 px-8 rounded-xl font-bold uppercase tracking-wider text-sm shadow-xl hover:bg-slate-800 transition-all active:scale-95 group"
+            className="bg-black text-white h-11 px-8 rounded-xl font-bold uppercase tracking-wider text-sm shadow-xl hover:bg-slate-800 transition-all active:scale-95"
           >
-            <Plus className="h-5 w-5 mr-3 group-hover:rotate-90 transition-transform duration-500" />
             NUEVO PRODUCTO
           </Button>
         </div>
@@ -849,569 +856,27 @@ export function ProductsTab({
         </DialogContent>
       </Dialog>
 
-      {/* Product Edit Modal XL - DISEÑO PREMIUM COMPACTO */}
-      <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
-        if (!open) resetProductForm()
-        setIsProductDialogOpen(open)
-      }}>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] overflow-hidden border-none bg-white rounded-[2.5rem] p-0 flex flex-col mx-auto shadow-2xl">
-            {/* HEADER COMPACTO */}
-            <DialogHeader className="px-8 py-4 bg-[#1a1f2c] flex-shrink-0 z-10 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-              <div className="flex items-center gap-4 relative z-10">
-                <div className="h-10 w-10 rounded-xl bg-white/10 text-white flex items-center justify-center shadow-xl backdrop-blur-md border border-white/10">
-                  {editingProduct ? <Edit className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-                </div>
-                <div>
-                  <DialogTitle className="text-lg font-black uppercase tracking-tighter text-white leading-none">
-                    {editingProduct ? 'Modificar' : 'Nuevo'} Producto
-                  </DialogTitle>
-                  <p className="text-[8px] text-blue-400 font-black uppercase tracking-[0.2em] mt-1 opacity-70">Gestión v2.1</p>
-                </div>
-              </div>
-            </DialogHeader>
 
-            <ScrollArea className="flex-1 min-h-0 bg-white">
-              <div className="px-8 py-6 space-y-6 pb-12">
-                
-                {/* SECCIÓN 1: GENERAL */}
-                <section>
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                    {/* Left: Image Selection */}
-                    <div className="md:col-span-4 space-y-4">
-                      <div className="flex flex-col items-center gap-4">
-                        <div 
-                          className="relative group w-32 h-32"
-                          onClick={() => formImageInputRef.current?.click()}
-                        >
-                          <div className="w-full h-full rounded-full overflow-hidden border-2 border-slate-50 shadow-md transition-transform group-hover:scale-[1.02] cursor-pointer bg-slate-50">
-                            {productForm.image ? (
-                              <img src={fixPath(productForm.image)} alt="Preview" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center text-slate-200">
-                                <ImageIcon className="h-8 w-8 opacity-20" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="absolute bottom-1 right-1 bg-white h-8 w-8 rounded-full shadow-lg flex items-center justify-center border border-slate-100 text-slate-400 group-hover:text-black transition-colors">
-                            <Upload className="h-4 w-4" />
-                          </div>
-                        </div>
-                        
-                        <div 
-                          onClick={() => setProductForm({...productForm, isNew: !productForm.isNew})}
-                          className={`w-full rounded-2xl p-3 border transition-all cursor-pointer flex items-center justify-between select-none ${
-                            productForm.isNew 
-                              ? 'bg-amber-50 border-amber-200 shadow-sm' 
-                              : 'bg-slate-50 border-slate-100 opacity-60'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Sparkles className={`h-4 w-4 ${productForm.isNew ? 'text-amber-500' : 'text-slate-300'}`} />
-                            <Label className={`text-[9px] font-black uppercase cursor-pointer tracking-tight ${
-                                productForm.isNew ? 'text-amber-800' : 'text-slate-400'
-                            }`}>Novedad</Label>
-                          </div>
-                          <Switch 
-                            checked={!!productForm.isNew} 
-                            onCheckedChange={(checked) => setProductForm({...productForm, isNew: checked})}
-                            className="scale-75 data-[state=checked]:bg-amber-500"
-                          />
-                        </div>
+      {/* Product Edit Modal Unificado */}
 
-                        {/* PRECIO OFERTA COMPACTO BAJO NOVEDAD */}
-                        <div className="w-full space-y-2">
-                          <div 
-                            onClick={() => {
-                              const isOffered = !!productForm.salePrice;
-                              setProductForm({
-                                ...productForm, 
-                                salePrice: isOffered ? null : (productForm.price ? productForm.price * 0.9 : 0)
-                              })
-                            }}
-                            className={`w-full rounded-2xl p-3 border transition-all cursor-pointer flex items-center justify-between select-none ${
-                              productForm.salePrice 
-                                ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
-                                : 'bg-slate-50 border-slate-100 opacity-60'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Percent className={`h-4 w-4 ${productForm.salePrice ? 'text-emerald-500' : 'text-slate-300'}`} />
-                              <Label className={`text-[9px] font-black uppercase cursor-pointer tracking-tight ${
-                                  productForm.salePrice ? 'text-emerald-800' : 'text-slate-400'
-                              }`}>Oferta</Label>
-                            </div>
-                            <Switch 
-                              checked={!!productForm.salePrice} 
-                              onCheckedChange={(checked) => setProductForm({...productForm, salePrice: checked ? (productForm.price ? productForm.price * 0.9 : 0) : null})}
-                              className="scale-75 data-[state=checked]:bg-emerald-500"
-                            />
-                          </div>
+      <ProductEditModal 
+        isOpen={isProductDialogOpen} 
+        onClose={() => {
+          setIsProductDialogOpen(false)
+          resetProductForm()
+        }} 
+        product={editingProduct}
+        initialData={productForm}
+        categories={categories}
+        onSave={async (data) => {
+          setProductForm(data);
+          const success = await onSaveProduct(data);
+          if (success) {
+            setIsProductDialogOpen(false);
+          }
+        }}
+      />
 
-                          {!!productForm.salePrice && (
-                            <motion.div 
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="w-full"
-                            >
-                              <div className="relative">
-                                <Input 
-                                  type="number" step="0.01"
-                                  value={productForm.salePrice || ''} 
-                                  onChange={(e) => setProductForm({...productForm, salePrice: e.target.value ? Number(e.target.value) : 0})}
-                                  className="rounded-xl h-9 text-xs font-black bg-emerald-50/50 border-emerald-100 text-emerald-800 pl-3 pr-8 focus:bg-white transition-all italic text-center"
-                                  placeholder="0.00"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-400 opacity-60 italic">€</span>
-                              </div>
-                            </motion.div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Core Info */}
-                    <div className="md:col-span-8 space-y-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-[9px] font-black text-blue-300 uppercase tracking-widest ml-1">Nombre Comercial</Label>
-                        <Input 
-                          value={productForm.name} 
-                          onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                          className="rounded-xl h-11 text-sm font-black bg-slate-50 border-transparent px-4 focus:bg-white focus:border-blue-100 transition-all uppercase"
-                          placeholder="NOMBRE..."
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-[1fr_85px] gap-3 bg-slate-50/50 p-4 rounded-[2rem] border border-slate-100/50 items-end">
-                        <div className="flex flex-col gap-2 min-w-0">
-                          <Label className="text-[8px] font-black text-blue-400/60 uppercase tracking-[0.2em] ml-2">Categoría</Label>
-                          <Select 
-                            value={productForm.categoryId || 'none'} 
-                            onValueChange={(val) => setProductForm({...productForm, categoryId: val === 'none' ? null : val})}
-                          >
-                            <SelectTrigger 
-                              style={{ height: '56px', minHeight: '56px' }}
-                              className="rounded-2xl !h-[56px] text-[10px] font-black bg-white border border-slate-100 px-5 uppercase tracking-widest shadow-sm hover:shadow-md transition-all w-full overflow-hidden flex items-center"
-                            >
-                              <SelectValue placeholder="SELECCIONAR" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-2xl border-none shadow-2xl">
-                              <SelectItem value="none" className="text-[10px] font-black uppercase tracking-widest">Sin Clasificar</SelectItem>
-                              {categories.map((cat: any) => (
-                                <SelectItem key={cat.id} value={cat.id} className="text-[10px] font-black uppercase tracking-widest">{cat.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Label className="text-[8px] font-black text-blue-400/60 uppercase tracking-[0.2em] ml-2">Precio</Label>
-                          <div className="relative group/price w-full" style={{ height: '56px' }}>
-                            <Input 
-                              type="number"
-                              step="0.01"
-                              value={productForm.price || ''} 
-                              onChange={(e) => setProductForm({...productForm, price: Number(e.target.value)})}
-                              style={{ height: '56px', minHeight: '56px' }}
-                              className="rounded-2xl !h-[56px] text-md font-black bg-white border border-slate-100 pl-3 pr-8 text-right shadow-sm group-hover/price:shadow-md transition-all w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              placeholder="0"
-                            />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400 font-black text-[10px] opacity-40">€</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-[9px] font-black text-blue-300 uppercase tracking-widest ml-1">Descripción</Label>
-                        <Textarea 
-                          value={productForm.description || ''} 
-                          onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                          className="rounded-xl min-h-[70px] text-xs bg-slate-50 border-transparent px-4 py-2 focus:bg-white transition-all shadow-sm"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* SECCIÓN TÉCNICA UNIFICADA: CANTIDADES, ESCALADO Y VARIANTES */}
-                <section className="space-y-4">
-                  <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
-                    {/* BARRA DE NAVEGACIÓN ÚNICA: REFINADA */}
-                    <div className="p-1.5 grid grid-cols-[1fr_1fr_1fr_42px] gap-1 border-b border-slate-50 bg-slate-50/40">
-                      <button 
-                        onClick={() => {
-                          setActivePromoTab('quantities');
-                          setIsPromoOpen(true);
-                        }}
-                        className={`flex flex-col items-center justify-center gap-0.5 h-11 rounded-[0.9rem] transition-all duration-300 select-none ${
-                          activePromoTab === 'quantities' && isPromoOpen
-                            ? 'bg-blue-600 text-white shadow-md shadow-blue-100' 
-                            : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                        }`}
-                      >
-                        <Package className={`h-3 w-3 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                        <div className="flex flex-col items-center leading-none">
-                          <span className="text-[7.5px] font-black uppercase tracking-wider">CANTIDADES</span>
-                          <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-blue-100' : 'text-slate-400'}`}>Operativa</span>
-                        </div>
-                      </button>
-
-                      <button 
-                        onClick={() => {
-                          setActivePromoTab('tiers');
-                          setIsPromoOpen(true);
-                        }}
-                        className={`flex flex-col items-center justify-center gap-0.5 h-11 rounded-[0.9rem] transition-all duration-300 select-none ${
-                          activePromoTab === 'tiers' && isPromoOpen
-                            ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100' 
-                            : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                        }`}
-                      >
-                        <ArrowUpDown className={`h-3 w-3 ${activePromoTab === 'tiers' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                        <div className="flex flex-col items-center leading-none">
-                          <span className="text-[7.5px] font-black uppercase tracking-wider">ESCALADO</span>
-                          <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'tiers' && isPromoOpen ? 'text-emerald-100' : 'text-slate-400'}`}>Ofertas</span>
-                        </div>
-                      </button>
-
-                      <button 
-                        onClick={() => {
-                          setActivePromoTab('variants');
-                          setIsPromoOpen(true);
-                        }}
-                        className={`flex flex-col items-center justify-center gap-0.5 h-11 rounded-[0.9rem] transition-all duration-300 select-none ${
-                          activePromoTab === 'variants' && isPromoOpen
-                            ? 'bg-slate-900 text-white shadow-md shadow-slate-200' 
-                            : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                        }`}
-                      >
-                        <Settings2 className={`h-3 w-3 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                        <div className="flex flex-col items-center leading-none">
-                          <span className="text-[7.5px] font-black uppercase tracking-wider">VARIANTES</span>
-                          <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white/60' : 'text-slate-400'}`}>Opciones</span>
-                        </div>
-                      </button>
-
-                      <button 
-                        onClick={() => setIsPromoOpen(!isPromoOpen)}
-                        className={`h-11 w-full rounded-[0.9rem] flex items-center justify-center transition-all ${
-                          isPromoOpen 
-                            ? 'bg-slate-100 text-slate-500' 
-                            : 'bg-white text-slate-300 hover:text-slate-600 border border-slate-100'
-                        }`}
-                      >
-                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isPromoOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                    </div>
-
-                    <AnimatePresence initial={false}>
-                      {isPromoOpen && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                          className="bg-white overflow-hidden"
-                        >
-                          {activePromoTab === 'quantities' && (
-                            <div className="p-5 space-y-6">
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                  <Label className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest ml-1">Mínimo Inicial</Label>
-                                  <div className="relative group">
-                                    <Input 
-                                      type="number" 
-                                      value={productForm.minQuantity} 
-                                      onChange={(e) => setProductForm({...productForm, minQuantity: Number(e.target.value)})} 
-                                      className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                      placeholder="0"
-                                    />
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-lg bg-blue-50 text-blue-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                      <Plus className="h-2.5 w-2.5" />
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                  <Label className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest ml-1">Salto / Paso</Label>
-                                  <div className="relative group">
-                                    <Input 
-                                      type="number" 
-                                      value={productForm.stepQuantity} 
-                                      onChange={(e) => setProductForm({...productForm, stepQuantity: Number(e.target.value)})} 
-                                      className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                      placeholder="0"
-                                    />
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-lg bg-blue-50 text-blue-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                      <Package className="h-2.5 w-2.5" />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="bg-gradient-to-br from-blue-50/40 to-white rounded-[2rem] p-5 border border-blue-100/20 relative overflow-hidden">
-                                <div className="flex items-center gap-3 mb-4">
-                                  <div className="h-6 w-6 rounded-lg bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-100">
-                                    <Sparkles className="h-3 w-3 text-white" />
-                                  </div>
-                                  <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">PREVISUALIZACIÓN TIENDA</span>
-                                </div>
-                                <div className="space-y-3">
-                                  <div className="flex items-center justify-between px-1">
-                                     <span className="text-[9px] font-bold text-slate-400 uppercase">PVP Unitario:</span>
-                                     <span className="text-[10px] font-black text-slate-700">{productForm.price || 0} €</span>
-                                  </div>
-                                  <div className="flex items-center justify-between p-4 bg-blue-600 rounded-2xl shadow-xl shadow-blue-100/50 border border-blue-400/20">
-                                     <div className="flex flex-col">
-                                       <span className="text-[8px] font-black text-blue-50 uppercase tracking-widest">SI PIDE EL MÍNIMO ({productForm.minQuantity} UDS.):</span>
-                                       <span className="text-[9px] font-medium text-blue-200/80 italic leading-none">Precio final por pack</span>
-                                     </div>
-                                     <span className="text-base font-black text-white tracking-tighter">
-                                       {(() => {
-                                         const tiers = Array.isArray(productForm.tierPricing) ? productForm.tierPricing : [];
-                                         const applicableTier = [...tiers]
-                                           .sort((a, b) => b.minQty - a.minQty)
-                                           .find(t => productForm.minQuantity >= t.minQty);
-                                         const pricePerUnit = applicableTier ? applicableTier.price : (productForm.price || 0);
-                                         return (pricePerUnit * productForm.minQuantity).toLocaleString('es-ES', { minimumFractionDigits: 2 });
-                                       })()} €
-                                     </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {activePromoTab === 'tiers' && (
-                            <div className="p-6 space-y-6">
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between px-1">
-                                  <h5 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Tramos de Descuento</h5>
-                                  <Badge variant="outline" className="text-[8px] font-black bg-emerald-50 text-emerald-600 border-emerald-100 rounded-lg">PROMOCIÓN ACTIVA</Badge>
-                                </div>
-
-                                <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200">
-                                  {(!productForm.tierPricing || (Array.isArray(productForm.tierPricing) && productForm.tierPricing.length === 0)) ? (
-                                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl p-10 bg-slate-50/20">
-                                       <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center mb-3 shadow-sm">
-                                         <Plus className="h-6 w-6 text-slate-200" />
-                                       </div>
-                                       <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">Configura descuentos automáticos por volumen</p>
-                                    </div>
-                                  ) : (
-                                    <div className="space-y-2">
-                                      {(Array.isArray(productForm.tierPricing) ? productForm.tierPricing : []).map((tier: any, index: number) => (
-                                        <div key={index} className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl hover:bg-slate-50 transition-colors group/tier border border-transparent hover:border-slate-100">
-                                          <div className="relative flex-1">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-300 uppercase">Mín</span>
-                                            <Input 
-                                              type="number" 
-                                              value={tier.minQty} 
-                                              onChange={(e) => {
-                                                const tiers = [...productForm.tierPricing];
-                                                tiers[index].minQty = Number(e.target.value);
-                                                setProductForm({...productForm, tierPricing: tiers});
-                                              }} 
-                                              className="bg-white border-slate-100 h-11 text-xs font-black text-slate-900 rounded-xl pl-8 text-center w-full focus-visible:ring-emerald-100 shadow-sm" 
-                                            />
-                                          </div>
-                                          
-                                          <div className="relative flex-1">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[7px] font-black text-emerald-300 uppercase">PVP</span>
-                                            <Input 
-                                              type="number" 
-                                              step="0.01" 
-                                              value={tier.price} 
-                                              onChange={(e) => {
-                                                const tiers = [...productForm.tierPricing];
-                                                tiers[index].price = Number(e.target.value);
-                                                setProductForm({...productForm, tierPricing: tiers});
-                                              }} 
-                                              className="bg-white border-emerald-100 h-11 text-xs font-black text-emerald-600 rounded-xl pl-8 text-center w-full focus-visible:ring-emerald-200/30 shadow-sm" 
-                                            />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-400/50">€</span>
-                                          </div>
-
-                                          <Button 
-                                            size="icon"
-                                            variant="ghost"
-                                            onClick={() => {
-                                              const tiers = productForm.tierPricing.filter((_: any, i: number) => i !== index);
-                                              setProductForm({...productForm, tierPricing: tiers});
-                                            }}
-                                            className="h-11 w-11 shrink-0 rounded-xl text-slate-200 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover/tier:opacity-100"
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <Button 
-                                  onClick={() => {
-                                    const tiers = Array.isArray(productForm.tierPricing) ? [...productForm.tierPricing] : [];
-                                    const lastPrice = tiers.length > 0 ? tiers[tiers.length-1].price : productForm.price;
-                                    tiers.push({ minQty: 10, price: Number((lastPrice * 0.95).toFixed(2)) });
-                                    setProductForm({...productForm, tierPricing: tiers});
-                                  }}
-                                  className="w-full bg-slate-900 text-white hover:bg-black rounded-2xl h-12 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 group/btn"
-                                >
-                                  <Plus className="h-4 w-4 transition-transform group-hover/btn:rotate-90" />
-                                  Añadir Tramo de Precio
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-
-                          {activePromoTab === 'variants' && (
-                            <div className="p-6 space-y-6">
-                              <div className="flex items-center justify-between px-1">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-7 w-7 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg">
-                                    <Settings2 className="h-3.5 w-3.5 text-white" />
-                                  </div>
-                                  <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Configuración de Variantes</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Activar Variantes</span>
-                                  <Switch 
-                                    checked={productForm.hasVariants} 
-                                    onCheckedChange={(checked) => setProductForm({...productForm, hasVariants: checked})} 
-                                    className="scale-75 data-[state=checked]:bg-blue-500" 
-                                  />
-                                </div>
-                              </div>
-
-                              {productForm.hasVariants ? (
-                                <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-1">
-                                      <label className="text-[7px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tipo de Propiedad</label>
-                                      <Input value={productForm.variantType || ''} onChange={(e) => setProductForm({...productForm, variantType: e.target.value})} placeholder="EJ: TAMAÑO" className="bg-slate-50 rounded-xl h-10 text-[9px] font-black px-4 uppercase shadow-inner border-transparent focus:bg-white focus:border-slate-100 transition-all font-inter" />
-                                    </div>
-                                    <div className="space-y-1">
-                                      <label className="text-[7px] font-bold text-slate-400 uppercase tracking-widest ml-1">Lógica de Precio</label>
-                                      <Select value={productForm.variantBehavior || 'replace'} onValueChange={(val: any) => setProductForm({...productForm, variantBehavior: val})}>
-                                        <SelectTrigger className="bg-slate-50 rounded-xl h-10 text-[9px] font-black px-4 uppercase border-transparent shadow-inner focus:bg-white focus:border-slate-100 transition-all font-inter">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl">
-                                          <SelectItem value="replace" className="text-[9px] font-black uppercase">Precio Fijo</SelectItem>
-                                          <SelectItem value="add" className="text-[9px] font-black uppercase">+ Importe Extra</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                  </div>
-
-                                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200 py-1">
-                                    <DndContext 
-                                      sensors={sensors} 
-                                      collisionDetection={closestCenter} 
-                                      onDragEnd={(event) => {
-                                        const { active, over } = event
-                                        if (over && active.id !== over.id) {
-                                          const oldId = active.id as string
-                                          const newId = over.id as string
-                                          const oldIndex = parseInt(oldId.split('-')[1])
-                                          const newIndex = parseInt(newId.split('-')[1])
-                                          
-                                          const variants = productForm.variants || []
-                                          const newVariants = [...variants]
-                                          const [movedItem] = newVariants.splice(oldIndex, 1)
-                                          newVariants.splice(newIndex, 0, movedItem)
-                                          
-                                          setProductForm({ ...productForm, variants: newVariants })
-                                        }
-                                      }}
-                                    >
-                                      <SortableContext 
-                                        items={(productForm.variants || []).map((_: any, i: number) => `variant-${i}`)} 
-                                        strategy={verticalListSortingStrategy}
-                                      >
-                                        {(productForm.variants || []).map((variant: any, index: number) => (
-                                          <SortableVariantRow 
-                                            key={`variant-${index}`}
-                                            id={`variant-${index}`}
-                                            index={index} 
-                                            variant={variant} 
-                                            updateVariant={updateVariant} 
-                                            removeVariant={removeVariant} 
-                                          />
-                                        ))}
-                                      </SortableContext>
-                                    </DndContext>
-                                  </div>
-                                  <Button 
-                                    variant="ghost" 
-                                    onClick={addVariant} 
-                                    className="w-full text-[9px] font-black text-slate-400 hover:text-blue-500 hover:bg-blue-50 uppercase tracking-widest h-12 bg-slate-50/50 border border-dashed border-slate-200 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 group/addv"
-                                  >
-                                    <Plus className="h-4 w-4 transition-transform group-hover/addv:rotate-90" /> Añadir Opción Técnica
-                                  </Button>
-                                </motion.div>
-                              ) : (
-                                <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl p-10 bg-slate-50/20">
-                                   <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center mb-3 shadow-sm">
-                                     <Settings2 className="h-6 w-6 text-slate-200" />
-                                   </div>
-                                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center max-w-[200px]">Crea opciones técnicas como tamaños, colores o materiales</p>
-                                   <Button 
-                                    onClick={() => setProductForm({...productForm, hasVariants: true})}
-                                    className="mt-4 bg-slate-900 text-white rounded-xl px-6 h-10 text-[9px] font-black uppercase tracking-widest"
-                                   >
-                                    Activar Ahora
-                                   </Button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </section>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50/50 rounded-2xl p-4 flex items-center justify-between border border-slate-100 transition-all hover:bg-slate-50">
-                    <div className="flex flex-col">
-                      <p className="text-[8px] font-black uppercase text-slate-900 leading-none">VISIBILIDAD</p>
-                      <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Ver Precio</p>
-                    </div>
-                    <Switch checked={productForm.showPrice !== false} onCheckedChange={(checked) => setProductForm({...productForm, showPrice: checked})} className="scale-75 data-[state=checked]:bg-blue-500" />
-                  </div>
-                  <div className={`rounded-2xl p-4 flex items-center justify-between border transition-all duration-300 ${
-                    productForm.active !== false 
-                      ? 'bg-emerald-50/30 border-emerald-100' 
-                      : 'bg-slate-50/50 border-slate-100'
-                  }`}>
-                    <div className="flex flex-col">
-                      <p className={`text-[8px] font-black uppercase leading-none ${productForm.active !== false ? 'text-emerald-600' : 'text-slate-900'}`}>ESTADO</p>
-                      <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{productForm.active !== false ? 'Activo' : 'Inactivo'}</p>
-                    </div>
-                    <Switch checked={productForm.active !== false} onCheckedChange={(checked) => setProductForm({...productForm, active: checked})} className="scale-75 data-[state=checked]:bg-emerald-500" />
-                  </div>
-                </div>
-              </div>
-            </ScrollArea>
-
-            {/* ACCIONES COMPACTAS */}
-            <div className="px-8 py-4 border-t border-slate-100 flex items-center gap-4 bg-white z-20">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsProductDialogOpen(false)}
-                className="flex-1 h-10 rounded-xl font-black uppercase text-[9px] text-slate-400 border-slate-100 border-2"
-              >
-                Cancelar
-              </Button>
-              <Button 
-                onClick={onSaveProduct}
-                className="flex-[2] h-10 rounded-xl font-black uppercase text-[9px] bg-black text-white hover:bg-slate-900 shadow-lg"
-              >
-                {editingProduct ? 'Guardar Cambios' : 'Publicar'}
-              </Button>
-            </div>
-          </DialogContent>
-      </Dialog>
 
       {/* DIÁLOGO DE CONFIRMACIÓN DE BORRADO DINÁMICO (INDIVIDUAL O MASIVO) */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

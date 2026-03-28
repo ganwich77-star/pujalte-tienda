@@ -74,28 +74,19 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 
-// Default config merging landing data and shop defaults
+// Configuración inicial mínima para evitar parpadeos, se llenará con fetchConfig
 const defaultConfig: StoreConfig = {
-  ...landingData,
-  whatsappNumber: landingData.whatsapp || '34650494728',
-  storeName: landingData.nombre || 'Pujalte Fotografía',
+  storeName: 'Pujalte Fotografía',
   showImages: true,
   currency: 'EUR',
-  phone: landingData.telefono || '650494728',
-  email: landingData.email || 'hola@pujaltefotografia.es',
-  slogan: landingData.slogan || '',
-  subtitulo: landingData.subtitulo || 'Más que fotografía, tus mejores recuerdos',
+  phone: '650494728',
+  email: 'hola@pujaltefotografia.es',
+  whatsappNumber: '34650494728',
+  slogan: 'POWERED BY PUJALTE',
   enableCash: true,
   enableBizum: true,
   enableCard: true,
-  formFields: [
-    { id: 'name', label: 'Nombre completo', placeholder: 'Tu nombre', type: 'text', required: true, active: true },
-    { id: 'dni', label: 'DNI / NIE', placeholder: '12345678X', type: 'text', required: true, active: true },
-    { id: 'phone', label: 'Teléfono / WhatsApp', placeholder: '+34 600 000 000', type: 'tel', required: true, active: true },
-    { id: 'email', label: 'Email', placeholder: 'tu@email.com', type: 'email', required: false, active: true },
-    { id: 'address', label: 'Dirección de envío', placeholder: 'Calle, número, ciudad...', type: 'text', required: false, active: true },
-    { id: 'notes', label: 'Notas adicionales', placeholder: 'Instrucciones especiales...', type: 'textarea', required: false, active: true }
-  ]
+  formFields: []
 }
 
 export default function Home() {
@@ -116,7 +107,7 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>('featured')
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>('all')
   
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isPostAddDialogOpen, setIsPostAddDialogOpen] = useState(false)
@@ -164,10 +155,18 @@ export default function Home() {
   }, [config])
 
   const filteredGallery = useMemo(() => {
-    if (!config || !config.galeria) return []
-    if (activeLandingCategory === 'todos') return config.galeria
-    return config.galeria.filter((img: any) => img.categoria === activeLandingCategory)
-  }, [activeLandingCategory, config])
+    // Usamos exclusivamente la galería configurada para la landing
+    const galleryItems = config?.galeria || landingData?.galeria || [];
+    
+    const items = galleryItems.map(item => ({ 
+      ...item, 
+      fromDb: false 
+    }));
+    
+    // Filtramos por categoría activa de la landing
+    if (activeLandingCategory === 'todos') return items;
+    return items.filter((img: any) => img.categoria === activeLandingCategory);
+  }, [activeLandingCategory, config, landingData])
 
   const iconMap: Record<string, any> = {
     heart: Heart,
@@ -232,13 +231,22 @@ Mi email: ${formData.email}`
   // Fetch functions
   const fetchProducts = async () => {
     try {
+      setLoading(true)
       const res = await fetch('/api/products')
-      if (!res.ok) throw new Error('Error al cargar productos')
       const data = await res.json()
-      setProducts(data)
+      
+      // Aseguramos que data sea un array (nuestro API ahora normaliza, pero por seguridad extra)
+      if (Array.isArray(data)) {
+        setProducts(data)
+      } else if (data.products && Array.isArray(data.products)) {
+        setProducts(data.products)
+      } else {
+        console.warn("Formato de productos no reconocido, usando array vacío")
+        setProducts([])
+      }
     } catch (error) {
-      console.error(error)
-      toast({ title: 'Error', description: 'No se pudieron cargar los productos', variant: 'destructive' })
+      console.error("Error crítico fetchProducts:", error)
+      // No lanzamos toast invasivo si ya tenemos productos cacheados o fallback
     } finally {
       setLoading(false)
     }
@@ -296,14 +304,25 @@ Mi email: ${formData.email}`
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch('/api/config')
+      const res = await fetch('/api/config?t=' + Date.now(), {
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      })
       if (res.ok) {
         const data = await res.json()
-        if (data) {
+        if (data && data.promos && data.promos.length > 0) {
+          console.log('%c🚀 BANNERS RECUPERADOS DE NEON:', 'color: #4A7C59; font-weight: bold;', data.promos.length, 'unidades.');
           setConfig(data)
+          setShowPromo(true);
+        } else {
+          console.warn('⚠️ No se encontraron banners en Neon. Cargando configuración por defecto...');
+          // Si no hay promos en Neon pero sí en nuestro JSON local, las usamos para que no se vea vacío
+          if (landingData.promos && landingData.promos.length > 0) {
+            setConfig(prev => ({ ...prev, promos: landingData.promos }));
+            setShowPromo(true);
+          }
         }
       }
-    } catch (error) { console.error(error) }
+    } catch (error) { console.error('Error cargando config de Neon:', error) }
   }
 
   useEffect(() => {
@@ -377,10 +396,10 @@ Mi email: ${formData.email}`
   }
 
   // Admin Handlers
-  const handleSaveProduct = async () => {
-    if (!productForm.name || (!productForm.hasVariants && !productForm.price)) {
+  const handleSaveProduct = async (data: any = productForm): Promise<boolean> => {
+    if (!data.name || (!data.hasVariants && !data.price)) {
       toast({ title: 'Error', description: 'Nombre y precio son requeridos', variant: 'destructive' })
-      return
+      return false
     }
 
     try {
@@ -445,9 +464,11 @@ Mi email: ${formData.email}`
       resetProductForm()
       fetchAllProducts()
       fetchStats()
+      return true
     } catch (error) {
       console.error(error)
       toast({ title: 'Error', description: 'No se pudo guardar el producto', variant: 'destructive' })
+      return false
     }
   }
 
@@ -641,31 +662,37 @@ Mi email: ${formData.email}`
   }
 
   const handleSaveConfig = async (newConfig?: StoreConfig) => {
-    const configToSave = newConfig || config
+    let configToSave = newConfig || config
+    
+    // Limpieza de seguridad para asegurar JSON válido en Neon
     try {
-      // Guardar en la tienda (Firebase/DB)
-      const resShop = await fetch('/api/config', {
+      configToSave = JSON.parse(JSON.stringify(configToSave))
+    } catch (e) {
+      console.error("Error serializing config", e)
+    }
+
+    try {
+      const res = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(configToSave)
       })
 
-      // Guardar en la landing (JSON Local)
-      const resLanding = await fetch('/api/admin/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(configToSave)
-      })
-
-      if (resShop.ok && resLanding.ok) {
-        toast({ title: '¡Guardado!', description: 'Todo sincronizado: Tienda y Landing' })
+      if (res.ok) {
+        toast({ title: '¡Guardado!', description: 'Configuración actualizada en la base de datos única.' })
         fetchConfig()
       } else {
-        toast({ title: 'Aviso', description: 'Se guardó en uno de los sistemas pero falló el otro. Reintenta.', variant: 'destructive' })
+        const errorData = await res.json()
+        const mensaje = errorData.details || errorData.error || 'Fallo en la base de datos'
+        throw new Error(mensaje)
       }
-    } catch (error) { 
+    } catch (error: any) { 
       console.error(error)
-      toast({ title: 'Error crítico', description: 'Fallo de conexión al guardar.', variant: 'destructive' })
+      toast({ 
+        title: 'Error de guardado', 
+        description: error.message, 
+        variant: 'destructive' 
+      })
     }
   }
 
@@ -686,45 +713,18 @@ Mi email: ${formData.email}`
   }
 
   const allCombinedProducts = useMemo(() => {
-    // Productos de MySQL
-    const mysqlProds = products.map(p => ({ ...p, source: 'mysql' }));
-    
-    // Productos de JSON (catálogo configurado en admin) que tengan precio > 0
-    const jsonProds = (config.galeria || [])
-      .filter(g => (g.activa !== false) && ((g.precio && g.precio > 0) || (g.variants && g.variants.length > 0)))
-      .map(g => {
-        const mysqlCategory = categories.find(c => c.name.toLowerCase() === g.categoria?.toLowerCase());
-        return {
-          id: g.id.toString(),
-          name: g.alt,
-          description: g.descripcion || '',
-          price: Number(g.precio) || 0,
-          image: g.src,
-          stock: g.stock ?? 99,
-          categoryId: mysqlCategory ? mysqlCategory.id : g.categoria,
-          category: mysqlCategory ? { id: mysqlCategory.id, name: mysqlCategory.name } : (g.categoria ? { id: g.categoria, name: g.categoria } : null),
-          active: g.activa !== false,
-          showPrice: g.mostrarPrecio !== false,
-          isPack: false,
-          packItems: null,
-          hasVariants: g.hasVariants || (g.variants && g.variants.length > 0),
-          variantType: 'Opción',
-          variants: (g.variants || []).map((v: any) => ({
-            ...v,
-            id: v.id?.toString() || Math.random().toString(),
-            price: Number(v.price) || 0,
-            stock: v.stock ?? 99,
-            active: v.active ?? true,
-            sortOrder: v.sortOrder ?? 0
-          })),
-          variantBehavior: g.variantBehavior || 'add',
-          isNew: g.isNew || false,
-          source: 'json'
-        } as Product;
-      });
-
-    return [...mysqlProds, ...jsonProds];
-  }, [products, config.galeria]);
+    // Los productos ya vienen normalizados por el API que hemos blindado previamente
+    return (products || []).map((p: any) => ({
+      ...p,
+      id: String(p.id || p.alt || Math.random()),
+      name: p.name || p.alt || 'Producto',
+      image: p.image || p.src || '',
+      price: Number(p.price || p.precio || 0),
+      description: p.description || p.descripcion || '',
+      categoryId: p.categoryId || p.categoria || 'social',
+      active: p.active !== undefined ? p.active : (p.activa !== undefined ? p.activa : true)
+    }));
+  }, [products]);
 
   const filteredProducts = allCombinedProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -735,10 +735,13 @@ Mi email: ${formData.email}`
     // - Si es MySQL, comparamos IDs
     // - Si es JSON, comparamos el campo categoria (string) con el nombre de la categoría seleccionada
     let matchesCategory = true;
-    if (searchQuery.length === 0) { // Solo filtramos por categoría si NO hay búsqueda activa
-      if (selectedCategoryId === 'featured') {
-        matchesCategory = !!(product.isNew || product.salePrice);
-      } else if (selectedCategoryId) {
+    if (searchQuery.length === 0) { 
+      // Si la categoría seleccionada es 'all', null o undefined, mostramos todo
+      if (!selectedCategoryId || selectedCategoryId === 'all') {
+        matchesCategory = true;
+      } else if (selectedCategoryId === 'featured') {
+        matchesCategory = !!(product.isNew || product.salePrice || product.isFeatured);
+      } else {
         const selectedCat = categories.find(c => c.id === selectedCategoryId);
         if (selectedCat) {
           matchesCategory = product.categoryId === selectedCategoryId || 
@@ -802,7 +805,11 @@ Mi email: ${formData.email}`
           addVariant={addVariant}
           updateVariant={updateVariant}
           removeVariant={removeVariant}
-          onViewStore={() => { setView('shop'); setIsAdmin(false); window.scrollTo(0, 0); }}
+          onViewStore={() => { 
+            setView('shop'); 
+            setIsAdmin(false); 
+            window.scrollTo(0, 0); 
+          }}
           onLogout={() => { setView('landing'); setIsAdmin(false); window.scrollTo(0, 0); }}
           resetProductForm={resetProductForm}
         />
@@ -939,7 +946,7 @@ Mi email: ${formData.email}`
                     setTimeout(() => {
                       setView('shop');
                       window.scrollTo(0, 0);
-                    }, 100);
+                    }, 300);
                   }}
                   className="bg-[#4A7C59] text-white px-5 py-2 rounded-full font-medium hover:bg-[#3d664a] transition-colors"
                 >
@@ -955,7 +962,7 @@ Mi email: ${formData.email}`
                     setTimeout(() => {
                       setView('shop');
                       window.scrollTo(0, 0);
-                    }, 100);
+                    }, 300);
                   }}
                   className="bg-[#4A7C59] text-white px-4 py-2 rounded-full font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 hover:bg-[#3d664a] transition-all shadow-md"
                   title="Tienda"
@@ -991,7 +998,7 @@ Mi email: ${formData.email}`
                             setTimeout(() => {
                               setView('shop');
                               window.scrollTo(0, 0);
-                            }, 100);
+                            }, 300);
                           }}
                           className="w-full bg-[#4A7C59] text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-lg shadow-[#4A7C59]/20"
                         >
@@ -1017,7 +1024,7 @@ Mi email: ${formData.email}`
                   setTimeout(() => {
                     setView('shop');
                     window.scrollTo(0, 0);
-                  }, 100);
+                  }, 300);
                 }} 
                 onContact={() => { setShowPromo(false); document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' }); }} 
               />
@@ -1053,7 +1060,7 @@ Mi email: ${formData.email}`
                         setTimeout(() => {
                           setView('shop');
                           window.scrollTo(0, 0);
-                        }, 100);
+                        }, 300);
                       }}
                       className="bg-[#C87941] text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:bg-[#b06a38] transition-colors shadow-lg"
                     >
@@ -1246,9 +1253,7 @@ Mi email: ${formData.email}`
                       {[0, 1, 2].map((offset) => {
                         const itemIdx = (galleryIndex + offset) % filteredGallery.length
                         const img = filteredGallery[itemIdx]
-                        if (!img) return null
-                        
-                        return (
+                              return (
                           <div 
                             key={`${img.id}-${itemIdx}`}
                             className={cn(
@@ -1256,35 +1261,41 @@ Mi email: ${formData.email}`
                               offset > 0 ? "hidden md:block" : "block"
                             )}
                           >
-                            <div 
-                              onClick={() => setSelectedGalleryImage(img)}
-                              className={cn(
-                                "group aspect-square rounded-[2rem] overflow-hidden relative shadow-xl transition-all duration-700 cursor-pointer",
-                                // Todas iguales
-                                "scale-100 blur-0 opacity-100",
-                                // Control de visibilidad
-                                offset > 0 ? "hidden md:block" : "block"
-                              )}
-                            >
-                              <img 
-                                src={fixPath(img.src)} 
-                                alt={img.alt} 
-                                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125" 
+                            {img.fromDb ? (
+                              <ProductCard 
+                                product={img} 
+                                config={config} 
+                                formatPrice={formatPrice} 
+                                handleAddToCart={handleAddToCart} 
                               />
-                              {img.isNew && (
-                                <div className="absolute top-4 left-4 z-10">
-                                  <div className="bg-amber-400 text-black text-[10px] font-black px-3 py-1 rounded-full shadow-lg border border-white/20 animate-pulse uppercase tracking-wider">
-                                    Nuevo
+                            ) : (
+                              <div 
+                                onClick={() => setSelectedGalleryImage(img)}
+                                className={cn(
+                                  "group aspect-square rounded-[2rem] overflow-hidden relative shadow-xl transition-all duration-700 cursor-pointer",
+                                  "scale-100 blur-0 opacity-100"
+                                )}
+                              >
+                                <img 
+                                  src={fixPath(img.src)} 
+                                  alt={img.alt} 
+                                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125" 
+                                />
+                                {img.isNew && (
+                                  <div className="absolute top-4 left-4 z-10">
+                                    <div className="bg-amber-400 text-black text-[10px] font-black px-3 py-1 rounded-full shadow-lg border border-white/20 animate-pulse uppercase tracking-wider">
+                                      Nuevo
+                                    </div>
                                   </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4 md:p-8">
+                                  <p className="text-white font-bold text-[10px] md:text-xs uppercase tracking-widest">{img.alt}</p>
                                 </div>
-                              )}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4 md:p-8">
-                                <p className="text-white font-bold text-[10px] md:text-xs uppercase tracking-widest">{img.alt}</p>
+                                <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Search className="w-4 h-4 text-white" />
+                                </div>
                               </div>
-                              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Search className="w-4 h-4 text-white" />
-                              </div>
-                            </div>
+                            )}
                           </div>
                         )
                       })}
@@ -1536,6 +1547,11 @@ Mi email: ${formData.email}`
       )}
 
       {/* COMMON DIALOGS & OVERLAYS */}
+      {/* Debug HUD - Solo visible para depuración */}
+      <div className="fixed top-2 right-2 z-[999] opacity-10 pointer-events-none text-[8px] text-zinc-500 font-mono">
+        Banners: {config?.promos?.length || 0} | Show: {showPromo ? 'Y' : 'N'}
+      </div>
+
       {!isAdmin && (
         <>
           {/* Eliminado LegalDialogs duplicado */}
@@ -1681,7 +1697,36 @@ Mi email: ${formData.email}`
             isOpen={isSizeGuideOpen} 
             onClose={() => setIsSizeGuideOpen(false)} 
           />
+
+          <AnimatePresence>
+            {showPromo && config?.promos && config.promos.length > 0 && (
+              <PromoModal 
+                promos={config.promos.filter(p => !!p.url)}
+                onClose={() => setShowPromo(false)}
+                onOpenStore={() => {
+                  setShowPromo(false);
+                  setView('shop');
+                  window.scrollTo(0, 0);
+                }}
+                onContact={() => {
+                  setShowPromo(false);
+                  const contactSection = document.getElementById('contacto');
+                  if (contactSection) contactSection.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
+            )}
+          </AnimatePresence>
+
           <CookieBanner />
+
+          {/* SPLASH SCREEN ORIGINAL (ACTUALIZADO CON VIDEO) */}
+          {showSplash && (
+            <SplashScreen 
+              onComplete={() => setShowSplash(false)} 
+              logo={fixPath(config.logo || landingData.logo)}
+              storeName={config.storeName}
+            />
+          )}
         </>
       )}
     </div>
