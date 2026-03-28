@@ -526,6 +526,8 @@ export function ProductsTab({
             NUEVO PRODUCTO
           </Button>
         </div>
+      </div>
+
       {/* Toolbar - Búsqueda y Filtros */}
       <div className="bg-white px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row items-center gap-4 shadow-sm relative z-10">
         <div className="relative flex-1 w-full group">
@@ -538,18 +540,24 @@ export function ProductsTab({
           />
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button 
+            variant="outline"
+            className="h-11 w-11 rounded-xl bg-slate-50 border-slate-200 text-slate-400 group-focus-within:text-black group-focus-within:bg-white transition-all shadow-sm p-0"
+          >
+            <Search className="h-5 w-5" />
+          </Button>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full sm:w-[280px] h-11 rounded-xl bg-slate-50 border-slate-200 px-4 text-sm font-bold uppercase tracking-tight shadow-sm">
+            <SelectTrigger className="w-full sm:w-[280px] h-11 rounded-xl bg-slate-50 border-slate-200 px-4 text-[10px] font-black uppercase tracking-widest shadow-sm">
               <div className="flex items-center gap-3">
                 <Filter className="h-4 w-4 text-slate-400" />
                 <SelectValue placeholder="CATEGORÍA" />
               </div>
             </SelectTrigger>
             <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-              <SelectItem value="all" className="text-xs font-bold uppercase py-3">Todas las secciones</SelectItem>
+              <SelectItem value="all" className="text-[10px] font-black uppercase tracking-widest py-3">TODAS LAS SECCIONES</SelectItem>
               {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id} className="text-xs font-bold uppercase py-3">
-                  {cat.name}
+                <SelectItem key={cat.id} value={cat.id} className="text-[10px] font-black uppercase tracking-widest py-3">
+                  {cat.name.toUpperCase()}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -557,12 +565,11 @@ export function ProductsTab({
           <Button 
             variant="ghost" 
             onClick={() => {setSearchTerm(''); setCategoryFilter('all')}}
-            className="h-11 w-11 rounded-xl text-slate-300 hover:text-black hover:bg-slate-100 bg-slate-50 border border-slate-200"
+            className="h-11 w-11 rounded-xl text-slate-300 hover:text-black hover:bg-slate-100 bg-slate-50 border border-slate-200 shadow-sm"
           >
             <CloseIcon className="h-5 w-5" />
           </Button>
         </div>
-      </div>
       </div>
 
       {/* Tabla Desktop Escalada */}
