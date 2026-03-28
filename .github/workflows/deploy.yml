@@ -79,10 +79,20 @@ jobs:
               fi
             fi
             
-            # 2. Navegar al proyecto
+            # 🔍 OPERACIÓN SABUESO: Rastrear ruta del proceso vivo
+            echo "--- INFORME DE RASTREO ---"
+            ACTIVE_PATH=$(ps aux | grep "node server.js" | grep -v grep | awk '{print $11}' | xargs -I {} dirname {})
+            if [ -z "$ACTIVE_PATH" ]; then
+              ACTIVE_PATH=$(ps aux | grep "node" | grep -v grep | head -n 1)
+            fi
+            echo "El proceso vivo está en: $ACTIVE_PATH"
+            echo "Tu TARGET actual es: $(pwd)"
+            echo "--- FIN DEL INFORME ---"
+            
+            # 2. Navegar al proyecto (asegurarse de que estamos donde dice el proceso)
             cd ${{ secrets.HOSTINGER_REMOTE_TARGET }}
             
-            # 3. Lanzar Prisma (usando ruta absoluta de npx si es necesario)
+            # 3. Lanzar Prisma
             NPX_BIN=$(command -v npx || find $HOME -name npx -type f -executable 2>/dev/null | head -n 1)
             $NPX_BIN prisma db push --accept-data-loss
             
@@ -102,6 +112,7 @@ jobs:
               $NPX_BIN pm2 delete $PM2_NAME || true
               $NPX_BIN pm2 start server.js --name $PM2_NAME || node server.js &
             fi
+
 
 
 
