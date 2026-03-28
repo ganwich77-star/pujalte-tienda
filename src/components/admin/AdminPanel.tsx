@@ -69,7 +69,7 @@ interface AdminPanelProps {
   editingProduct: Product | null
   uploading: boolean
   formatPrice: (price: number) => string
-  onSaveProduct: (data: any) => Promise<boolean>
+  onSaveProduct: () => void
   onToggleActive: (product: Product) => void
   onDeleteProduct: (id: string) => void
   onReorderProducts: (products: Product[]) => void
@@ -406,28 +406,24 @@ export function AdminPanel(props: AdminPanelProps) {
                 />
               )}
 
-              {/* TABS DE LA LANDING INTEGRADAS CON LA BASE DE DATOS ÚNICA */}
+              {/* TABS DE LA LANDING INTEGRADAS */}
               {activeTab === 'l-products' && (
                 <LandingProductsTab
-                  products={products}
-                  categories={categories.map(c => c.name)}
-                  onUpdateProductField={props.onUpdateProductField}
-                  onDeleteProduct={props.onDeleteProduct}
-                  onAddProduct={props.onAddProduct}
-                  onEditProduct={props.onEditProduct}
-                  onSaveProduct={props.onSaveProduct}
+                  config={config as any}
+                  setConfig={(newCfg: any) => onUpdateConfig(newCfg)}
+                  categories={config.categorias || []}
                   handleFileUpload={props.onFileUpload as any}
+                  injectPreset={() => {}}
+                  handleImportCSV={() => {}}
+                  presets={{}}
                 />
               )}
 
               {activeTab === 'l-packs' && (
                 <LandingPacksTab
-                  products={products.filter(p => (p.categoryId === 'PAQUETES' || p.categoryId === 'social'))}
-                  categories={categories.map(c => c.name)}
-                  onUpdateProductField={props.onUpdateProductField}
-                  onDeleteProduct={props.onDeleteProduct}
-                  onAddProduct={props.onAddProduct}
-                  onEditProduct={props.onEditProduct}
+                  products={config.galeria || []}
+                  categories={config.categorias || []}
+                  onUpdate={(newItems: any) => onUpdateConfig({ ...config, galeria: newItems })}
                 />
               )}
 
