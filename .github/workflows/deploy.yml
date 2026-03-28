@@ -77,20 +77,22 @@ jobs:
             NPX_BIN=$(command -v npx || find $HOME -name npx -type f -executable 2>/dev/null | head -n 1)
             $NPX_BIN prisma db push --accept-data-loss
             
-            # 4. Reiniciar con PM2 (Búsqueda exhaustiva)
+            # 5. LIMPIEZA PROFUNDA Y REINICIO FRÍO
+            rm -rf .next/cache
+            
             PM2_NAME="pujalte-store"
             PM2_BIN=$(command -v pm2 || find $HOME -name pm2 -type f -executable 2>/dev/null | head -n 1)
             
             if [ ! -z "$PM2_BIN" ]; then
-              if $PM2_BIN list | grep -q "$PM2_NAME"; then
-                $PM2_BIN restart $PM2_NAME
-              else
-                $PM2_BIN start server.js --name $PM2_NAME
-              fi
+              $PM2_BIN stop $PM2_NAME || true
+              $PM2_BIN delete $PM2_NAME || true
+              $PM2_BIN start server.js --name $PM2_NAME
               $PM2_BIN save
             else
-              # Último recurso: intentar con npx o lanzar directo
-              $NPX_BIN pm2 restart $PM2_NAME || $NPX_BIN pm2 start server.js --name $PM2_NAME || node server.js &
+              $NPX_BIN pm2 stop $PM2_NAME || true
+              $NPX_BIN pm2 delete $PM2_NAME || true
+              $NPX_BIN pm2 start server.js --name $PM2_NAME || node server.js &
             fi
+
 
 
