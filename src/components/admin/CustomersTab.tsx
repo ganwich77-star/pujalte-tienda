@@ -57,6 +57,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
   const [deletingCustomer, setDeletingCustomer] = useState<any>(null)
   const [updating, setUpdating] = useState(false)
   const [firebaseClients, setFirebaseClients] = useState<Record<string, any>>({})
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const router = useRouter()
 
   // Cargar datos de clientes desde Firebase (tiene DNI, cashEnabled actualizados)
@@ -88,14 +89,49 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
       if (key) {
         const { doc: firestoreDoc, deleteDoc: firestoreDelete } = await import('firebase/firestore')
         await firestoreDelete(firestoreDoc(db, 'clients', key))
+        // También limpiar de la selección si estaba
+        const nextSelected = new Set(selectedIds)
+        nextSelected.delete(key)
+        setSelectedIds(nextSelected)
       }
       toast({ title: 'Cliente eliminado', description: 'El cliente ha sido eliminado de la base de datos.' })
       await reloadFirebase()
-      router.refresh()
       setDeletingCustomer(null)
     } catch (e) {
       toast({ title: 'Error', description: 'No se pudo eliminar el cliente.', variant: 'destructive' })
     }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`¿Seguro que quieres eliminar ${selectedIds.size} clientes?`)) return
+    
+    try {
+      const { doc: firestoreDoc, deleteDoc: firestoreDelete } = await import('firebase/firestore')
+      const deletePromises = Array.from(selectedIds).map(id => firestoreDelete(firestoreDoc(db, 'clients', id)))
+      await Promise.all(deletePromises)
+      
+      toast({ title: 'Clientes eliminados', description: `Se han borrado ${selectedIds.size} clientes.` })
+      setSelectedIds(new Set())
+      await reloadFirebase()
+    } catch (e) {
+      toast({ title: 'Error', description: 'No se pudieron eliminar todos los clientes.', variant: 'destructive' })
+    }
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredCustomers.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredCustomers.map(c => c.dni || c.email || c.phone)))
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setSelectedIds(next)
   }
 
   const formatDate = (dateValue: any): Date => {
@@ -232,6 +268,15 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
               className="pl-11 h-10 sm:h-12 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 shadow-inner focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 transition-all font-medium text-sm"
             />
           </div>
+          {selectedIds.size > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={handleBulkDelete}
+              className="ml-2 h-10 sm:h-12 rounded-xl sm:rounded-2xl px-4 flex items-center gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-100"
+            >
+              <Trash2 className="h-4 w-4" /> Borrar ({selectedIds.size})
+            </Button>
+          )}
         </div>
       </div>
 
@@ -339,6 +384,17 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
           <table className="w-full text-left border-collapse min-w-[700px] sm:min-w-auto">
             <thead>
               <tr className="bg-slate-50/50 border-bottom border-slate-100">
+                <th className="px-5 py-5 w-12">
+                  <input 
+                    type="checkbox" 
+                    className="h-4 w-4 rounded border-slate-300 text-[#4A7C59] focus:ring-[#4A7C59]"
+                    checked={selectedIds.size > 0 && selectedIds.size === filteredCustomers.length}
+                    ref={input => {
+                      if (input) input.indeterminate = selectedIds.size > 0 && selectedIds.size < filteredCustomers.length
+                    }}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
                 <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Cliente / DNI</th>
                 <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Contacto</th>
                 <th className="px-4 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Pedidos</th>
@@ -358,6 +414,14 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                     exit={{ opacity: 0 }}
                     className="group hover:bg-[#4A7C59]/5 transition-colors"
                   >
+                    <td className="px-5 py-5 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="h-4 w-4 rounded border-slate-300 text-[#4A7C59] focus:ring-[#4A7C59]"
+                        checked={selectedIds.has(customer.dni || customer.email || customer.phone)}
+                        onChange={() => toggleSelect(customer.dni || customer.email || customer.phone)}
+                      />
+                    </td>
                     <td className="px-5 sm:px-6 py-4 sm:py-5">
                       <div className="flex items-center gap-3 sm:gap-4">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[#4A7C59] font-black text-sm">
@@ -395,9 +459,9 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                           <span className="text-[8px] font-black text-emerald-600 uppercase">Habilitado</span>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center gap-1 opacity-20">
-                          <XCircle className="h-5 w-5 text-slate-400" />
-                          <span className="text-[8px] font-black text-slate-500 uppercase">Bloqueado</span>
+                        <div className="flex flex-col items-center gap-1 opacity-100">
+                          <XCircle className="h-5 w-5 text-slate-300" />
+                          <span className="text-[8px] font-black text-slate-400 uppercase">Bloqueado</span>
                         </div>
                       )}
                     </td>

@@ -26,6 +26,7 @@ export interface Product {
   variantBehavior?: 'add' | 'replace'
   variants: ProductVariant[]
   isNew?: boolean
+  isFeatured?: boolean
   salePrice?: number | null
   minQuantity?: number
   stepQuantity?: number

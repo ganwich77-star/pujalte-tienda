@@ -24,7 +24,11 @@ import {
   Upload,
   User,
   Users,
-  Sparkles
+  Sparkles,
+  Grid,
+  Type,
+  ChevronDown,
+  Monitor
 } from 'lucide-react'
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -37,10 +41,14 @@ import { ConfigTab } from './ConfigTab'
 import { CheckoutTab } from './CheckoutTab'
 import { CategoriesTab } from './CategoriesTab'
 import { CustomersTab } from './CustomersTab'
+import { ExportTab } from './ExportTab'
 import { Product, Category, Order, StoreConfig } from '@/types'
 import { Button } from '@/components/ui/button'
 import { PacksTab } from './PacksTab'
 import { PromosTab } from './pujalte/PromosTab'
+import LandingPacksTab from './pujalte/PacksTab'
+import LandingProductsTab from './pujalte/ProductsTab'
+import LandingCategoriesTab from './pujalte/CategoriesTab'
 
 interface AdminPanelProps {
   stats: {
@@ -92,6 +100,7 @@ export function AdminPanel(props: AdminPanelProps) {
   } = props
 
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [isLandingExpanded, setIsLandingExpanded] = useState(false)
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -100,6 +109,17 @@ export function AdminPanel(props: AdminPanelProps) {
     { id: 'promos', label: 'Banners', icon: Sparkles },
     { id: 'orders', label: 'Pedidos', icon: ShoppingCart },
     { id: 'customers', label: 'Clientes', icon: Users },
+    { id: 'export', label: 'Exportar', icon: Download },
+  ]
+
+  const landingItems = [
+    { id: 'l-products', label: 'L. Cromos', icon: Grid },
+    { id: 'l-packs', label: 'L. Paquetes', icon: Package },
+    { id: 'l-categories', label: 'L. Categorías', icon: LayoutGrid },
+    { id: 'l-config', label: 'L. General', icon: Type },
+  ]
+
+  const bottomItems = [
     { id: 'upload', label: 'Importar', icon: Upload },
     { id: 'checkout', label: 'Formulario', icon: ClipboardList },
     { id: 'config', label: 'Ajustes', icon: Settings },
@@ -131,14 +151,14 @@ export function AdminPanel(props: AdminPanelProps) {
             )}
           </div>
 
-          <div className="flex lg:flex-col overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 gap-2 px-1 scrollbar-hide -mx-2 sm:mx-0">
+          <div className="flex lg:flex-col overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 gap-1 sm:gap-2 px-1 scrollbar-hide -mx-2 sm:mx-0">
             {menuItems.map((item) => (
               <motion.button
                 key={item.id}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-2.5 sm:gap-4 px-3.5 sm:px-5 py-2.5 sm:py-4 rounded-xl sm:rounded-[1.25rem] text-[10px] sm:text-sm font-black transition-all whitespace-nowrap min-w-fit lg:w-full relative overflow-hidden group/btn ${
+                className={`flex items-center gap-2.5 sm:gap-4 px-3.5 sm:px-5 py-2 sm:py-3.5 rounded-xl sm:rounded-[1.25rem] text-[10px] sm:text-xs font-black transition-all whitespace-nowrap min-w-fit lg:w-full relative overflow-hidden group/btn ${
                   activeTab === item.id
                   ? 'bg-white text-[#4A7C59] shadow-[0_10px_25px_-5px_rgba(74,124,89,0.15)] border border-[#4A7C59]/10'
                   : 'bg-transparent text-slate-400 hover:text-slate-900 hover:bg-slate-50'
@@ -152,10 +172,98 @@ export function AdminPanel(props: AdminPanelProps) {
                 )}
 
                 <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl transition-all duration-300 ${activeTab === item.id ? 'bg-[#4A7C59] text-white rotate-3 sm:rotate-6' : 'bg-slate-100 text-slate-400 group-hover/btn:bg-slate-200 group-hover/btn:text-slate-600'}`}>
-                  <item.icon className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5" />
+                  <item.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </div>
 
-                <span className="tracking-tight">{item.label}</span>
+                <span className="tracking-tight uppercase">{item.label}</span>
+
+                {activeTab === item.id && (
+                  <ChevronRight className="h-4 w-4 ml-auto hidden lg:block text-[#4A7C59]/40" />
+                )}
+              </motion.button>
+            ))}
+
+            <div className="h-px bg-slate-100 my-2 mx-4 hidden lg:block" />
+
+            {/* SECCIÓN LANDING DESPLEGABLE */}
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsLandingExpanded(!isLandingExpanded)}
+              className={`flex items-center gap-3 px-5 py-3.5 rounded-[1.25rem] text-xs font-black transition-all lg:w-full group/landing-btn ${
+                landingItems.some(i => i.id === activeTab)
+                ? 'bg-[#4A7C59]/5 text-[#4A7C59]'
+                : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <div className={`p-2 rounded-xl transition-all duration-300 ${landingItems.some(i => i.id === activeTab) ? 'bg-[#4A7C59] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                <Monitor className="h-4 w-4" />
+              </div>
+              <span className="tracking-widest uppercase">Landing</span>
+              <motion.div
+                animate={{ rotate: isLandingExpanded ? 180 : 0 }}
+                className="ml-auto"
+              >
+                <ChevronDown className="h-4 w-4 text-slate-400" />
+              </motion.div>
+            </motion.button>
+
+            <AnimatePresence>
+              {isLandingExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden flex lg:flex-col gap-1 sm:gap-1.5 lg:pl-4"
+                >
+                  {landingItems.map((item) => (
+                    <motion.button
+                      key={item.id}
+                      initial={{ x: -10, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black tracking-tight transition-all lg:w-full whitespace-nowrap min-w-fit ${
+                        activeTab === item.id
+                        ? 'bg-white text-[#4A7C59] shadow-sm border border-[#4A7C59]/10'
+                        : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+                      }`}
+                    >
+                      <div className={`p-1.5 rounded-lg ${activeTab === item.id ? 'bg-[#4A7C59] text-white' : 'bg-slate-50 text-slate-300'}`}>
+                        <item.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      </div>
+                      <span className="uppercase">{item.label}</span>
+                    </motion.button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="h-px bg-slate-100 my-2 mx-4 hidden lg:block" />
+
+            {bottomItems.map((item) => (
+              <motion.button
+                key={item.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center gap-2.5 sm:gap-4 px-3.5 sm:px-5 py-2 sm:py-3.5 rounded-xl sm:rounded-[1.25rem] text-[10px] sm:text-xs font-black transition-all whitespace-nowrap min-w-fit lg:w-full relative overflow-hidden group/btn ${
+                  activeTab === item.id
+                  ? 'bg-white text-[#4A7C59] shadow-[0_10px_25px_-5px_rgba(74,124,89,0.15)] border border-[#4A7C59]/10'
+                  : 'bg-transparent text-slate-400 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                {activeTab === item.id && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute left-0 top-0 bottom-0 w-1 lg:w-1.5 bg-[#4A7C59] rounded-r-full hidden sm:block"
+                  />
+                )}
+
+                <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl transition-all duration-300 ${activeTab === item.id ? 'bg-[#4A7C59] text-white rotate-3 sm:rotate-6' : 'bg-slate-100 text-slate-400 group-hover/btn:bg-slate-200 group-hover/btn:text-slate-600'}`}>
+                  <item.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </div>
+
+                <span className="tracking-tight uppercase">{item.label}</span>
 
                 {activeTab === item.id && (
                   <ChevronRight className="h-4 w-4 ml-auto hidden lg:block text-[#4A7C59]/40" />
@@ -259,6 +367,13 @@ export function AdminPanel(props: AdminPanelProps) {
                 />
               )}
 
+              {activeTab === 'export' && (
+                <ExportTab
+                  orders={orders}
+                  products={products}
+                />
+              )}
+
               {activeTab === 'upload' && (
                 <ImportTab 
                   uploading={uploading} 
@@ -289,6 +404,44 @@ export function AdminPanel(props: AdminPanelProps) {
                   onUpdateConfig={(newConfig) => onUpdateConfig(newConfig as any)} 
                   onSave={(cfg) => onSaveConfig(cfg as any)} 
                 />
+              )}
+
+              {/* TABS DE LA LANDING INTEGRADAS */}
+              {activeTab === 'l-products' && (
+                <LandingProductsTab
+                  config={config as any}
+                  setConfig={(newCfg: any) => onUpdateConfig(newCfg)}
+                  categories={config.categorias || []}
+                  handleFileUpload={props.onFileUpload as any}
+                  injectPreset={() => {}}
+                  handleImportCSV={() => {}}
+                  presets={{}}
+                />
+              )}
+
+              {activeTab === 'l-packs' && (
+                <LandingPacksTab
+                  products={config.galeria || []}
+                  categories={config.categorias || []}
+                  onUpdate={(newItems: any) => onUpdateConfig({ ...config, galeria: newItems })}
+                />
+              )}
+
+              {activeTab === 'l-categories' && (
+                <LandingCategoriesTab
+                  categories={config.categorias || []}
+                  products={config.galeria || []}
+                  onUpdate={(newCats: any) => onUpdateConfig({ ...config, categorias: newCats })}
+                />
+              )}
+
+              {activeTab === 'l-config' && (
+                <div className="p-8">
+                   <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100">
+                     <h3 className="text-amber-900 font-bold mb-2">Editor General de Landing</h3>
+                     <p className="text-amber-800 text-sm">Usa la sección "Ajustes" para datos compartidos o pide al asistente cambios específicos para el catálogo dinámico.</p>
+                   </div>
+                </div>
               )}
 
             </div>

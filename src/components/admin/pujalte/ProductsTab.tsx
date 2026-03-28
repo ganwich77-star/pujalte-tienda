@@ -223,7 +223,7 @@ export default function ProductsTab({
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="w-full h-16 pl-14 pr-8 bg-white border-2 border-slate-100 rounded-[28px] focus:border-[#4A7C59] outline-none text-[10px] font-black uppercase tracking-widest transition-all shadow-sm appearance-none cursor-pointer"
           >
-            <option value="all">TODAS LAS CATEGORÍAS</option>
+            <option value="all">TODAS LAS CATEGORIAS</option>
             {categories.map(cat => (
               <option key={cat} value={cat}>{cat.toUpperCase()}</option>
             ))}

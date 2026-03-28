@@ -11,7 +11,7 @@ import {
   Trash2, Upload, LayoutGrid, Eye, EyeOff, Package, Pencil, 
   CheckCircle2, Euro, Layers, Scale, Hash, PlusCircle, X,
   Sparkles, ArrowRight, BarChart3, Clock, Layers2, ShieldCheck,
-  Percent, Tag, Info, AlertCircle, Plus
+  Percent, Tag, Info, AlertCircle, Plus, ChevronDown, Star
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -60,6 +60,11 @@ export default function ProductEditModal({
   const [editedProduct, setEditedProduct] = useState<GalleryImage | null>(null);
   const [tierPrices, setTierPrices] = useState<TierPrice[]>([]);
   const [activeTab, setActiveTab] = useState("general");
+  const [openSections, setOpenSections] = useState<string[]>([]);
+
+  const toggleSection = (id: string) => {
+    setOpenSections(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   useEffect(() => {
     if (product) {
@@ -285,12 +290,20 @@ export default function ProductEditModal({
                     </div>
                     <div className="space-y-4">
                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Opciones Visuales</Label>
-                       <div className="space-y-3">
+                        <div className="space-y-3">
+                          <VisualToggle 
+                            active={!!editedProduct.isFeatured} 
+                            onChange={(c) => updateProduct({ isFeatured: c })}
+                            icon={<Star className="h-4 w-4" />}
+                            label="Producto Destacado"
+                            activeColor="bg-slate-900"
+                          />
                           <VisualToggle 
                             active={!!editedProduct.isNew} 
                             onChange={(c) => updateProduct({ isNew: c })}
                             icon={<Sparkles className="h-4 w-4" />}
-                            label="Destacado Novedad"
+                            label="Producto Novedad"
+                            activeColor="bg-amber-400"
                           />
                           <VisualToggle 
                             active={editedProduct.mostrarPrecio !== false} 
@@ -298,7 +311,7 @@ export default function ProductEditModal({
                             icon={<Tag className="h-4 w-4" />}
                             label="Mostrar Precio Público"
                           />
-                       </div>
+                        </div>
                     </div>
                   </div>
                 </motion.div>
@@ -309,9 +322,9 @@ export default function ProductEditModal({
                   key="precios"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="space-y-8"
+                  className="space-y-6"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <CompactPriceControl 
                         label="PVP BASE"
                         value={editedProduct.precio || 0}
@@ -327,86 +340,91 @@ export default function ProductEditModal({
                         suffix="€"
                         highlight
                      />
-                     <CompactPriceControl 
-                        label="QTY MÍNIMA"
-                        value={editedProduct.minQuantity || 1}
-                        onChange={(val) => updateProduct({ minQuantity: Math.max(1, Math.round(val)) })}
-                        icon={<Scale className="h-4 w-4 text-blue-500" />}
-                        suffix="UDS"
-                     />
-                     <CompactPriceControl 
-                        label="INCREMENTAL"
-                        value={editedProduct.stepQuantity || 1}
-                        onChange={(val) => updateProduct({ stepQuantity: Math.max(1, Math.round(val)) })}
-                        icon={<Hash className="h-4 w-4 text-indigo-500" />}
-                        suffix="STEP"
-                     />
                   </div>
 
-                  <div className="bg-white p-8 rounded-[36px] border-2 border-slate-100 shadow-sm space-y-6">
-                    <div className="flex items-center justify-between border-b border-slate-50 pb-6 mb-2">
-                       <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-2xl bg-slate-950 text-white flex items-center justify-center shadow-lg rotate-3">
-                             <BarChart3 className="h-6 w-6" />
-                          </div>
-                          <div>
-                             <h4 className="font-black text-slate-900 uppercase tracking-tighter text-lg italic">Escalado dinámico</h4>
-                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Activa descuentos por volumen de compra</p>
-                          </div>
-                       </div>
-                       <Button 
-                         onClick={addTier} 
-                         size="sm"
-                         className="bg-emerald-500 hover:bg-emerald-600 rounded-xl px-6 h-10 font-black uppercase text-[9px] tracking-widest italic group"
-                       >
-                          <PlusCircle className="h-3.5 w-3.5 mr-2 group-hover:rotate-90 transition-transform" />
-                          NUEVO TRAMO
-                       </Button>
+                  <CollapsibleSection 
+                    title="Configuración de Cantidades"
+                    subTitle="Pedido Mínimo y Salto de Cantidad"
+                    icon={<Scale className="h-5 w-5" />}
+                    isOpen={openSections.includes('cantidades')}
+                    onToggle={() => toggleSection('cantidades')}
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                       <CompactPriceControl 
+                          label="PEDIDO MÍNIMO"
+                          value={editedProduct.minQuantity || 1}
+                          onChange={(val) => updateProduct({ minQuantity: Math.max(1, Math.round(val)) })}
+                          icon={<Scale className="h-4 w-4 text-blue-500" />}
+                          suffix="UDS"
+                       />
+                       <CompactPriceControl 
+                          label="SALTO DE CANTIDAD"
+                          value={editedProduct.stepQuantity || 1}
+                          onChange={(val) => updateProduct({ stepQuantity: Math.max(1, Math.round(val)) })}
+                          icon={<Hash className="h-4 w-4 text-indigo-500" />}
+                          suffix="STEP"
+                       />
                     </div>
+                  </CollapsibleSection>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {tierPrices.map((tier, idx) => (
-                        <div key={idx} className="flex items-center gap-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
-                           <div className="w-8 h-8 rounded-lg bg-slate-950 text-white flex items-center justify-center font-black text-[10px] italic">#{idx + 1}</div>
-                           <div className="flex-1 grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                 <label className="text-[7px] font-black text-slate-300 uppercase tracking-widest">MIN QTY</label>
-                                 <Input 
-                                   type="number" 
-                                   step="any"
-                                   value={tier.minQty} 
-                                   onChange={(e) => updateTier(idx, { minQty: parseInt(e.target.value) || 0 })}
-                                   className="h-10 border-none bg-white rounded-lg font-black text-sm no-spinner italic"
-                                 />
-                              </div>
-                              <div className="space-y-1">
-                                 <label className="text-[7px] font-black text-emerald-400 uppercase tracking-widest">PRECIO UNID.</label>
-                                 <Input 
-                                   type="number" 
-                                   step="any"
-                                   value={tier.price} 
-                                   onChange={(e) => updateTier(idx, { price: parseFloat(e.target.value) || 0 })}
-                                   className="h-10 border-none bg-white rounded-lg font-black text-sm no-spinner text-emerald-500 italic"
-                                 />
-                              </div>
-                           </div>
-                           <Button 
-                             variant="ghost" 
-                             size="icon" 
-                             onClick={() => removeTier(idx)}
-                             className="h-10 w-10 text-slate-200 hover:text-red-500"
-                           >
-                              <Trash2 className="h-4 w-4" />
-                           </Button>
-                        </div>
-                      ))}
-                      {tierPrices.length === 0 && (
-                         <div className="col-span-full py-12 flex flex-col items-center gap-3 bg-slate-50/30 rounded-3xl border-2 border-dashed border-slate-100">
-                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">No hay tramos de precios configurados</p>
-                         </div>
-                      )}
+                  <CollapsibleSection 
+                    title="Escalado de Precios"
+                    subTitle="Descuentos por volumen"
+                    icon={<BarChart3 className="h-5 w-5" />}
+                    isOpen={openSections.includes('escalado')}
+                    onToggle={() => toggleSection('escalado')}
+                  >
+                    <div className="space-y-6 mt-6">
+                      <div className="flex items-center justify-between pb-4 border-b border-slate-50">
+                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Gestiona tus tramos de descuento</p>
+                        <Button 
+                          onClick={addTier} 
+                          size="sm"
+                          className="bg-emerald-500 hover:bg-emerald-600 rounded-xl px-6 h-10 font-black uppercase text-[9px] tracking-widest italic"
+                        >
+                           <PlusCircle className="h-3.5 w-3.5 mr-2" />
+                           AÑADIR TRAMO
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {tierPrices.map((tier, idx) => (
+                          <div key={idx} className="flex items-center gap-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl">
+                             <div className="w-8 h-8 rounded-lg bg-slate-950 text-white flex items-center justify-center font-black text-[10px] italic">#{idx + 1}</div>
+                             <div className="flex-1 grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                   <Label className="text-[7px] font-black text-slate-300 uppercase tracking-widest">MIN QTY</Label>
+                                   <Input 
+                                     type="number" 
+                                     value={tier.minQty} 
+                                     onChange={(e) => updateTier(idx, { minQty: parseInt(e.target.value) || 0 })}
+                                     className="h-10 border-none bg-white rounded-lg font-black text-sm italic no-spinner"
+                                   />
+                                </div>
+                                <div className="space-y-1">
+                                   <Label className="text-[7px] font-black text-emerald-400 uppercase tracking-widest">PRECIO UNID.</Label>
+                                   <Input 
+                                     type="number" 
+                                     step="any"
+                                     value={tier.price} 
+                                     onChange={(e) => updateTier(idx, { price: parseFloat(e.target.value) || 0 })}
+                                     className="h-10 border-none bg-white rounded-lg font-black text-sm italic no-spinner text-emerald-500"
+                                   />
+                                </div>
+                             </div>
+                             <Button 
+                               variant="ghost" 
+                               size="icon" 
+                               onClick={() => removeTier(idx)}
+                               className="h-10 w-10 text-slate-200 hover:text-red-500"
+                             >
+                                <Trash2 className="h-4 w-4" />
+                             </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  </CollapsibleSection>
                 </motion.div>
               )}
 
@@ -548,6 +566,44 @@ export default function ProductEditModal({
   )
 }
 
+function CollapsibleSection({ title, subTitle, icon, isOpen, onToggle, children }: { title: string, subTitle: string, icon: React.ReactNode, isOpen: boolean, onToggle: () => void, children: React.ReactNode }) {
+  return (
+    <div className={`bg-white border-2 rounded-[32px] overflow-hidden transition-all duration-500 ${isOpen ? 'border-slate-200 shadow-xl' : 'border-slate-50 shadow-sm'}`}>
+      <button 
+        onClick={onToggle}
+        className={`w-full flex items-center justify-between p-6 transition-colors ${isOpen ? 'bg-slate-50/30' : 'bg-white hover:bg-slate-50/50'}`}
+      >
+        <div className="flex items-center gap-5">
+           <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${isOpen ? 'bg-slate-950 text-white rotate-6 shadow-lg' : 'bg-slate-50 text-slate-400'}`}>
+              {icon}
+           </div>
+           <div className="text-left">
+              <h4 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.2em] italic">{title}</h4>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">{subTitle}</p>
+           </div>
+        </div>
+        <div className={`h-9 w-9 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center justify-center text-slate-400 transition-all duration-500 ${isOpen ? 'rotate-180 bg-slate-950 text-white border-none' : ''}`}>
+           <ChevronDown className="h-4 w-4" />
+        </div>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+           <motion.div
+             initial={{ height: 0, opacity: 0 }}
+             animate={{ height: 'auto', opacity: 1 }}
+             exit={{ height: 0, opacity: 0 }}
+             transition={{ duration: 0.4, ease: [0.04, 0.62, 0.23, 0.98] }}
+           >
+             <div className="p-8 pt-2 border-t border-slate-50/50">
+                {children}
+             </div>
+           </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 function SidebarTab({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
   return (
     <button
@@ -568,16 +624,16 @@ function SidebarTab({ active, onClick, icon, label }: { active: boolean, onClick
   )
 }
 
-function VisualToggle({ active, onChange, icon, label }: { active: boolean, onChange: (v: boolean) => void, icon: React.ReactNode, label: string }) {
+function VisualToggle({ active, onChange, icon, label, activeColor = "bg-emerald-500" }: { active: boolean, onChange: (v: boolean) => void, icon: React.ReactNode, label: string, activeColor?: string }) {
   return (
     <div className={`flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 transition-all ${active ? 'bg-white shadow-md' : ''}`}>
        <div className="flex items-center gap-3">
-          <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${active ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/10' : 'bg-white text-slate-200'}`}>
+          <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${active ? `${activeColor} text-white shadow-lg shadow-slate-900/10` : 'bg-white text-slate-200'}`}>
              {icon}
           </div>
           <span className="text-[10px] font-black uppercase tracking-widest italic text-slate-800">{label}</span>
        </div>
-       <Switch checked={active} onCheckedChange={onChange} className="data-[state=checked]:bg-emerald-500 scale-110" />
+       <Switch checked={active} onCheckedChange={onChange} className={`data-[state=checked]:${activeColor} scale-110`} />
     </div>
   )
 }

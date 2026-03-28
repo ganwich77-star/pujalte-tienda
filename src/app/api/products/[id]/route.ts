@@ -59,16 +59,17 @@ export async function PUT(
       }
     });
 
-    const result = await db.$transaction(async (tx) => {
-      // Si el producto actualiza variantes de golpe, el manejador general /api/products es el encargado.
-      // Aquí manejamos solo la actualización del registro principal.
-      return await tx.product.update({
-        where: { id },
-        data: filteredData
-      });
+    await db.product.update({
+      where: { id },
+      data: filteredData
+    });
+
+    const updatedProduct = await db.product.findUnique({
+      where: { id },
+      include: { variants: { orderBy: { sortOrder: 'asc' } } }
     });
     
-    return NextResponse.json(result)
+    return NextResponse.json(updatedProduct)
   } catch (error: any) {
     console.error('Error updating product in MySQL:', error)
     return NextResponse.json({ error: 'Error al actualizar producto' }, { status: 500 })

@@ -24,15 +24,15 @@ model Category {
 model Product {
   id              String           @id @default(cuid())
   name            String
-  description     String?          @db.Text
+  description     String?
   price           Float
-  image           String?          @db.Text
+  image           String?
   stock           Int              @default(0)
   categoryId      String?
   active          Boolean          @default(true)
   showPrice       Boolean          @default(true)
   isPack          Boolean          @default(false)
-  packItems       String?          @db.Text
+  packItems       String?
   hasVariants     Boolean          @default(false)
   variantType     String?
   variantBehavior String?
@@ -44,7 +44,7 @@ model Product {
   salePrice       Float?
   minQuantity     Int?             @default(1)
   stepQuantity    Int?             @default(1)
-  tierPricing     String?          @db.Text
+  tierPricing     String?
   category        Category?        @relation(fields: [categoryId], references: [id])
   variants        ProductVariant[]
 
@@ -59,8 +59,8 @@ model ProductVariant {
   sku        String?
   price      Float
   stock      Int      @default(0)
-  attributes String?  @db.Text
-  image      String?  @db.Text
+  attributes String?
+  image      String?
   active     Boolean  @default(true)
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
@@ -76,14 +76,14 @@ model Order {
   customerName  String
   customerPhone String
   customerEmail String?
-  address       String?     @db.Text
-  notes         String?     @db.Text
+  address       String?
+  notes         String?
   total         Float
   status        String      @default("pending")
   paymentMethod String?
   paymentStatus String      @default("pending")
   paymentId     String?
-  customFields  String?     @db.Text
+  customFields  String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
@@ -100,10 +100,20 @@ model OrderItem {
   variantName String?
   quantity    Int
   price       Float
-  note        String?  @db.Text
+  note        String?
+  fileUrl     String?   // Campo nuevo para la foto del imán
+  fileName    String?   // Nombre del archivo original
   createdAt   DateTime @default(now())
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@map("orderitem")
+}
+
+model SystemConfig {
+  id        String   @id @default("default")
+  data      Json
+  updatedAt DateTime @updatedAt
+
+  @@map("systemconfig")
 }

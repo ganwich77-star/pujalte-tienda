@@ -80,7 +80,7 @@ export function CategoryBar({ categories, selectedCategoryId, onCategorySelect }
               className={cn(
                 "flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap shrink-0 border-2",
                 selectedCategoryId === 'featured' 
-                  ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105" 
+                  ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200 scale-105" 
                   : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
               )}
             >
@@ -98,7 +98,7 @@ export function CategoryBar({ categories, selectedCategoryId, onCategorySelect }
               )}
             >
               <LayoutGrid className="h-4 w-4" />
-              Todos
+              TODAS LAS CATEGORIAS
             </button>
 
             {categories.map((cat) => (

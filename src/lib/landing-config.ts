@@ -19,6 +19,7 @@ export interface GalleryImage {
   descripcion?: string;
   precio?: number;
   isNew?: boolean;
+  isFeatured?: boolean;
   salePrice?: number;
   hasVariants?: boolean;
   variantBehavior?: 'add' | 'replace';

@@ -3,7 +3,7 @@
   "logo": "/logo_ia.png",
   "slogan": "POWERED BY PUJALTE CREATIVE STUDIO",
   "subtitulo": "Más que fotografía, tus mejores recuerdos",
-  "heroFoto": "https://pujaltefotografia.es/uploads/1774305864936-cropped-image.jpg",
+  "heroFoto": "/uploads/1774305864936-cropped-image.jpg",
   "heroPosition": "100% center",
   "ubicacion": "Las Torres de Cotillas, Murcia",
   "telefono": "650494728",
@@ -18,7 +18,7 @@
     "sobreMi": true
   },
   "sobreMi": {
-    "foto": "https://pujaltefotografia.es/uploads/1774346172002-cropped-image.jpg",
+    "foto": "/uploads/1774346172002-cropped-image.jpg",
     "texto": "Desde que tomé mi primera cámara, comprendí que la fotografía no se trata de capturar lo que veo, sino lo que siento en ese preciso instante. Mi enfoque se aleja de las poses rígidas para centrarse en la honestidad de los momentos espontáneos.\n\nCreo firmemente que cada persona y cada proyecto tiene una narrativa única. Mi misión es encontrar la luz adecuada y el ángulo preciso para que, años después, al mirar esa fotografía, no solo recuerdes el lugar, sino que vuelvas a experimentar la emoción de aquel día. Mi trabajo es documentar tu historia con sensibilidad, respeto y una mirada cinematográfica."
   },
   "servicios": [
@@ -27,7 +27,7 @@
       "titulo": "Fotografía Social",
       "descripcion": "Bodas, comuniones, bautizos y eventos familiares. Capturo cada momento especial con naturalidad y emoción.",
       "icono": "heart",
-      "foto": "https://pujaltefotografia.es/uploads/1774307180567-cropped-image.jpg",
+      "foto": "/uploads/1774307180567-cropped-image.jpg",
       "activa": true
     },
     {
@@ -35,7 +35,7 @@
       "titulo": "Fotografía Corporativa",
       "descripcion": "Imagen profesional para empresas, retratos ejecutivos, eventos de empresa y contenido para redes corporativas.",
       "icono": "briefcase",
-      "foto": "https://pujaltefotografia.es/uploads/1774307041814-cropped-image.jpg",
+      "foto": "/uploads/1774307041814-cropped-image.jpg",
       "activa": false
     },
     {
@@ -43,7 +43,7 @@
       "titulo": "Fotografía Infantil",
       "descripcion": "Sesiones de recién nacidos, bebés y niños en un ambiente relajado y divertido. Paciencia y juego garantizados.",
       "icono": "baby",
-      "foto": "https://pujaltefotografia.es/uploads/1774307078491-cropped-image.jpg",
+      "foto": "/uploads/1774307078491-cropped-image.jpg",
       "activa": true
     },
     {
@@ -51,49 +51,49 @@
       "titulo": "Fotografía de Producto",
       "descripcion": "Fotos profesionales para e-commerce, catálogos y publicidad. Destaca tus productos con imágenes que venden.",
       "icono": "package",
-      "foto": "https://pujaltefotografia.es/uploads/1774307021643-cropped-image.jpg",
+      "foto": "/uploads/1774307021643-cropped-image.jpg",
       "activa": true
     }
   ],
   "galeria": [
     {
       "id": "1",
-      "src": "https://pujaltefotografia.es/uploads/1774306696835-cropped-image.jpg",
+      "src": "/uploads/1774306696835-cropped-image.jpg",
       "alt": "Foto Boda Pro",
       "categoria": "social",
       "activa": true
     },
     {
       "id": "2",
-      "src": "https://pujaltefotografia.es/uploads/1774306747869-cropped-image.jpg",
+      "src": "/uploads/1774306747869-cropped-image.jpg",
       "alt": "Fotografía infantil",
       "categoria": "infantil",
       "activa": true
     },
     {
       "id": "5",
-      "src": "https://pujaltefotografia.es/uploads/1774306831789-cropped-image.jpg",
+      "src": "/uploads/1774306831789-cropped-image.jpg",
       "alt": "Fotografía de estudio",
       "categoria": "infantil",
       "activa": true
     },
     {
       "id": "6",
-      "src": "https://pujaltefotografia.es/uploads/1774306921429-cropped-image.jpg",
+      "src": "/uploads/1774306921429-cropped-image.jpg",
       "alt": "Fotografía de producto",
       "categoria": "producto",
       "activa": true
     },
     {
       "id": "3",
-      "src": "https://pujaltefotografia.es/uploads/1774306941134-cropped-image.jpg",
+      "src": "/uploads/1774306941134-cropped-image.jpg",
       "alt": "Fotografía de producto",
       "categoria": "producto",
       "activa": true
     },
     {
       "id": "4",
-      "src": "https://pujaltefotografia.es/uploads/1774306885285-cropped-image.jpg",
+      "src": "/uploads/1774306885285-cropped-image.jpg",
       "alt": "Fotografía de boda",
       "categoria": "social",
       "activa": true
@@ -147,7 +147,7 @@
       "descripcion": "Descubre nuestra selección de productos premium diseñados para conservar tus momentos más especiales. Calidad profesional en cada detalle.",
       "botonTexto": "VER CATÁLOGO PREMIUM",
       "enlace": "shop",
-      "imagen": "https://pujaltefotografia.es/uploads/1774305864936-cropped-image.jpg",
+      "imagen": "/uploads/1774305864936-cropped-image.jpg",
       "fechaExpiracion": "2026-12-31",
       "activo": true
     }

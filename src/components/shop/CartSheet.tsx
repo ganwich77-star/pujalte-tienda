@@ -151,7 +151,8 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
   const handleDniLogin = async () => {
     if (!dniLogin.trim()) return
 
-    const dni = dniLogin.toUpperCase().trim()
+    // Limpieza profunda: mayúsculas, sin espacios al inicio ni entre caracteres
+    const dni = dniLogin.toUpperCase().replace(/\s/g, '').trim()
     const clientRef = doc(db, COLLECTIONS.CLIENTS, dni)
     const clientSnap = await getDoc(clientRef)
 
@@ -163,14 +164,14 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
       setCheckoutStep('payment') // Cliente registrado → salta el formulario, va directo al pago
       checkCashEnabled(dni)
       toast({
-        title: `¡Bienvenido de nuevo, ${clientData.name}!`,
-        description: "Hemos cargado tus datos. Ve directo a elegir tu método de pago.",
+        title: `¡Es un placer verte de nuevo, ${clientData.name.split(' ')[0]}! 👋`,
+        description: "Hemos recuperado tus datos para que tu compra sea más rápida.",
       })
     } else {
       toast({
-        title: "No encontrado",
-        description: "No encontramos ningún cliente con ese DNI. Por favor, regístrate como nuevo cliente.",
-        variant: "destructive"
+        title: "DNI no registrado",
+        description: "No hemos encontrado este DNI. Pulsa en 'Soy nuevo cliente' para registrarte en un segundo.",
+        variant: "default"
       })
       setShowDniInput(false)
     }
@@ -467,7 +468,7 @@ _Pago: ${paymentMethodText}_`
                 <div>
                   <button 
                     onClick={onClose}
-                    className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]/40 hover:text-[#4A7C59] transition-all mb-4 group/back"
+                    className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-black uppercase tracking-[0.2em] text-[#4A7C59] hover:text-[#3D6649] transition-all mb-4 group/back"
                   >
                     <ChevronLeft className="h-4 w-4 transform group-hover/back:-translate-x-1 transition-transform" />
                     Volver a la Tienda
@@ -483,7 +484,11 @@ _Pago: ${paymentMethodText}_`
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={clearCart}
+                    onClick={() => {
+                      if (window.confirm("Cada foto es una historia que merece ser contada. ¿Dejamos que estos momentos brillen o los borramos por ahora?")) {
+                        clearCart();
+                      }
+                    }}
                     className="text-red-400 hover:text-red-600 hover:bg-red-50 text-[10px] font-bold uppercase tracking-widest px-3 rounded-full"
                   >
                     Vaciarlos
@@ -664,9 +669,6 @@ _Pago: ${paymentMethodText}_`
                         </div>
                       </div>
                       <div className="flex flex-col items-end">
-                        <Badge className="bg-[#4A7C59] text-white border-none font-bold px-4 py-1.5 rounded-xl shadow-lg shadow-[#4A7C59]/20 mb-1">
-                          IVA INCLUIDO
-                        </Badge>
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Garantía de Satisfacción</span>
                       </div>
                     </div>
@@ -707,7 +709,7 @@ _Pago: ${paymentMethodText}_`
               <div className="mb-6 sm:mb-8">
                 <button 
                   onClick={() => setCheckoutStep('cart')}
-                  className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]/40 hover:text-[#4A7C59] transition-all mb-4 group/back"
+                  className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-black uppercase tracking-[0.2em] text-[#4A7C59] hover:text-[#3D6649] transition-all mb-4 group/back"
                 >
                   <ChevronLeft className="h-4 w-4 transform group-hover/back:-translate-x-1 transition-transform" />
                   Volver al Carrito
@@ -803,23 +805,23 @@ _Pago: ${paymentMethodText}_`
                           id="terms" 
                           checked={acceptTerms} 
                           onCheckedChange={(v) => setAcceptTerms(!!v)}
-                          className="mt-1 border-2 data-[state=checked]:bg-[#4A7C59] data-[state=checked]:border-[#4A7C59]"
+                          className="mt-0.5 border-2 data-[state=checked]:bg-[#4A7C59] data-[state=checked]:border-[#4A7C59] shrink-0"
                         />
-                        <Label htmlFor="terms" className="text-xs font-medium text-slate-500 leading-relaxed cursor-pointer group-hover/check:text-slate-700 transition-colors">
-                          Acepto que mis datos sean tratados según la <button type="button" onClick={(e) => { e.stopPropagation(); setShowPrivacyModal(true); }} className="text-[#4A7C59] font-bold underline hover:text-[#3D6649]">política de privacidad</button> y las <button type="button" onClick={(e) => { e.stopPropagation(); setShowReturnsModal(true); }} className="text-[#4A7C59] font-bold underline hover:text-[#3D6649]">condiciones de devolución</button>.
+                        <Label htmlFor="terms" className="text-[10px] sm:text-xs font-medium text-slate-500 leading-tight cursor-pointer group-hover/check:text-slate-700 transition-colors">
+                          Acepto que mis datos sean tratados según la <button type="button" onClick={(e) => { e.stopPropagation(); setShowPrivacyModal(true); }} className="text-[#4A7C59] font-black underline hover:text-[#3D6649]">política de privacidad</button> <br />y las <button type="button" onClick={(e) => { e.stopPropagation(); setShowReturnsModal(true); }} className="text-[#4A7C59] font-black underline hover:text-[#3D6649]">condiciones de devolución</button>.
                         </Label>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100/50 group/check cursor-pointer" onClick={() => handleFieldChange('marketing', (formData.marketing === 'true' ? 'false' : 'true'))}>
+                    <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100/50 group/check cursor-pointer" onClick={() => handleFieldChange('marketing', (formData.marketing === 'true' ? 'false' : 'true'))}>
                       <Checkbox 
                         id="marketing" 
                         checked={formData.marketing === 'true'} 
                         onCheckedChange={(v) => handleFieldChange('marketing', v ? 'true' : 'false')}
-                        className="border-2 data-[state=checked]:bg-[#4A7C59] data-[state=checked]:border-[#4A7C59]"
+                        className="mt-0.5 border-2 data-[state=checked]:bg-[#4A7C59] data-[state=checked]:border-[#4A7C59]"
                       />
-                      <Label htmlFor="marketing" className="text-xs font-medium text-slate-500 cursor-pointer group-hover/check:text-slate-700 transition-colors">
-                        Me gustaría recibir novedades y ofertas exclusivas de Pujalte.
+                      <Label htmlFor="marketing" className="text-xs font-medium text-slate-500 cursor-pointer group-hover/check:text-slate-700 transition-colors leading-tight">
+                        Me gustaría recibir novedades y ofertas exclusivas de <br />Pujalte Creative Studio.
                       </Label>
                     </div>
                   </div>
@@ -865,7 +867,7 @@ _Pago: ${paymentMethodText}_`
               <div className="mb-8">
                 <button 
                   onClick={onClose}
-                  className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]/40 hover:text-[#4A7C59] transition-all mb-4 group/back"
+                  className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-black uppercase tracking-[0.2em] text-[#4A7C59] hover:text-[#3D6649] transition-all mb-4 group/back"
                 >
                   <ChevronLeft className="h-4 w-4 transform group-hover/back:-translate-x-1 transition-transform" />
                   Volver a la Tienda
@@ -983,15 +985,6 @@ _Pago: ${paymentMethodText}_`
                     <div className="h-px w-full bg-slate-100 mb-6" />
                     
                     <div className="flex flex-col gap-4">
-                      <div className="flex justify-between items-center px-2">
-                        <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none">Subtotal Neto</span>
-                        <span className="text-sm font-bold text-slate-600">{formatPrice(getTotal() * 0.79)}</span>
-                      </div>
-                      <div className="flex justify-between items-center px-2">
-                        <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none">IVA (21%)</span>
-                        <span className="text-sm font-bold text-slate-600">{formatPrice(getTotal() * 0.21)}</span>
-                      </div>
-                      
                       <div className="flex justify-between items-center bg-[#4A7C59]/[0.02] -mx-8 px-8 py-5 mt-2 border-y border-slate-50">
                         <div className="flex flex-col">
                           <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59] mb-1">Monto a Pagar</span>

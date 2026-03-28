@@ -16,7 +16,7 @@ interface LegalDialogsProps {
 
 export function LegalDialogs({ storeName }: LegalDialogsProps) {
   return (
-    <div className="flex justify-center md:justify-end gap-6 mt-2">
+    <div className="flex justify-center gap-4 mt-2">
       {/* Aviso Legal */}
       <Dialog>
         <DialogTrigger asChild>

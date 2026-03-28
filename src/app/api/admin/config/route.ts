@@ -1,20 +1,26 @@
 import { NextResponse } from 'next/server'
-import path from 'path'
-import { promises as fs } from 'fs'
+import { db } from '@/lib/db'
+import landingData from '@/data/landing-config.json'
 
 export async function POST(request: Request) {
   try {
     const data = await request.json()
-    const filePath = path.join(process.cwd(), 'src/data/landing-config.json')
     
-    // Guardar el archivo JSON
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8')
+    // Guardar en Prisma (Neon)
+    await db.systemConfig.upsert({
+      where: { id: 'default' },
+      update: { data: data as any },
+      create: { 
+        id: 'default',
+        data: data as any 
+      }
+    })
     
-    return NextResponse.json({ success: true, message: 'Configuración actualizada correctamente' })
+    return NextResponse.json({ success: true, message: 'Configuración guardada en Base de Datos Única' })
   } catch (error) {
-    console.error('Error al guardar la configuración:', error)
+    console.error('Error al guardar en Neon:', error)
     return NextResponse.json(
-      { success: false, message: 'Error al procesar la solicitud' },
+      { success: false, message: 'Error de servidor al guardar en DB única' },
       { status: 500 }
     )
   }
@@ -22,15 +28,18 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const filePath = path.join(process.cwd(), 'src/data/landing-config.json')
-    const fileContents = await fs.readFile(filePath, 'utf8')
-    const data = JSON.parse(fileContents)
+    const config = await db.systemConfig.findUnique({
+      where: { id: 'default' }
+    })
     
-    return NextResponse.json(data)
+    // Si no existe en DB, devolvemos el fallback del JSON local
+    if (!config) {
+      return NextResponse.json(landingData)
+    }
+    
+    return NextResponse.json(config.data)
   } catch (error) {
-    return NextResponse.json(
-      { success: false, message: 'Error al leer la configuración' },
-      { status: 500 }
-    )
+    console.error('Error al leer de Neon:', error)
+    return NextResponse.json(landingData) // Fallback seguro
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, ShoppingBag, LayoutDashboard, Store, Ruler, Menu, X, Globe, ChevronRight } from 'lucide-react'
+import { Search, ShoppingBag, LayoutDashboard, Store, Ruler, Menu, X, Globe, ChevronRight, ChevronLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -69,86 +69,30 @@ export function ShopHeader({
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm px-4">
       <div className="container flex h-16 items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* Menú Móvil */}
-          <div className="lg:hidden">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-xl hover:bg-slate-100">
-                  <Menu className="h-6 w-6 text-slate-600" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] flex flex-col p-8 rounded-r-[2.5rem] border-none shadow-2xl bg-white">
-                <SheetHeader className="mb-8 flex items-center justify-between">
-                  <SheetTitle className="text-left font-black text-2xl tracking-tighter">
-                    Menú
-                  </SheetTitle>
-                </SheetHeader>
-                
-                <div className="flex flex-col gap-4">
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => { onBackToWeb(); setIsMobileMenuOpen(false); }}
-                    className="justify-between h-14 rounded-2xl px-6 text-slate-600 hover:text-primary hover:bg-primary/5 font-bold group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Globe className="h-5 w-5 opacity-60 group-hover:opacity-100 transition-opacity" />
-                      VOLVER A LA WEB
-                    </div>
-                    <ChevronRight className="h-4 w-4 opacity-30" />
-                  </Button>
-
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => { onOpenSizeGuide(); setIsMobileMenuOpen(false); }}
-                    className="justify-between h-14 rounded-2xl px-6 text-slate-600 hover:text-[#4A7C59] hover:bg-[#4A7C59]/5 font-bold group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Ruler className="h-5 w-5 opacity-60 group-hover:opacity-100 transition-opacity text-[#4A7C59]" />
-                      GUÍA DE MEDIDAS
-                    </div>
-                    <ChevronRight className="h-4 w-4 opacity-30" />
-                  </Button>
-
-                  <Separator className="my-4 opacity-10" />
-
-                  <div className="p-4 rounded-3xl bg-slate-50 border border-slate-100">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Ayuda y Contacto</p>
-                    <p className="text-xs font-bold text-slate-500 leading-relaxed">
-                      ¿Tienes dudas con tu pedido? contacta por WhatsApp desde el botón flotante.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-auto pt-8 border-t border-slate-50">
-                   <div className="flex items-center gap-3 grayscale opacity-30 px-2">
-                     <img src={fixPath(config.logo || "/logo_ia.png")} alt="Logo" className="h-6 w-auto" />
-                     <span className="text-[10px] font-black tracking-widest uppercase">Premium Store</span>
-                   </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-
+          {/* Eliminado Menú Móvil Redundante */}
+          
           <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setIsAdmin(false)}>
             <img src={fixPath(config.logo || "/logo_ia.png")} alt="Logo" className="h-8 sm:h-10 w-auto" />
           </div>
 
-          <button 
+          <Button 
+            variant="ghost"
             onClick={onBackToWeb}
-            className="text-xs text-muted-foreground hover:text-primary transition-colors hidden lg:block border-l pl-4 font-medium"
+            className="h-9 sm:h-10 px-2 sm:px-3 text-[10px] sm:text-xs text-[#4A7C59] hover:text-[#4A7C59] hover:bg-[#4A7C59]/5 font-black uppercase tracking-tighter border-l border-slate-100 rounded-none rounded-r-xl gap-1"
           >
-            Volver a la Web
-          </button>
+            <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-60" />
+            <span>WEB</span>
+          </Button>
         </div>
 
-        {/* Buscador de escritorio */}
-        <div className="flex-1 max-w-md mx-4 hidden sm:block">
+        {/* Buscador adaptable (Escritorio y Móvil comprimido) */}
+        <div className="flex-1 max-w-md mx-2 sm:mx-4">
           <div className="relative group">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input 
               type="search" 
               placeholder="¿Qué estás buscando?..." 
-              className="pl-9 bg-muted/50 border-0 focus-visible:ring-1 transition-all" 
+              className="pl-9 bg-muted/50 border-0 focus-visible:ring-1 transition-all h-9 sm:h-10 text-[11px] sm:text-xs" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -156,25 +100,16 @@ export function ShopHeader({
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          {/* Buscador móvil - Toggle */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="sm:hidden rounded-full h-10 w-10 text-slate-600"
-            onClick={() => setShowMobileSearch(!showMobileSearch)}
-          >
-            <Search className="h-5 w-5" />
-          </Button>
 
-          {/* GUÍA DE MEDIDAS - ESCRITORIO */}
           {!isAdmin && (
             <Button
               variant="outline"
-              className="hidden md:flex items-center gap-2 border-2 border-[#4A7C59]/20 hover:border-[#4A7C59] hover:bg-[#4A7C59]/5 text-[#4A7C59] font-black tracking-tighter transition-all h-10 px-4 rounded-xl shadow-sm"
+              className="flex items-center gap-2 border-2 border-[#4A7C59]/20 hover:border-[#4A7C59] hover:bg-[#4A7C59]/5 text-[#4A7C59] font-black tracking-tighter transition-all h-9 sm:h-10 px-2 sm:px-4 rounded-xl shadow-sm whitespace-nowrap"
               onClick={() => onOpenSizeGuide()}
             >
-              <Ruler className="h-4 w-4" />
-              GUÍA DE MEDIDAS
+              <Ruler className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">GUÍA DE MEDIDAS</span>
+              <span className="xs:hidden">GUÍA</span>
             </Button>
           )}
 
@@ -225,31 +160,7 @@ export function ShopHeader({
         </div>
       </div>
 
-      {/* Barra de búsqueda móvil expansible */}
-      <AnimatePresence>
-        {showMobileSearch && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden sm:hidden border-t bg-white"
-          >
-            <div className="p-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input 
-                  autoFocus
-                  type="search" 
-                  placeholder="¿Qué estás buscando?..." 
-                  className="pl-10 h-10 bg-slate-50 border-0 rounded-xl focus-visible:ring-1 transition-all" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Barra de búsqueda móvil expansible (Eliminada por integración directa arriba) */}
 
 
       <Dialog open={isAdminDialogOpen} onOpenChange={(open) => {

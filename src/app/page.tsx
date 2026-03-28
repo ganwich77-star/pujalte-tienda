@@ -45,6 +45,7 @@ import { LegalDialogs } from '@/components/shop/LegalDialogs'
 import { PromoModal } from '@/components/landing/PromoModal'
 import { CookieBanner } from '@/components/landing/CookieBanner'
 import { cn } from '@/lib/utils'
+import { LandingConfig } from '@/lib/landing-config'
 
 // Función helper local para asegurar disponibilidad en el bundle
 function fixPath(path: string | null | undefined) {
@@ -451,7 +452,6 @@ Mi email: ${formData.email}`
   }
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) return
     try {
       const res = await fetch(`/api/products?id=${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Error al eliminar')
@@ -642,21 +642,31 @@ Mi email: ${formData.email}`
 
   const handleSaveConfig = async (newConfig?: StoreConfig) => {
     const configToSave = newConfig || config
-    console.log('💾 [HOME] Enviando config a guardar:', { 
-      hasPromos: !!configToSave.promos, 
-      count: configToSave.promos?.length 
-    })
     try {
-      const res = await fetch('/api/config', {
+      // Guardar en la tienda (Firebase/DB)
+      const resShop = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(configToSave)
       })
-      if (res.ok) {
-        toast({ title: '¡Guardado!', description: 'Configuración actualizada' })
+
+      // Guardar en la landing (JSON Local)
+      const resLanding = await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(configToSave)
+      })
+
+      if (resShop.ok && resLanding.ok) {
+        toast({ title: '¡Guardado!', description: 'Todo sincronizado: Tienda y Landing' })
         fetchConfig()
+      } else {
+        toast({ title: 'Aviso', description: 'Se guardó en uno de los sistemas pero falló el otro. Reintenta.', variant: 'destructive' })
       }
-    } catch (error) { console.error(error) }
+    } catch (error) { 
+      console.error(error)
+      toast({ title: 'Error crítico', description: 'Fallo de conexión al guardar.', variant: 'destructive' })
+    }
   }
 
 
@@ -725,15 +735,17 @@ Mi email: ${formData.email}`
     // - Si es MySQL, comparamos IDs
     // - Si es JSON, comparamos el campo categoria (string) con el nombre de la categoría seleccionada
     let matchesCategory = true;
-    if (selectedCategoryId === 'featured') {
-      matchesCategory = !!(product.isNew || product.salePrice);
-    } else if (selectedCategoryId) {
-      const selectedCat = categories.find(c => c.id === selectedCategoryId);
-      if (selectedCat) {
-        matchesCategory = product.categoryId === selectedCategoryId || 
-                         product.categoryId?.toString().toLowerCase() === selectedCat.name.toLowerCase();
-      } else {
-        matchesCategory = product.categoryId === selectedCategoryId;
+    if (searchQuery.length === 0) { // Solo filtramos por categoría si NO hay búsqueda activa
+      if (selectedCategoryId === 'featured') {
+        matchesCategory = !!(product.isNew || product.salePrice);
+      } else if (selectedCategoryId) {
+        const selectedCat = categories.find(c => c.id === selectedCategoryId);
+        if (selectedCat) {
+          matchesCategory = product.categoryId === selectedCategoryId || 
+                           product.categoryId?.toString().toLowerCase() === selectedCat.name.toLowerCase();
+        } else {
+          matchesCategory = product.categoryId === selectedCategoryId;
+        }
       }
     }
     
@@ -815,7 +827,7 @@ Mi email: ${formData.email}`
             <div className="text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
               <div className="mb-4 space-y-3">
                 <h2 className="text-[#4A7C59] uppercase tracking-[0.3em] text-[13px] font-bold opacity-90">
-                  LA TECNOLOGÍA AL SERVICIO DE LOS RECUERDOS
+                  LA TECNOLOGÍA AL SERVICIO <br /> DE LOS RECUERDOS
                 </h2>
                 <div className="w-12 h-[1px] bg-[#4A7C59]/20 mx-auto" />
                 <p className="text-[#4A7C59] uppercase tracking-[0.4em] text-[10px] font-black opacity-70">
@@ -857,7 +869,7 @@ Mi email: ${formData.email}`
                 <p className="text-muted-foreground">Estamos actualizando nuestro catálogo. ¡Vuelve pronto!</p>
               </div>
             ) : config.showImages ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8">
+              <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-2 sm:gap-x-4 gap-y-6 sm:gap-y-8">
                 {filteredProducts.filter(p => p.active).map((product) => (
                   <ProductCard 
                     key={product.id} 
@@ -883,21 +895,25 @@ Mi email: ${formData.email}`
             )}
           </main>
 
-          <footer className="border-t bg-muted/50 py-12 px-4 mt-20">
-            <div className="container mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
-              <div className="space-y-4">
-                <h3 className="font-bold text-lg">{config.storeName}</h3>
-                <p className="text-sm text-muted-foreground">{config.slogan}</p>
+          <footer className="border-t bg-white py-4 px-4 mt-10">
+            <div className="container mx-auto max-w-2xl text-center space-y-2">
+              {/* Identidad */}
+              <div className="space-y-0.5">
+                <h3 className="font-bold text-base text-gray-900 leading-tight uppercase tracking-tight">{config.storeName}</h3>
+                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-[0.2em] opacity-80">POWERED BY PUJALTE CREATIVE STUDIO</p>
               </div>
-              <div className="space-y-4">
-                <h4 className="font-semibold text-sm uppercase tracking-wider">Contacto</h4>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <p className="flex items-center justify-center md:justify-start gap-2"><Phone className="h-4 w-4" /> {config.phone}</p>
-                  <p className="flex items-center justify-center md:justify-start gap-2"><Mail className="h-4 w-4" /> {config.email}</p>
+
+              {/* Contacto Compacto */}
+              <div className="flex flex-col items-center gap-1.5 pt-2">
+                <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-[11px] text-gray-500 font-medium">
+                  <p className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-[#4A7C59]/60" /> {config.phone}</p>
+                  <p className="flex items-center gap-1.5"><Mail className="h-3 w-3 text-[#4A7C59]/60" /> {config.email}</p>
                 </div>
               </div>
-              <div className="space-y-4 md:text-right">
-                <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} {config.storeName}.</p>
+
+              {/* Legal y Copyright */}
+              <div className="pt-2 border-t border-gray-50 flex flex-col items-center gap-1">
+                <p className="text-[8px] text-gray-300 font-medium tracking-wider uppercase">© {new Date().getFullYear()} {config.storeName}.</p>
                 <LegalDialogs storeName={config.storeName} />
               </div>
             </div>
@@ -1483,11 +1499,11 @@ Mi email: ${formData.email}`
 
 
           {/* Footer */}
-          <footer className="py-20 bg-gray-900 text-white overflow-hidden relative">
+          <footer className="py-8 bg-gray-900 text-white overflow-hidden relative">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#4A7C59]/30 to-transparent" />
             <div className="container mx-auto px-4 text-center relative z-10">
               {/* Logo eliminado según petición */}
-              <div className="mb-10" />
+              <div className="mb-4" />
               
               <div className="flex flex-col gap-6 items-center">
                 <p className="text-gray-400 text-[10px] md:text-xs tracking-[0.3em] uppercase font-black" suppressHydrationWarning>
@@ -1522,7 +1538,7 @@ Mi email: ${formData.email}`
       {/* COMMON DIALOGS & OVERLAYS */}
       {!isAdmin && (
         <>
-          <LegalDialogs storeName={config.storeName} />
+          {/* Eliminado LegalDialogs duplicado */}
           
           <Dialog open={!!itemWithNote} onOpenChange={(open) => !open && setItemWithNote(null)}>
             <DialogContent className="sm:max-w-md rounded-2xl">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { sendOrderEmails } from '@/lib/mail'
 
 export async function GET() {
   try {
@@ -44,7 +45,9 @@ export async function POST(request: NextRequest) {
             variantName: item.variantName || null,
             quantity: parseInt(String(item.quantity)) || 1,
             price: parseFloat(String(item.price || item.basePrice)) || 0,
-            note: item.notes || ""
+            note: item.note || "",
+            fileUrl: item.fileUrl || null,
+            fileName: item.fileName || null
           }))
         }
       },
@@ -52,6 +55,14 @@ export async function POST(request: NextRequest) {
         items: true
       }
     });
+
+    // 2. Enviar correos de notificación
+    try {
+      await sendOrderEmails(order);
+    } catch (mailError) {
+      console.error('Error al enviar emails de pedido:', mailError);
+      // No bloqueamos la respuesta al cliente si el mail falla, pero lo logueamos
+    }
     
     return NextResponse.json({ 
         id: order.id,
