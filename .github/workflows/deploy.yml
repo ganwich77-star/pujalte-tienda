@@ -54,20 +54,32 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
           script: |
-            # Forzar carga del entorno Node en Hostinger
+            # Forzar la carga de Node.js y NVM (común en Hostinger)
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             [ -f ~/.bashrc ] && source ~/.bashrc
-            [ -f ~/.bash_profile ] && source ~/.bash_profile
+            
+            # Asegurar que el PATH incluya rutas comunes de binarios si fallan las anteriores
+            export PATH=$PATH:$HOME/bin:$HOME/.local/bin:$HOME/nodevenv/bin
             
             cd ${{ secrets.HOSTINGER_REMOTE_TARGET }}
+            
+            # Verificar si npx existe antes de lanzar
+            if ! command -v npx &> /dev/null; then
+              echo "ERROR: npx no encontrado. Intentando cargar configuración de Hostinger..."
+              export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
+            fi
             
             # Sincronizar base de datos
             npx prisma db push --accept-data-loss
             
             # Reiniciar pm2 o arrancar si no existe
             PM2_NAME="pujalte-store"
-            if pm2 list | grep -q "$PM2_NAME"; then
+            if command -v pm2 &> /dev/null && pm2 list | grep -q "$PM2_NAME"; then
               pm2 restart $PM2_NAME
             else
-              pm2 start server.js --name $PM2_NAME
+              # Si pm2 no está en el PATH, intentamos lanzarlo con npx o buscar la ruta nvm
+              npx pm2 start server.js --name $PM2_NAME || pm2 start server.js --name $PM2_NAME || echo "Fallo crítico al arrancar PM2"
             fi
-            pm2 save
+            pm2 save || npx pm2 save
+
