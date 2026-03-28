@@ -44,7 +44,16 @@ import { ProductListItem } from '@/components/shop/ProductListItem'
 import { LegalDialogs } from '@/components/shop/LegalDialogs'
 import { PromoModal } from '@/components/landing/PromoModal'
 import { CookieBanner } from '@/components/landing/CookieBanner'
-import { cn, fixPath } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+
+// Función helper local para asegurar disponibilidad en el bundle
+function fixPath(path: string | null | undefined) {
+  if (!path) return ''
+  if (path.startsWith('http') || path.startsWith('data:')) return path
+  let cleanPath = path
+  if (!cleanPath.startsWith('/')) cleanPath = `/${cleanPath}`
+  return encodeURI(cleanPath)
+}
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
