@@ -37,6 +37,14 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { LandingConfig, Promo } from '@/lib/landing-config'
 import { fixPath, cn } from '@/lib/utils'
+
+// Inyección local de seguridad
+const fixPathLocal = (path: string) => {
+  if (!path) return ''
+  if (path.startsWith('http') || path.startsWith('data:')) return path
+  return path.startsWith('/') ? path : `/${path}`
+}
+
 import { toast } from '@/hooks/use-toast'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'

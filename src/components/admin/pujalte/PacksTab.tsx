@@ -20,7 +20,13 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { GalleryImage } from '@/lib/landing-config'
-import { fixPath } from '@/lib/utils'
+// Función de seguridad local para evitar ReferenceError
+const fixPath = (path: string | null | undefined) => {
+  if (!path) return ''
+  if (path.startsWith('http') || path.startsWith('data:')) return path
+  return path.startsWith('/') ? path : `/${path}`
+}
+
 
 interface PacksTabProps {
   products: GalleryImage[]

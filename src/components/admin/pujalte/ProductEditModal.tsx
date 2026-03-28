@@ -26,7 +26,13 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { GalleryImage } from '@/lib/landing-config'
-import { fixPath } from '@/lib/utils'
+// Función de seguridad local para evitar ReferenceError
+const fixPath = (path: string | null | undefined) => {
+  if (!path) return ''
+  if (path.startsWith('http') || path.startsWith('data:')) return path
+  return path.startsWith('/') ? path : `/${path}`
+}
+
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface ProductEditModalProps {

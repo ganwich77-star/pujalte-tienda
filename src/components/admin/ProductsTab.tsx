@@ -12,7 +12,15 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Cropper from 'react-easy-crop'
 import { getCroppedImg } from '@/lib/cropImage'
 import { toast } from '@/hooks/use-toast'
-import { cn, fixPath } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+
+// Definición local de seguridad para evitar ReferenceError
+const fixPath = (path: string | null | undefined) => {
+  if (!path) return ''
+  if (!path || path.startsWith('http') || path.startsWith('data:')) return path || ''
+  return path.startsWith('/') ? path : `/${path}`
+}
+
 import { 
   DndContext, 
   closestCenter,

@@ -21,7 +21,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import ProductEditModal from './ProductEditModal'
 import { LandingConfig, GalleryImage } from '@/lib/landing-config'
-import { fixPath } from '@/lib/utils'
+// Función de seguridad local para evitar ReferenceError
+const fixPath = (path: string | null | undefined) => {
+  if (!path) return ''
+  if (path.startsWith('http') || path.startsWith('data:')) return path
+  return path.startsWith('/') ? path : `/${path}`
+}
+
 
 interface ProductsTabProps {
   config: LandingConfig
