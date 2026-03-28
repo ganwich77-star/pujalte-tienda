@@ -1045,6 +1045,7 @@ Mi email: ${formData.email}`
                       src={fixPath(config.heroFoto || landingData.heroFoto)} 
                       alt={config.storeName} 
                       className="w-full h-[400px] md:h-[600px] object-cover"
+                      style={{ objectPosition: (config as any).heroPosition || 'center' }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                   </motion.div>
