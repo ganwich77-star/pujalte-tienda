@@ -86,10 +86,14 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
   }, [])
 
   const reloadFirebase = async () => {
-    const snap = await getDocs(collection(db, 'clients'))
-    const map: Record<string, any> = {}
-    snap.forEach(d => { map[d.id] = d.data() })
-    setFirebaseClients(map)
+    try {
+      const snap = await getDocs(collection(db, COLLECTIONS.CLIENTS))
+      const map: Record<string, any> = {}
+      snap.forEach(d => { map[d.id] = d.data() })
+      setFirebaseClients(map)
+    } catch (e) {
+      console.error('Error recargando clientes:', e)
+    }
   }
 
   const handleAddCustomer = async () => {
@@ -102,7 +106,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
       const { doc: firestoreDoc, setDoc: firestoreSet, serverTimestamp } = await import('firebase/firestore')
       const key = (newCustomer.dni || newCustomer.email || newCustomer.phone).trim().toUpperCase()
       
-      await firestoreSet(firestoreDoc(db, 'clients', key), {
+      await firestoreSet(firestoreDoc(db, COLLECTIONS.CLIENTS, key), {
         ...newCustomer,
         dni: newCustomer.dni.trim().toUpperCase(),
         email: newCustomer.email.toLowerCase().trim(),
@@ -128,7 +132,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
       const key = deletingCustomer.dni || deletingCustomer.email || deletingCustomer.phone
       if (key) {
         const { doc: firestoreDoc, deleteDoc: firestoreDelete } = await import('firebase/firestore')
-        await firestoreDelete(firestoreDoc(db, 'clients', key))
+        await firestoreDelete(firestoreDoc(db, COLLECTIONS.CLIENTS, key))
         // También limpiar de la selección si estaba
         const nextSelected = new Set(selectedIds)
         nextSelected.delete(key)
@@ -148,7 +152,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
     
     try {
       const { doc: firestoreDoc, deleteDoc: firestoreDelete } = await import('firebase/firestore')
-      const deletePromises = Array.from(selectedIds).map(id => firestoreDelete(firestoreDoc(db, 'clients', id)))
+      const deletePromises = Array.from(selectedIds).map(id => firestoreDelete(firestoreDoc(db, COLLECTIONS.CLIENTS, id)))
       await Promise.all(deletePromises)
       
       toast({ title: 'Clientes eliminados', description: `Se han borrado ${selectedIds.size} clientes.` })
@@ -187,7 +191,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
       const { doc: firestoreDoc, updateDoc: firestoreUpdate } = await import('firebase/firestore')
       const key = customer.dni || customer.email || customer.phone
       
-      await firestoreUpdate(firestoreDoc(db, 'clients', key), {
+      await firestoreUpdate(firestoreDoc(db, COLLECTIONS.CLIENTS, key), {
         cashEnabled: !customer.cashEnabled,
         updatedAt: new Date()
       })
