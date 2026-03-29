@@ -220,10 +220,10 @@ export function ShopHeader({
                   <User className="h-5 w-5" />
                 </Button>
               ) : (
-                <div className="flex items-center gap-2 bg-[#4A7C59]/5 border border-[#4A7C59]/10 rounded-full pl-3 pr-1 h-10 shadow-sm">
-                   <div className="flex flex-col items-end mr-1">
-                      <span className="text-[10px] font-black text-[#4A7C59] uppercase leading-none tracking-tight">SESIÓN INICIADA</span>
-                      <span className="text-[11px] font-bold text-slate-900 leading-none truncate max-w-[80px] sm:max-w-[120px] uppercase">
+                <div className="flex items-center gap-1.5 bg-[#4A7C59]/5 border border-[#4A7C59]/10 rounded-full pl-2.5 pr-1 h-9 shadow-sm">
+                   <div className="flex flex-col items-end -space-y-0.5">
+                      <span className="text-[10px] font-black text-[#4A7C59] uppercase transition-all tracking-tight opacity-70">HOLA</span>
+                      <span className="text-[11px] font-black text-slate-900 truncate max-w-[65px] sm:max-w-[100px] uppercase tracking-tighter">
                         {user?.name?.split(' ')[0]}
                       </span>
                    </div>
