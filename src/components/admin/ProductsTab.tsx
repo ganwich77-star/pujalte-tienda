@@ -679,103 +679,87 @@ export function ProductsTab({
         </div>
       </ScrollArea>
 
-      {/* Mobile Experience (Giga Cards) */}
+      {/* Mobile Experience (Compacted List) */}
       <ScrollArea className="flex-1 md:hidden bg-slate-50/50">
-        <div className="space-y-16 px-10 py-16 pb-64">
+        <div className="space-y-2 px-3 py-4 pb-32">
           {sortedProducts.map((product) => (
             <div 
               key={product.id} 
-              className="bg-white rounded-[4rem] border border-slate-100 p-12 space-y-12 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] active:scale-[0.98] transition-all relative overflow-hidden group"
+              className="bg-white rounded-xl border border-slate-100 p-3 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden group flex gap-3 items-center"
             >
-              <div className="flex items-start gap-10">
-                <div 
-                  className="h-48 w-48 rounded-[3rem] overflow-hidden border border-slate-100 flex-shrink-0 bg-slate-50 shadow-inner group-active:scale-95 transition-transform"
-                  onClick={() => {
-                    setCroppingProduct(product)
-                    setCropImage(fixPath(product.image))
-                    setCropForForm(false)
-                  }}
-                >
-                  {product.image ? (
-                    <img src={fixPath(product.image)} alt={product.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageOff className="h-16 w-16 text-slate-200" />
-                    </div>
-                  )}
+              {/* Miniatura */}
+              <div 
+                className="h-14 w-14 rounded-lg overflow-hidden border border-slate-50 flex-shrink-0 bg-slate-50"
+                onClick={() => {
+                  setCroppingProduct(product)
+                  setCropImage(fixPath(product.image))
+                  setCropForForm(false)
+                }}
+              >
+                {product.image ? (
+                  <img src={fixPath(product.image)} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageOff className="h-6 w-6 text-slate-200" />
+                  </div>
+                )}
+              </div>
+
+              {/* Info Principal */}
+              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                <div className="flex items-center gap-2">
+                   <Checkbox 
+                    checked={selectedIds.includes(product.id)} 
+                    onCheckedChange={() => handleSelect(product.id)}
+                    className="h-4 w-4 rounded border-slate-200"
+                  />
+                  <h3 className="font-bold text-xs uppercase tracking-tight text-slate-800 truncate">{product.name}</h3>
                 </div>
-                <div className="flex-1 space-y-6 py-4">
-                  <div className="flex items-start gap-6">
-                    <Checkbox 
-                      checked={selectedIds.includes(product.id)} 
-                      onCheckedChange={() => handleSelect(product.id)}
-                      className="h-12 w-12 rounded-[1.5rem] border-slate-200 mt-1 border-2"
-                    />
-                    <h3 className="font-black text-4xl uppercase tracking-tighter text-slate-900 leading-[0.8]">{product.name}</h3>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <Badge variant="outline" className="rounded-2xl border-slate-100 text-[10px] font-black uppercase text-slate-400 bg-slate-50 px-5 py-2.5 tracking-widest">
-                      {categories.find(c => c.id === product.categoryId)?.name || 'Sin Categoría'}
-                    </Badge>
-                    <div className="flex items-center gap-3">
-                      {product.salePrice ? (
-                        <>
-                          <span className="text-xl font-black text-emerald-500">{product.salePrice.toLocaleString('es-ES', { minimumFractionDigits: 2 })}€</span>
-                          <span className="text-xs font-bold text-slate-300 line-through">{product.price.toLocaleString('es-ES', { minimumFractionDigits: 2 })}€</span>
-                        </>
-                      ) : (
-                        <span className="text-xl font-black text-slate-900">{product.price.toLocaleString('es-ES', { minimumFractionDigits: 2 })}€</span>
-                      )}
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                   <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none">REF: {product.id.slice(-4).toUpperCase()}</span>
+                   <span className="text-slate-200">•</span>
+                   <span className="text-[10px] font-black text-[#4A7C59]">
+                    {(product.salePrice || product.price).toLocaleString('es-ES', { minimumFractionDigits: 2 })}€
+                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-8 pt-4">
+              {/* Acciones Rápidas */}
+              <div className="flex items-center gap-1">
                 <Button 
+                  size="icon"
+                  variant="ghost"
                   onClick={() => onEditProduct(product)}
-                  className="col-span-1 h-10 rounded-xl bg-slate-900 hover:bg-black text-white shadow-lg"
+                  className="h-8 w-8 rounded-lg bg-slate-50 text-slate-600 border border-slate-100"
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-3.5 w-3.5" />
                 </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => onUpdateProductField(product.id, 'active', !product.active)}
-                  className={`col-span-1 h-10 rounded-xl border flex items-center justify-center transition-all ${
-                    product.active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-200'
-                  }`}
-                >
-                  {product.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => onUpdateProductField(product.id, 'isNew', !product.isNew)}
-                  className={`col-span-1 h-10 rounded-xl transition-all border ${
-                    product.isNew ? 'bg-amber-50 text-amber-500 border-amber-200 shadow-sm' : 'bg-white border-slate-200 text-slate-200'
-                  }`}
-                >
-                  <Sparkles className="h-4 w-4" />
-                </Button>
+                
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="col-span-1 h-10 rounded-xl shadow-sm">
-                      <Trash2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-red-50 text-red-400 border border-red-100">
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="w-[90vw] max-w-sm rounded-2xl p-6 bg-white border-none shadow-2xl">
-                    <AlertDialogHeader className="gap-2">
-                      <AlertDialogTitle className="text-lg font-bold uppercase tracking-tight text-center">ELIMINAR PRODUCTO</AlertDialogTitle>
-                      <AlertDialogDescription className="text-slate-500 text-sm text-center">Esta acción retirará el elemento de la tienda de forma inmediata.</AlertDialogDescription>
+                  <AlertDialogContent className="w-[90vw] max-w-sm rounded-2xl p-6 bg-white">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-sm font-black uppercase text-center">Eliminar?</AlertDialogTitle>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="mt-6 gap-3 flex-col sm:flex-row justify-center">
-                      <AlertDialogCancel className="h-10 rounded-xl font-bold uppercase tracking-wider text-[10px] flex-1 border-slate-200">Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onDeleteProduct(product.id)} className="h-10 rounded-xl bg-red-500 hover:bg-red-600 font-bold uppercase tracking-wider text-[10px] flex-1 border-none shadow-lg">Confirmar</AlertDialogAction>
+                    <AlertDialogFooter className="mt-4 flex gap-2">
+                      <AlertDialogCancel className="h-9 rounded-xl text-[10px] uppercase font-black flex-1 border-slate-100">No</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDeleteProduct(product.id)} className="h-9 rounded-xl text-[10px] uppercase font-black flex-1 bg-red-500">Sí, Borrar</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
             </div>
           ))}
+          {sortedProducts.length === 0 && (
+            <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
+               <Package className="h-8 w-8 text-slate-200 mx-auto mb-2" />
+               <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Sin productos</p>
+            </div>
+          )}
         </div>
       </ScrollArea>
 

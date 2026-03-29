@@ -34,6 +34,12 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from '@/hooks/use-toast'
 import { Order } from '@/types'
@@ -115,6 +121,23 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
       })
 
       toast({ title: 'Cliente añadido', description: 'El nuevo cliente se ha registrado correctamente.' })
+      
+      // Enviar email de bienvenida automáticamente
+      try {
+        await fetch('/api/admin/send-welcome-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dni: newCustomer.dni.trim().toUpperCase(),
+            name: newCustomer.name,
+            email: newCustomer.email.toLowerCase().trim(),
+            phone: newCustomer.phone
+          })
+        })
+      } catch (e) {
+        console.error('Error enviando mail automático:', e)
+      }
+
       setIsAddingCustomer(false)
       setNewCustomer({ name: '', dni: '', email: '', phone: '', cashEnabled: false })
       await reloadFirebase()
@@ -208,6 +231,33 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
     }
   }
 
+  const handleSendWelcomeEmail = async (customer: any) => {
+    try {
+      setUpdating(true)
+      const res = await fetch('/api/admin/send-welcome-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dni: customer.dni,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone
+        })
+      })
+
+      if (!res.ok) throw new Error()
+      
+      toast({ 
+        title: 'Email enviado', 
+        description: `Se ha enviado el correo de bienvenida a ${customer.name} correctamente.` 
+      })
+    } catch (e) {
+      toast({ title: 'Error', description: 'No se pudo enviar el email.', variant: 'destructive' })
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   const customers = useMemo(() => {
     // 1. Iniciamos el mapa SOLO con los clientes que EXISTEN en Firebase
     // Esto garantiza que si borras un cliente de la base de datos, NO volverá a aparecer
@@ -288,7 +338,8 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
   }), [customers])
 
   return (
-    <div className="space-y-8 max-w-[1200px] mx-auto pb-20">
+    <TooltipProvider delayDuration={300}>
+      <div className="space-y-8 max-w-[1200px] mx-auto pb-20">
       {/* Header & Stats Section */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 px-4 sm:px-0">
         <div className="space-y-1">
@@ -396,32 +447,62 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
               </div>
 
               <div className="flex gap-2 pt-1">
-                <Button 
-                  variant="outline" 
-                  className="flex-1 h-11 rounded-xl bg-white text-slate-900 border-slate-100 font-bold text-xs gap-2 shadow-sm"
-                  onClick={() => setEditingCustomer({
-                    ...customer,
-                    originalEmail: customer.email,
-                    originalPhone: customer.phone,
-                    originalDni: customer.dni
-                  })}
-                >
-                  <Edit2 className="h-4 w-4" /> Editar
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="h-11 w-11 rounded-xl bg-[#4A7C59]/5 text-[#4A7C59] border border-[#4A7C59]/10 shadow-sm"
-                  onClick={() => window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}`, '_blank')}
-                >
-                  <MessageSquare className="h-4.5 w-4.5" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="h-11 w-11 rounded-xl bg-rose-50 text-rose-500 border border-rose-100 shadow-sm"
-                  onClick={() => setDeletingCustomer(customer)}
-                >
-                  <Trash2 className="h-4.5 w-4.5" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 h-11 rounded-xl bg-white text-slate-900 border-slate-100 font-bold text-xs gap-2 shadow-sm"
+                      onClick={() => setEditingCustomer({
+                        ...customer,
+                        originalEmail: customer.email,
+                        originalPhone: customer.phone,
+                        originalDni: customer.dni
+                      })}
+                    >
+                      <Edit2 className="h-4 w-4" /> Editar
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Editar ficha del cliente</p></TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="h-11 w-11 rounded-xl bg-[#4A7C59]/5 text-[#4A7C59] border border-[#4A7C59]/10 shadow-sm"
+                      onClick={() => window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}`, '_blank')}
+                    >
+                      <MessageSquare className="h-4.5 w-4.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Contactar por WhatsApp</p></TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="h-11 w-11 rounded-xl bg-orange-50 text-orange-500 border border-orange-100 shadow-sm"
+                      onClick={() => handleSendWelcomeEmail(customer)}
+                    >
+                      <Mail className="h-4.5 w-4.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Enviar Email de Bienvenida</p></TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="h-11 w-11 rounded-xl bg-rose-50 text-rose-500 border border-rose-100 shadow-sm"
+                      onClick={() => setDeletingCustomer(customer)}
+                    >
+                      <Trash2 className="h-4.5 w-4.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Eliminar Cliente</p></TooltipContent>
+                </Tooltip>
               </div>
             </div>
           ))}
@@ -502,51 +583,87 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                     <td className="px-4 sm:px-5 py-4 sm:py-5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1 sm:gap-1.5">
                         {/* Botón EFECTIVO (Rápido) */}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className={cn(
-                            "h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl shadow-sm transition-all border",
-                            customer.cashEnabled 
-                              ? "bg-emerald-50 text-emerald-500 border-emerald-100 hover:bg-emerald-100" 
-                              : "bg-slate-50 text-slate-300 border-slate-100 hover:bg-white"
-                          )}
-                          onClick={() => handleToggleCash(customer)}
-                        >
-                          <BadgeEuro className="h-4 w-4 sm:h-5 sm:w-5" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className={cn(
+                                "h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl shadow-sm transition-all border",
+                                customer.cashEnabled 
+                                  ? "bg-emerald-50 text-emerald-500 border-emerald-100 hover:bg-emerald-100" 
+                                  : "bg-slate-50 text-slate-300 border-slate-100 hover:bg-white"
+                              )}
+                              onClick={() => handleToggleCash(customer)}
+                            >
+                              <BadgeEuro className="h-4 w-4 sm:h-5 sm:w-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>{customer.cashEnabled ? 'Bloquear Pago Efectivo' : 'Habilitar Pago Efectivo'}</p></TooltipContent>
+                        </Tooltip>
 
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white border border-slate-100 shadow-sm transition-all"
-                          onClick={() => setEditingCustomer({
-                            ...customer,
-                            originalEmail: customer.email,
-                            originalPhone: customer.phone,
-                            originalDni: customer.dni
-                          })}
-                        >
-                          <Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white border border-slate-100 shadow-sm transition-all"
-                          onClick={() => {
-                              window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}`, '_blank')
-                          }}
-                        >
-                          <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-red-50 text-red-300 hover:text-red-600 hover:bg-red-100 border border-red-100 shadow-sm transition-all"
-                          onClick={() => setDeletingCustomer(customer)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white border border-slate-100 shadow-sm transition-all"
+                              onClick={() => setEditingCustomer({
+                                ...customer,
+                                originalEmail: customer.email,
+                                originalPhone: customer.phone,
+                                originalDni: customer.dni
+                              })}
+                            >
+                              <Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Editar ficha del cliente</p></TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-orange-50 text-orange-400 hover:text-orange-600 hover:bg-white border border-orange-100 shadow-sm transition-all"
+                              onClick={() => handleSendWelcomeEmail(customer)}
+                            >
+                              <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Enviar Email de Bienvenida</p></TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white border border-slate-100 shadow-sm transition-all"
+                              onClick={() => {
+                                  window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}`, '_blank')
+                              }}
+                            >
+                              <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Contactar por WhatsApp</p></TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-red-50 text-red-300 hover:text-red-600 hover:bg-red-100 border border-red-100 shadow-sm transition-all"
+                              onClick={() => setDeletingCustomer(customer)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Eliminar Cliente</p></TooltipContent>
+                        </Tooltip>
                       </div>
                     </td>
                   </motion.tr>
@@ -747,5 +864,6 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   )
 }

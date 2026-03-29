@@ -56,53 +56,53 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice 
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Stat Cards - Mantenemos igual para consistencia */}
-        <Card className="rounded-[1.5rem] sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-[#4A7C59]/5 rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-4 sm:p-6">
-            <CardTitle className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Ventas Totales</CardTitle>
-            <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#4A7C59]" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Stat Cards - Compacted for mobile */}
+        <Card className="rounded-2xl sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-8 h-8 sm:w-16 sm:h-16 bg-[#4A7C59]/5 rounded-bl-full hidden sm:block" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 p-3 sm:p-6 text-slate-400">
+            <CardTitle className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest leading-none">Ventas</CardTitle>
+            <Package className="h-3 w-3 sm:h-4 sm:w-4 text-[#4A7C59]" />
           </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">{stats.totalSales}</div>
-            <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-0.5 sm:mt-1">unidades entregadas</p>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-3xl font-black text-slate-900 tracking-tighter leading-none">{stats.totalSales}</div>
+            <p className="text-[7px] sm:text-[10px] text-slate-400 font-bold uppercase mt-1">unidades</p>
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.5rem] sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-blue-500/5 rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-4 sm:p-6">
-            <CardTitle className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Pedidos</CardTitle>
-            <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
+        <Card className="rounded-2xl sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-8 h-8 sm:w-16 sm:h-16 bg-blue-500/5 rounded-bl-full hidden sm:block" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 p-3 sm:p-6 text-slate-400">
+            <CardTitle className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest leading-none">Pedidos</CardTitle>
+            <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
           </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">{stats.totalOrders}</div>
-            <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-0.5 sm:mt-1">gestionados hoy</p>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-3xl font-black text-slate-900 tracking-tighter leading-none">{stats.totalOrders}</div>
+            <p className="text-[7px] sm:text-[10px] text-slate-400 font-bold uppercase mt-1">gestionados</p>
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.5rem] sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-amber-500/5 rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-4 sm:p-6">
-            <CardTitle className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Ingresos</CardTitle>
-            <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500" />
+        <Card className="rounded-2xl sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-8 h-8 sm:w-16 sm:h-16 bg-amber-500/5 rounded-bl-full hidden sm:block" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 p-3 sm:p-6 text-slate-400">
+            <CardTitle className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest leading-none">Ingresos</CardTitle>
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
           </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">{formatPrice(stats.totalRevenue)}</div>
-            <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-0.5 sm:mt-1">en pedidos activos</p>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-[15px] sm:text-3xl font-black text-slate-900 tracking-tighter leading-none truncate">{formatPrice(stats.totalRevenue)}</div>
+            <p className="text-[7px] sm:text-[10px] text-slate-400 font-bold uppercase mt-1">activos</p>
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.5rem] sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-purple-500/5 rounded-bl-full" />
-          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-4 sm:p-6">
-            <CardTitle className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Catálogo</CardTitle>
-            <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
+        <Card className="rounded-2xl sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-8 h-8 sm:w-16 sm:h-16 bg-purple-500/5 rounded-bl-full hidden sm:block" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 p-3 sm:p-6 text-slate-400">
+            <CardTitle className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest leading-none">Secciones</CardTitle>
+            <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500" />
           </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">{categories.length}</div>
-            <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-0.5 sm:mt-1">categorías activas</p>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-3xl font-black text-slate-900 tracking-tighter leading-none">{categories.length}</div>
+            <p className="text-[7px] sm:text-[10px] text-slate-400 font-bold uppercase mt-1">activas</p>
           </CardContent>
         </Card>
       </div>

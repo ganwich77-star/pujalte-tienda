@@ -70,9 +70,10 @@ export async function POST(request: Request) {
         variants: {
           create: (data.variants || []).map((v: any) => ({
             name: v.name,
-            price: parseFloat(v.price),
+            price: parseFloat(v.price) || 0,
             stock: parseInt(v.stock) || 0,
-            sortOrder: v.sortOrder || 0
+            sortOrder: v.sortOrder || 0,
+            sku: v.sku || null
           }))
         }
       }
@@ -100,6 +101,16 @@ export async function PUT(request: Request) {
         stock: fields.stock !== undefined ? parseInt(fields.stock) : undefined,
         salePrice: fields.salePrice !== undefined ? parseFloat(fields.salePrice) : undefined,
         tierPricing: typeof fields.tierPricing === 'object' ? JSON.stringify(fields.tierPricing) : fields.tierPricing,
+        variants: variants ? {
+          deleteMany: {},
+          create: variants.map((v: any) => ({
+            name: v.name,
+            price: parseFloat(v.price) || 0,
+            stock: parseInt(v.stock) || 0,
+            sortOrder: v.sortOrder || 0,
+            sku: v.sku || null
+          }))
+        } : undefined
       }
     });
 

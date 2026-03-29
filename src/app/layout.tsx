@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://pujaltefotografia.es"),
   title: "Fotodetalles y Recordatorios - Tu tienda de premium",
   description: "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. POWERED BY PUJALTE CREATIVE STUDIO.",
   keywords: ["fotografía", "cuadros", "posters", "láminas", "impresiones", "regalos personalizados"],

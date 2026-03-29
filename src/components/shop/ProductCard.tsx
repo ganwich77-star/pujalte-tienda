@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star } from 'lucide-react'
+import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -81,16 +81,22 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <motion.div whileHover={{ y: -5 }} className="group cursor-pointer flex flex-col gap-2">
-          <div className="relative aspect-square w-full bg-slate-100 rounded-[2rem] overflow-hidden shadow-sm group-hover:shadow-xl transition-all duration-500 border border-slate-100 italic">
+        <motion.div whileHover={{ y: -8 }} className="group cursor-pointer flex flex-col gap-3">
+          <div className="relative aspect-square w-full bg-white rounded-[2.5rem] overflow-hidden shadow-[0_15px_40px_-15px_rgba(0,0,0,0.08)] group-hover:shadow-[0_25px_50px_-12px_rgba(74,124,89,0.2)] transition-all duration-700 border border-white/50">
             {config.showImages && product.image ? (
-              <img src={fixPath(product.image)} alt={product.name} loading="lazy" className="w-full h-full object-contain p-2 transition-transform duration-700 group-hover:scale-105" />
+              <img 
+                src={fixPath(product.image)} 
+                alt={product.name} 
+                loading="lazy" 
+                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 rounded-[2.5rem]" 
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-300">
-                 <Plus className="h-10 w-10 opacity-20" />
+              <div className="w-full h-full flex items-center justify-center text-slate-200">
+                 <ImageIcon className="h-12 w-12 opacity-10" />
               </div>
             )}
-            <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
               {product.isFeatured && (
                 <div className="bg-slate-900 text-white text-[7px] sm:text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg shadow-slate-900/20 uppercase tracking-widest">
                   <Star className="h-2 w-2 sm:h-3 sm:w-3 fill-white" />

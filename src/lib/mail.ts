@@ -136,54 +136,67 @@ export const sendWelcomeEmails = async (client: { dni: string, name: string, ema
   const { dni, name, email, phone } = client
 
   const customerHtml = `
-    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #ffffff; background: #1a1a1a; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
-      <div style="background: #ACC3B1; padding: 40px 20px; text-align: center; color: #1a1a1a;">
-        <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 1px; line-height: 1.1;">✨ ¡BIENVENIDO A<br/>PUJALTE CREATIVE STUDIO! ✨</h1>
-      </div>
-
-      <div style="padding: 50px 40px; text-align: center;">
-        <h2 style="font-size: 28px; font-weight: 800; margin: 0 0 25px 0; color: #ffffff;">¡Hola, <span style="color: #ACC3B1;">${name}</span>!</h2>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Bienvenidos a Pujalte Creative Studio</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 40px auto; color: #1e293b; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;">
         
-        <p style="font-size: 16px; line-height: 1.6; color: #cccccc; margin-bottom: 30px;">
-          Nos hace mucha ilusión darte la bienvenida. <br/>
-          Gracias por confiar en <strong>Pujalte Creative Studio</strong>. Tu registro ya está activo y estamos listos para trabajar en tus proyectos.
-        </p>
+        <!-- Cabecera con Logo -->
+        <div style="background: #4A7C59; padding: 40px 20px; text-align: center;">
+          <img src="${baseUrl}/logo_ia.png" alt="Pujalte Creative Studio" style="max-height: 80px; margin-bottom: 20px;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.025em; line-height: 1.1; color: #ffffff;">BIENVENIDOS A<br/>PUJALTE CREATIVE STUDIO</h1>
+          <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 14px; opacity: 0.9; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;">
+            "La tecnología al servicio de los recuerdos"
+          </p>
+        </div>
 
-        <div style="background: #222; padding: 30px; border-radius: 20px; margin-bottom: 40px; border: 1px solid #333;">
-          <p style="font-style: italic; color: #888; margin: 0 0 20px 0; font-size: 15px;">"Tu confianza es el motor de nuestra creatividad."</p>
+        <div style="padding: 50px 40px;">
+          <p style="font-size: 16px; line-height: 1.6; color: #334155; margin-bottom: 25px;">
+            Hola <strong>${name}</strong>,
+          </p>
           
-          <p style="font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">Tu acceso exclusivo como cliente es tu identificación:</p>
-          
-          <div style="background: #2a2a2a; border-radius: 12px; padding: 15px; display: inline-block; width: 100%; box-sizing: border-box; text-align: left; border: 1.5px solid #333;">
-            <table style="width: 100%;">
-              <tr>
-                <td style="width: 45px;">
-                  <div style="background: #6D28D9; color: white; width: 40px; height: 40px; border-radius: 8px; text-align: center; line-height: 40px; font-weight: bold; font-size: 14px;">ID</div>
-                </td>
-                <td style="padding-left: 15px;">
-                  <div style="font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px;">DNI DE CLIENTE</div>
-                  <div style="font-size: 22px; font-weight: 900; color: #ffffff; letter-spacing: 1px;">${dni}</div>
-                </td>
-              </tr>
-            </table>
+          <p style="font-size: 15px; line-height: 1.6; color: #64748b; margin-bottom: 30px;">
+            Te hemos dado de alta en nuestra plataforma de clientes. <strong>Para poder entrar y gestionar tu cuenta</strong>, solo tienes que confirmar tu alta pulsando el siguiente botón:
+          </p>
+
+          <div style="text-align: center; margin: 40px 0;">
+            <a href="https://pujalte-tienda.vercel.app/#contacto" style="display: inline-block; background: #4A7C59; color: #ffffff; padding: 20px 50px; text-decoration: none; border-radius: 16px; font-weight: 900; font-size: 15px; letter-spacing: 0.05em; text-transform: uppercase;">
+              CONFIRMAR MI CUENTA
+            </a>
+          </div>
+
+          <!-- Sección DNI -->
+          <div style="background: #f8fafc; padding: 30px; border-radius: 20px; margin-top: 40px; border: 1px solid #f1f5f9;">
+            <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 800; color: #4A7C59; text-transform: uppercase; letter-spacing: 0.1em;">🔒 ¿CÓMO ENTRARÁS A PARTIR DE AHORA?</p>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #64748b;">
+              Es muy fácil. Para tus próximas compras o visitas, no necesitas recordar contraseñas. Solo tendrás que introducir tu <strong>${dni}</strong> y ya podrás acceder para finalizar tus compras.
+            </p>
           </div>
         </div>
 
-        <a href="${baseUrl}" style="display: inline-block; background: #ACC3B1; color: #1a1a1a; padding: 22px 50px; text-decoration: none; border-radius: 16px; font-weight: 900; font-size: 16px; letter-spacing: 1px; text-transform: uppercase;">
-          ACCEDER A LA TIENDA
-        </a>
-
-        <div style="margin-top: 60px; padding-top: 30px; border-top: 1px solid #333; text-align: center;">
-          <p style="margin: 0; font-size: 11px; color: #666; letter-spacing: 3px; font-weight: bold;">PUJALTE CREATIVE STUDIO</p>
-          <p style="margin: 10px 0 0 0; color: #222; font-size: 20px;">· · ·</p>
+        <!-- Footer -->
+        <div style="background: #f1f5f9; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+          <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.6;">
+            Si no quieres recibir correos sobre nuestras nuevas campañas o promociones, puedes desactivarlas en cualquier momento pulsando aquí: 
+            <a href="#" style="color: #4A7C59; text-decoration: underline; font-weight: 600;">Desactivar notificaciones</a>
+          </p>
+          <div style="margin-top: 20px;">
+            <p style="margin: 0; font-size: 11px; color: #cbd5e1; letter-spacing: 3px; font-weight: bold; text-transform: uppercase;">PUJALTE CREATIVE STUDIO</p>
+          </div>
         </div>
       </div>
-    </div>
+    </body>
+    </html>
   `
 
   const adminHtml = `
-    <div style="font-family: sans-serif; padding: 30px; border: 2px solid #ACC3B1; border-radius: 16px; background: #1a1a1a; color: #ffffff;">
-      <h2 style="color: #ACC3B1; margin: 0 0 20px 0; letter-spacing: 1px;">👤 NUEVO CLIENTE REGISTRADO</h2>
+    <div style="font-family: sans-serif; padding: 30px; border: 2px solid #4A7C59; border-radius: 16px; background: #1a1a1a; color: #ffffff; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #4A7C59; margin: 0 0 20px 0; letter-spacing: 1px;">👤 NUEVO CLIENTE REGISTRADO</h2>
       <p style="border-bottom: 1px solid #333; padding-bottom: 10px;"><strong style="color: #666;">Nombre:</strong> ${name}</p>
       <p style="border-bottom: 1px solid #333; padding-bottom: 10px;"><strong style="color: #666;">DNI:</strong> ${dni}</p>
       <p style="border-bottom: 1px solid #333; padding-bottom: 10px;"><strong style="color: #666;">Email:</strong> ${email}</p>
@@ -202,7 +215,7 @@ export const sendWelcomeEmails = async (client: { dni: string, name: string, ema
     await transporter.sendMail({
       from: '"Pujalte Creative Studio" <hola@pujaltefotografia.es>',
       to: email,
-      subject: `👋 ¡Bienvenido a Pujalte Creative Studio, ${name}!`,
+      subject: `Bienvenidos a Pujalte Creative Studio 🚀`,
       html: customerHtml,
     })
 
@@ -213,7 +226,7 @@ export const sendWelcomeEmails = async (client: { dni: string, name: string, ema
       html: adminHtml,
     })
     
-    console.log(`Correos de bienvenida enviados para ${dni}`)
+    console.log(`Correos de bienvenida enviados para ${dni} (Pujalte Creative Studio)`)
   } catch (error) {
     console.error('Error enviando correos de bienvenida:', error)
     throw error
