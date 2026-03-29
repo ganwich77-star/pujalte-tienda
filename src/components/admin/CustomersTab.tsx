@@ -263,30 +263,31 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
         const entry = customerMap.get(matchKey)!
         // Actualizar con datos más recientes de Firebase
         if (fcDni && !entry.dni) {
-          // El DNI se guardó en Firebase pero no estaba en los pedidos: migrar la clave
           entry.dni = fcDni
           customerMap.delete(matchKey)
           customerMap.set(fcDni, entry)
         }
-        if (fc.cashEnabled) entry.cashEnabled = true
+        if (fc.cashEnabled !== undefined) entry.cashEnabled = fc.cashEnabled
         if (fc.name) entry.name = fc.name
         if (fc.email) entry.email = fc.email
         if (fc.phone) entry.phone = fc.phone
-      }
-      // Si no hay coincidencia y tiene DNI, crear entrada sin pedidos
-      else if (fcDni && !customerMap.has(fcDni)) {
-        customerMap.set(fcDni, {
-          name: fc.name || 'Sin nombre',
-          email: fc.email || 'Sin email',
-          phone: fc.phone || '',
-          address: '',
-          dni: fcDni,
-          orders: [],
-          totalSpent: 0,
-          lastOrderDate: new Date(),
-          marketing: false,
-          cashEnabled: fc.cashEnabled || false
-        })
+      } else {
+        // NUEVO CLIENTE SIN PEDIDOS: Crear entrada usando DNI, Email o Teléfono como clave única
+        const newKey = fcDni || fcEmail || fcPhone
+        if (newKey) {
+          customerMap.set(newKey, {
+            name: fc.name || 'Sin nombre',
+            email: fc.email || 'Sin email',
+            phone: fc.phone || '',
+            address: '',
+            dni: fcDni || '',
+            orders: [],
+            totalSpent: 0,
+            lastOrderDate: new Date(),
+            marketing: false,
+            cashEnabled: fc.cashEnabled || false
+          })
+        }
       }
     })
 
