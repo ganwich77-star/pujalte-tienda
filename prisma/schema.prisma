@@ -1,6 +1,7 @@
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-1.1.x", "rhel-openssl-1.0.x"]
+  output        = "../src/generated/client"
 }
 
 datasource db {
@@ -45,10 +46,13 @@ model Product {
   minQuantity     Int?             @default(1)
   stepQuantity    Int?             @default(1)
   tierPricing     String?
+  supplierId      String?
   category        Category?        @relation(fields: [categoryId], references: [id])
+  supplier        Supplier?        @relation(fields: [supplierId], references: [id])
   variants        ProductVariant[]
 
   @@index([categoryId])
+  @@index([supplierId])
   @@map("product")
 }
 
@@ -110,10 +114,23 @@ model OrderItem {
   @@map("orderitem")
 }
 
+model Supplier {
+  id          String    @id @default(cuid())
+  name        String
+  url         String?
+  contactName String?
+  phone       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@map("supplier")
+}
+
 model SystemConfig {
   id        String   @id @default("default")
   data      Json
   updatedAt DateTime @updatedAt
-  
+
   @@map("systemconfig")
 }

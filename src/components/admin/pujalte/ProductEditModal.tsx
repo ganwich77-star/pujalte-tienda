@@ -11,7 +11,7 @@ import {
   Trash2, Upload, LayoutGrid, Eye, EyeOff, Package, Pencil, 
   CheckCircle2, Euro, Layers, Scale, Hash, PlusCircle, X,
   Sparkles, ArrowRight, BarChart3, Clock, Layers2, ShieldCheck,
-  Percent, Tag, Info, AlertCircle, Plus, ChevronDown, Star
+  Percent, Tag, Info, AlertCircle, Plus, ChevronDown, Star, Truck
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,6 +41,7 @@ interface ProductEditModalProps {
   product: GalleryImage | null;
   onSave: (updatedProduct: GalleryImage) => void;
   categories: string[];
+  suppliers?: any[];
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, aspect: number, callback: (url: string) => void) => void;
 }
 
@@ -55,6 +56,7 @@ export default function ProductEditModal({
   product, 
   onSave, 
   categories,
+  suppliers = [],
   handleFileUpload
 }: ProductEditModalProps) {
   const [editedProduct, setEditedProduct] = useState<GalleryImage | null>(null);
@@ -275,6 +277,29 @@ export default function ProductEditModal({
                                </span>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Proveedor */}
+                        <div className="space-y-4">
+                          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic flex items-center gap-2">
+                             <Truck className="h-3 w-3" /> Proveedor Responsable
+                          </Label>
+                          <Select 
+                            value={editedProduct.supplierId || 'none'} 
+                            onValueChange={(val) => updateProduct({ supplierId: val === 'none' ? undefined : val })}
+                          >
+                            <SelectTrigger className="h-14 bg-white border-2 border-slate-100 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] px-6 shadow-sm focus:border-emerald-500 transition-all">
+                              <SelectValue placeholder="SIN PROVEEDOR ASIGNADO" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl border-none shadow-2xl p-2 bg-white">
+                               <SelectItem value="none" className="font-black text-[9px] tracking-widest uppercase py-3 rounded-xl">SIN PROVEEDOR</SelectItem>
+                               {(Array.isArray(suppliers) ? suppliers : []).map((sup: any) => (
+                                 <SelectItem key={sup.id} value={sup.id} className="font-black text-[9px] tracking-widest uppercase py-3 rounded-xl text-slate-950">
+                                    {sup.name}
+                                 </SelectItem>
+                               ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                      </div>
                   </div>

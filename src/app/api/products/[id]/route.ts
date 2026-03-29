@@ -36,12 +36,14 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    
+    console.log('[DEBUG] ID:', id);
+    console.log('[DEBUG] Body received:', JSON.stringify(body, null, 2));
+
     // Lista de campos permitidos en el esquema Prisma para evitar errores de tipo si el front envía datos extra
     const allowedFields = [
       'name', 'description', 'price', 'categoryId', 'active', 'image', 'stock',
       'hasVariants', 'variantType', 'variantBehavior', 'sortOrder', 'showPrice',
-      'isPack', 'packItems', 'isNew', 'salePrice', 'minQuantity', 'stepQuantity', 'tierPricing'
+      'isPack', 'packItems', 'isNew', 'salePrice', 'minQuantity', 'stepQuantity', 'tierPricing', 'supplierId'
     ];
 
     const filteredData: any = {};
@@ -61,32 +63,45 @@ export async function PUT(
       }
     });
 
+    console.log('[DEBUG] Filtered Data for Update:', JSON.stringify(filteredData, null, 2));
+
     // 2. Transacción para asegurar integridad de producto y variantes
-    const result = await db.$transaction(async (tx) => {
-      // Recreamos las variantes si vienen en el body (o las mantenemos si no vienen)
-      return await tx.product.update({
-        where: { id },
-        data: {
-          ...filteredData,
-          variants: (body.variants && Array.isArray(body.variants)) ? {
-            deleteMany: {},
-            create: body.variants.map((v: any) => ({
-              name: v.name || "",
-              price: parseFloat(String(v.price).replace(',', '.')) || 0,
-              stock: parseInt(String(v.stock)) || 0,
-              sku: v.sku || null,
-              sortOrder: v.sortOrder || 0
-            }))
-          } : undefined
-        },
-        include: { variants: { orderBy: { sortOrder: 'asc' } } }
-      })
-    });
-    
-    return NextResponse.json(result)
+    try {
+      const result = await db.$transaction(async (tx) => {
+        // Recreamos las variantes si vienen en el body (o las mantenemos si no vienen)
+        return await tx.product.update({
+          where: { id },
+          data: {
+            ...filteredData,
+            variants: (body.variants && Array.isArray(body.variants)) ? {
+              deleteMany: {},
+              create: body.variants.map((v: any) => ({
+                name: v.name || "",
+                price: parseFloat(String(v.price).replace(',', '.')) || 0,
+                stock: parseInt(String(v.stock)) || 0,
+                sku: v.sku || null,
+                sortOrder: v.sortOrder || 0
+              }))
+            } : undefined
+          },
+          include: { variants: { orderBy: { sortOrder: 'asc' } } }
+        })
+      });
+      
+      console.log('[DEBUG] Update Result SUCCESS:', !!result);
+      return NextResponse.json(result)
+    } catch (saveError: any) {
+      console.error('[ERROR] Prisma Save Error:', saveError.message);
+      console.error('[ERROR] Full Stack:', saveError.stack);
+      return NextResponse.json({ 
+        error: 'Error al actualizar producto en Neon', 
+        details: saveError.message,
+        stack: process.env.NODE_ENV === 'development' ? saveError.stack : undefined
+      }, { status: 500 })
+    }
   } catch (error: any) {
-    console.error('Error updating product in MySQL:', error)
-    return NextResponse.json({ error: 'Error al actualizar producto' }, { status: 500 })
+    console.error('API Outer Error:', error)
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
 

@@ -106,7 +106,8 @@ const initialProductForm = {
   variants: [] as { id?: string; name: string; sku?: string; price: string; stock: string; sortOrder: number }[],
   minQuantity: '1',
   stepQuantity: '1',
-  tierPricing: [] as { minQty: number; price: number }[]
+  tierPricing: [] as { minQty: number; price: number }[],
+  supplierId: ''
 }
 
 export default function Home() {
@@ -235,21 +236,19 @@ Mi email: ${formData.email}`
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/products')
+      // Forzamos la obtención de datos frescos con cache busting
+      const res = await fetch(`/api/products?t=${Date.now()}`)
       const data = await res.json()
       
-      // Aseguramos que data sea un array (nuestro API ahora normaliza, pero por seguridad extra)
       if (Array.isArray(data)) {
         setProducts(data)
       } else if (data.products && Array.isArray(data.products)) {
         setProducts(data.products)
       } else {
-        console.warn("Formato de productos no reconocido, usando array vacío")
         setProducts([])
       }
     } catch (error) {
       console.error("Error crítico fetchProducts:", error)
-      // No lanzamos toast invasivo si ya tenemos productos cacheados o fallback
     } finally {
       setLoading(false)
     }
@@ -437,7 +436,7 @@ Mi email: ${formData.email}`
         price: parseSafePrice(dataInput.price),
         categoryId: (dataInput.categoryId === 'none' || !dataInput.categoryId) ? null : dataInput.categoryId,
         active: (dataInput as any).active !== false,
-        image: dataInput.image || null,
+        image: dataInput.image || dataInput.image_url || null,
         hasVariants: !!dataInput.hasVariants,
         showPrice: (dataInput as any).showPrice ?? true,
         isPack: (dataInput as any).isPack ?? false,
@@ -448,6 +447,7 @@ Mi email: ${formData.email}`
         salePrice: (dataInput as any).salePrice ? parseSafePrice((dataInput as any).salePrice) : null,
         minQuantity: parseInt(String(dataInput.minQuantity)) || 1,
         stepQuantity: parseInt(String(dataInput.stepQuantity)) || 1,
+        supplierId: (dataInput.supplierId === 'none' || !dataInput.supplierId) ? null : dataInput.supplierId,
         tierPricing: Array.isArray(dataInput.tierPricing) && dataInput.tierPricing.length > 0 
           ? JSON.stringify(dataInput.tierPricing.map((t: any) => ({
               minQty: parseInt(String(t.minQty)) || 1,
@@ -484,9 +484,9 @@ Mi email: ${formData.email}`
       setTimeout(() => {
         setEditingProduct(null)
         setProductForm(initialProductForm)
-        fetchAllProducts()
+        fetchAllProducts() // Cambiamos a fetchAllProducts para usar su sistema de cache busting por defecto
         fetchStats()
-      }, 100)
+      }, 150)
       
       return true
     } catch (error) {
@@ -564,7 +564,7 @@ Mi email: ${formData.email}`
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, [field]: value } : p))
       
       // Mostrar toast solo para cambios manuales significativos, no para cada tecla o campo técnico
-      if (['name', 'price', 'salePrice', 'stock', 'categoryId'].includes(field)) {
+      if (['name', 'price', 'salePrice', 'stock', 'categoryId', 'supplierId'].includes(field)) {
         toast({ title: 'Actualizado', description: `${field} actualizado correctamente` })
       }
     } catch (error) {
@@ -605,6 +605,7 @@ Mi email: ${formData.email}`
       variantBehavior: product.variantBehavior || 'add',
       minQuantity: (product.minQuantity ?? 1).toString(),
       stepQuantity: (product.stepQuantity ?? 1).toString(),
+      supplierId: product.supplierId || '',
       tierPricing: typeof product.tierPricing === 'string' 
         ? JSON.parse(product.tierPricing) 
         : (Array.isArray(product.tierPricing) ? product.tierPricing : []),

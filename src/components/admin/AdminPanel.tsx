@@ -28,9 +28,10 @@ import {
   Grid,
   Type,
   ChevronDown,
-  Monitor
+  Monitor,
+  Truck
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DashboardTab } from './DashboardTab'
@@ -49,6 +50,7 @@ import { PromosTab } from './pujalte/PromosTab'
 import LandingPacksTab from './pujalte/PacksTab'
 import LandingProductsTab from './pujalte/ProductsTab'
 import LandingCategoriesTab from './pujalte/CategoriesTab'
+import { SuppliersTab } from './SuppliersTab'
 
 interface AdminPanelProps {
   stats: {
@@ -102,6 +104,20 @@ export function AdminPanel(props: AdminPanelProps) {
 
   const [activeTab, setActiveTab] = useState('dashboard')
   const [isLandingExpanded, setIsLandingExpanded] = useState(false)
+  const [suppliers, setSuppliers] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch('/api/suppliers')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setSuppliers(data)
+        else setSuppliers([])
+      })
+      .catch(err => {
+        console.error(err)
+        setSuppliers([])
+      })
+  }, [])
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -110,6 +126,7 @@ export function AdminPanel(props: AdminPanelProps) {
     { id: 'promos', label: 'Banners', icon: Sparkles },
     { id: 'orders', label: 'Pedidos', icon: ShoppingCart },
     { id: 'customers', label: 'Clientes', icon: Users },
+    { id: 'suppliers', label: 'Proveedores', icon: Truck },
     { id: 'export', label: 'Exportar', icon: Download },
   ]
 
@@ -345,6 +362,7 @@ export function AdminPanel(props: AdminPanelProps) {
                   updateVariant={props.updateVariant}
                   removeVariant={props.removeVariant}
                   resetProductForm={props.resetProductForm}
+                  suppliers={suppliers}
                 />
               )}
 
@@ -372,6 +390,10 @@ export function AdminPanel(props: AdminPanelProps) {
                   orders={orders}
                   formatPrice={formatPrice}
                 />
+              )}
+
+              {activeTab === 'suppliers' && (
+                <SuppliersTab />
               )}
 
               {activeTab === 'export' && (

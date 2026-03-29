@@ -135,10 +135,10 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
       </DialogTrigger>
 
       {/* Modal ampliado para ver la foto a gran tamaño */}
-      <DialogContent className="w-[95vw] max-h-[95vh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all">
+      <DialogContent showCloseButton={false} className="w-[95vw] max-h-[95vh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all">
         <div className="relative flex-1 flex flex-col overflow-hidden">
             <div className="relative aspect-square w-full overflow-hidden bg-slate-50 min-h-[250px] sm:min-h-0">
-              <img src={fixPath(product.image || '')} alt={product.name} className="w-full h-full object-contain p-2 transition-all duration-500" />
+              <img src={fixPath(product.image || '')} alt={product.name} className="w-full h-full object-cover transition-all duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
               <div className="absolute bottom-4 left-5 right-5">
                  <DialogTitle className="text-xl sm:text-2xl font-black text-white leading-none tracking-tight uppercase italic underline decoration-blue-500 decoration-3 underline-offset-4">
@@ -174,7 +174,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                      </SelectTrigger>
                      <SelectContent className="rounded-xl border border-white/10 shadow-2xl p-1 bg-slate-900 text-white min-w-[280px]">
                        <SelectItem value="base" className="text-[10px] font-black uppercase rounded-lg py-3 focus:bg-white/10 focus:text-white transition-colors focus:text-white transition-colors">
-                         <div className="flex items-center justify-between w-full"><span>ESTÁNDAR</span><span className="text-white/60 ml-4 font-bold">{formatPrice(activeBasePrice)}</span></div>
+                         <div className="flex items-center justify-between w-full"><span>{product.name}</span><span className="text-white/60 ml-4 font-bold">Desde {formatPrice(activeBasePrice)}</span></div>
                        </SelectItem>
                        {product.variants.filter(v => v.name).map(variant => (
                          <SelectItem key={variant.id} value={variant.id} className="text-[10px] font-black uppercase rounded-lg py-3 focus:bg-white/10 focus:text-white transition-colors">

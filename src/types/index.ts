@@ -31,6 +31,8 @@ export interface Product {
   minQuantity?: number
   stepQuantity?: number
   tierPricing?: { minQty: number; price: number }[] | string | null
+  supplierId?: string | null
+  supplier?: { id: string; name: string } | null
 }
 
 export interface Category {
@@ -38,6 +40,17 @@ export interface Category {
   name: string
   description: string | null
   image?: string | null
+  _count?: { products: number }
+}
+
+export interface Supplier {
+  id: string
+  name: string
+  url: string | null
+  contactName: string | null
+  phone: string | null
+  createdAt?: string
+  updatedAt?: string
   _count?: { products: number }
 }
 

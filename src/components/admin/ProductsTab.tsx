@@ -103,6 +103,7 @@ interface ProductsTabProps {
   removeVariant: (index: number) => void
   isSaving: boolean
   resetProductForm: () => void
+  suppliers?: any[]
 }
 
 // Quitamos la versión local de fixPath y usamos la de @/lib/utils importada arriba (línea 47)
@@ -151,7 +152,8 @@ function SortableProductRow({
   categories,
   onImageClick,
   isSelected,
-  onSelect
+  onSelect,
+  suppliers = []
 }: any) {
   const {
     attributes,
@@ -212,18 +214,35 @@ function SortableProductRow({
           <span className="text-[9px] text-slate-400 font-bold tracking-wider uppercase">REF: {product.id.slice(-6).toUpperCase()}</span>
         </div>
       </TableCell>
-      <TableCell className="w-40 px-2 lg:px-4">
+      <TableCell className="w-40 px-2 lg:px-4 text-center">
         <Select 
           value={product.categoryId || 'none'} 
           onValueChange={(val) => onUpdateProductField(product.id, 'categoryId', val === 'none' ? null : val)}
         >
-          <SelectTrigger className="h-8 border-none bg-slate-50/50 rounded-lg text-[9px] font-black uppercase tracking-widest px-2 shadow-sm hover:bg-white transition-all">
+          <SelectTrigger className="h-8 border-none bg-slate-50/50 rounded-lg text-[9px] font-black uppercase tracking-widest px-2 shadow-sm hover:bg-white transition-all mx-auto max-w-[140px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="rounded-xl border-slate-200 shadow-xl">
             <SelectItem value="none" className="text-[9px] font-black uppercase tracking-widest py-2">Sin Sección</SelectItem>
             {categories.map((cat: any) => (
-              <SelectItem key={cat.id} value={cat.id} className="text-[9px] font-black uppercase tracking-widest py-2">{cat.name.toUpperCase()}</SelectItem>
+              <SelectItem key={cat.id} value={cat.id} className="text-[9px] font-black uppercase tracking-widest py-2 text-center">{cat.name.toUpperCase()}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </TableCell>
+      
+      <TableCell className="w-32 px-2 text-center">
+        <Select 
+          value={product.supplierId || 'none'} 
+          onValueChange={(val) => onUpdateProductField(product.id, 'supplierId', val === 'none' ? null : val)}
+        >
+          <SelectTrigger className="h-8 border-none bg-slate-50/50 rounded-lg text-[9px] font-black uppercase tracking-widest px-2 shadow-sm hover:bg-white transition-all mx-auto max-w-[120px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+            <SelectItem value="none" className="text-[9px] font-black uppercase tracking-widest py-2">Sin Proveedor</SelectItem>
+            {(Array.isArray(suppliers) ? suppliers : []).map((sup: any) => (
+              <SelectItem key={sup.id} value={sup.id} className="text-[9px] font-black uppercase tracking-widest py-2 text-center">{sup.name.toUpperCase()}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -367,7 +386,8 @@ export function ProductsTab({
   updateVariant,
   removeVariant,
   isSaving,
-  resetProductForm
+  resetProductForm,
+  suppliers = []
 }: ProductsTabProps) {
   const [cropImage, setCropImage] = useState<string | null>(null)
   const [activePromoTab, setActivePromoTab] = useState<'quantities' | 'tiers' | 'variants'>('variants')
@@ -420,8 +440,12 @@ export function ProductsTab({
       let aVal = a[sortConfig.key]
       let bVal = b[sortConfig.key]
       if (sortConfig.key === 'categoryId') {
-        aVal = categories.find(c => c.id === aVal)?.name || ''
-        bVal = categories.find(c => c.id === bVal)?.name || ''
+        aVal = categories.find(c => c.id === aVal || c.name === aVal)?.name || ''
+        bVal = categories.find(c => c.id === bVal || c.name === bVal)?.name || ''
+      }
+      if (sortConfig.key === 'supplierId') {
+        aVal = (Array.isArray(suppliers) ? suppliers : []).find((s: any) => s.id === aVal)?.name || ''
+        bVal = (Array.isArray(suppliers) ? suppliers : []).find((s: any) => s.id === bVal)?.name || ''
       }
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
       if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
@@ -666,21 +690,10 @@ export function ProductsTab({
                   </TableHead>
                   <TableHead className="w-16 px-2 text-center text-[9px] font-black uppercase tracking-widest text-slate-400">Preview</TableHead>
                   <TableHead className="text-[9px] font-black uppercase tracking-widest text-slate-400">Producto y Referencia</TableHead>
-                <TableHead 
-                  className="w-40 text-[9px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-black transition-colors"
-                  onClick={() => toggleSort('categoryId')}
-                >
-                  <div className="flex items-center gap-1">
-                    Categoría
-                    {sortConfig.key === 'categoryId' ? (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                    ) : (
-                      <ArrowUpDown className="h-3 w-3 opacity-20" />
-                    )}
-                  </div>
-                </TableHead>
-                  <TableHead className="w-32 text-right text-[9px] font-black uppercase tracking-widest text-slate-400 pr-4">PVP</TableHead>
-                  <TableHead className="w-44 text-right pr-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Acciones</TableHead>
+                  <TableHead className="w-40 text-center text-[9px] font-black uppercase tracking-widest text-slate-400">Categoría</TableHead>
+                  <TableHead className="w-40 text-center text-[9px] font-black uppercase tracking-widest text-slate-400">Proveedor</TableHead>
+                  <TableHead className="w-32 text-center text-[9px] font-black uppercase tracking-widest text-slate-400">PVP</TableHead>
+                  <TableHead className="w-44 text-center text-[9px] font-black uppercase tracking-widest text-slate-400">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -701,6 +714,7 @@ export function ProductsTab({
                       }}
                       isSelected={selectedIds.includes(product.id)}
                       onSelect={handleSelect}
+                      suppliers={suppliers}
                     />
                   ))}
                 </SortableContext>
@@ -846,9 +860,9 @@ export function ProductsTab({
               
               <div className="flex gap-4">
                 <Button 
-                  variant="outline" 
+                  variant="ghost" 
                   onClick={() => setCropImage(null)}
-                  className="flex-1 h-11 rounded-xl font-bold uppercase tracking-wider text-[10px] border-white/10 text-white/50 hover:bg-white/5 hover:text-white transition-all"
+                  className="flex-1 h-11 rounded-xl font-bold uppercase tracking-wider text-[10px] border border-white/10 bg-transparent text-white/50 hover:bg-white/5 hover:text-white transition-all"
                 >
                   Cancelar
                 </Button>
@@ -869,9 +883,9 @@ export function ProductsTab({
         if (!open) resetProductForm()
         setIsProductDialogOpen(open)
       }}>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] overflow-hidden border-none bg-white rounded-[2.5rem] p-0 flex flex-col mx-auto shadow-2xl">
+        <DialogContent className="max-w-xl w-[95vw] max-h-[95vh] lg:max-h-[88vh] overflow-hidden border-none bg-white rounded-[2rem] p-0 flex flex-col mx-auto shadow-2xl">
             {/* HEADER COMPACTO */}
-            <DialogHeader className="px-8 py-4 bg-[#1a1f2c] flex-shrink-0 z-10 relative overflow-hidden">
+            <DialogHeader className="px-6 py-3 bg-[#1a1f2c] flex-shrink-0 z-10 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
               <div className="flex items-center gap-4 relative z-10">
                 <div className="h-10 w-10 rounded-xl bg-white/10 text-white flex items-center justify-center shadow-xl backdrop-blur-md border border-white/10">
@@ -887,16 +901,16 @@ export function ProductsTab({
             </DialogHeader>
 
             <ScrollArea className="flex-1 min-h-0 bg-white">
-              <div className="px-8 py-6 space-y-6 pb-12">
+              <div className="px-6 py-4 space-y-4 pb-8">
                 
                 {/* SECCIÓN 1: GENERAL */}
                 <section>
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                     {/* Left: Image Selection */}
                     <div className="md:col-span-4 space-y-4">
                       <div className="flex flex-col items-center gap-4">
                         <div 
-                          className="relative group w-32 h-32"
+                          className="relative group w-24 h-24"
                           onClick={() => formImageInputRef.current?.click()}
                         >
                           <div className="w-full h-full rounded-full overflow-hidden border-2 border-slate-50 shadow-md transition-transform group-hover:scale-[1.02] cursor-pointer bg-slate-50">
@@ -987,17 +1001,34 @@ export function ProductsTab({
 
                     {/* Right: Core Info */}
                     <div className="md:col-span-8 space-y-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-[9px] font-black text-blue-300 uppercase tracking-widest ml-1">Nombre Comercial</Label>
-                        <Input 
-                          value={productForm.name} 
-                          onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                          className="rounded-xl h-11 text-sm font-black bg-slate-50 border-transparent px-4 focus:bg-white focus:border-blue-100 transition-all uppercase"
-                          placeholder="NOMBRE..."
-                        />
+                      <div className="grid grid-cols-[1fr_90px] gap-4 bg-slate-50/50 p-3 rounded-[1.5rem] border border-slate-100/50 items-end">
+                        <div className="space-y-1.5 min-w-0">
+                          <Label className="text-[9px] font-black text-blue-300 uppercase tracking-widest ml-1">Nombre Comercial</Label>
+                          <Input 
+                            value={productForm.name} 
+                            onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                            className="rounded-xl h-11 text-sm font-black bg-white border-transparent px-4 focus:bg-white focus:border-blue-100 transition-all uppercase shadow-sm"
+                            placeholder="NOMBRE..."
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[9px] font-black text-blue-300 uppercase tracking-widest ml-1">Precio</Label>
+                          <div className="relative group/price w-full" style={{ height: '44px' }}>
+                            <Input 
+                              type="number"
+                              step="0.01"
+                              value={productForm.price || ''} 
+                              onChange={(e) => setProductForm({...productForm, price: Number(e.target.value)})}
+                              style={{ height: '44px', minHeight: '44px' }}
+                              className="rounded-xl !h-[44px] text-md font-black bg-white border border-slate-100 pl-3 pr-8 text-right shadow-sm group-hover/price:shadow-md transition-all w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              placeholder="0"
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400 font-black text-[10px] opacity-40">€</div>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-[1fr_85px] gap-3 bg-slate-50/50 p-4 rounded-[2rem] border border-slate-100/50 items-end">
+                      <div className="grid grid-cols-2 gap-3 bg-slate-50/50 p-3 rounded-[1.5rem] border border-slate-100/50 items-end">
                         <div className="flex flex-col gap-2 min-w-0">
                           <Label className="text-[8px] font-black text-blue-400/60 uppercase tracking-[0.2em] ml-2">Categoría</Label>
                           <Select 
@@ -1005,8 +1036,8 @@ export function ProductsTab({
                             onValueChange={(val) => setProductForm({...productForm, categoryId: val === 'none' ? null : val})}
                           >
                             <SelectTrigger 
-                              style={{ height: '56px', minHeight: '56px' }}
-                              className="rounded-2xl !h-[56px] text-[10px] font-black bg-white border border-slate-100 px-5 uppercase tracking-widest shadow-sm hover:shadow-md transition-all w-full overflow-hidden flex items-center"
+                              style={{ height: '44px', minHeight: '44px' }}
+                              className="rounded-xl !h-[44px] text-[10px] font-black bg-white border border-slate-100 px-4 uppercase tracking-widest shadow-sm hover:shadow-md transition-all w-full overflow-hidden flex items-center"
                             >
                               <SelectValue placeholder="SELECCIONAR" />
                             </SelectTrigger>
@@ -1018,20 +1049,25 @@ export function ProductsTab({
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="flex flex-col gap-2">
-                          <Label className="text-[8px] font-black text-blue-400/60 uppercase tracking-[0.2em] ml-2">Precio</Label>
-                          <div className="relative group/price w-full" style={{ height: '56px' }}>
-                            <Input 
-                              type="number"
-                              step="0.01"
-                              value={productForm.price || ''} 
-                              onChange={(e) => setProductForm({...productForm, price: Number(e.target.value)})}
-                              style={{ height: '56px', minHeight: '56px' }}
-                              className="rounded-2xl !h-[56px] text-md font-black bg-white border border-slate-100 pl-3 pr-8 text-right shadow-sm group-hover/price:shadow-md transition-all w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              placeholder="0"
-                            />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400 font-black text-[10px] opacity-40">€</div>
-                          </div>
+                        <div className="flex flex-col gap-2 min-w-0">
+                           <Label className="text-[8px] font-black text-blue-400/60 uppercase tracking-[0.2em] ml-2">Proveedor</Label>
+                           <Select 
+                            value={productForm.supplierId || 'none'} 
+                            onValueChange={(val) => setProductForm({...productForm, supplierId: val === 'none' ? null : val})}
+                          >
+                            <SelectTrigger 
+                              style={{ height: '44px', minHeight: '44px' }}
+                              className="rounded-xl !h-[44px] text-[10px] font-black bg-white border border-slate-100 px-4 uppercase tracking-widest shadow-sm hover:shadow-md transition-all w-full overflow-hidden flex items-center"
+                            >
+                              <SelectValue placeholder="SIN PROVEEDOR" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl border-none shadow-2xl">
+                              <SelectItem value="none" className="text-[10px] font-black uppercase tracking-widest">Sin Proveedor</SelectItem>
+                              {suppliers.map((sup: any) => (
+                                <SelectItem key={sup.id} value={sup.id} className="text-[10px] font-black uppercase tracking-widest">{sup.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
@@ -1049,41 +1085,41 @@ export function ProductsTab({
 
                 {/* SECCIÓN TÉCNICA UNIFICADA: CANTIDADES, ESCALADO Y VARIANTES */}
                 <section className="space-y-4">
-                  <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
-                    {/* BARRA DE NAVEGACIÓN ÚNICA: REFINADA */}
-                    <div className="p-1.5 grid grid-cols-[1fr_1fr_1fr_42px] gap-1 border-b border-slate-50 bg-slate-50/40">
-                      <button 
-                        onClick={() => {
-                          setActivePromoTab('variants');
-                          setIsPromoOpen(true);
-                        }}
-                        className={`flex flex-col items-center justify-center gap-0.5 h-11 rounded-[0.9rem] transition-all duration-300 select-none ${
-                          activePromoTab === 'variants' && isPromoOpen
-                            ? 'bg-slate-900 text-white shadow-md shadow-slate-200' 
-                            : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                        }`}
-                      >
-                        <Settings2 className={`h-3 w-3 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                        <div className="flex flex-col items-center leading-none">
-                          <span className="text-[7.5px] font-black uppercase tracking-wider">VARIANTES</span>
-                          <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white/60' : 'text-slate-400'}`}>Opciones</span>
-                        </div>
-                      </button>
-
-                      <button 
-                        onClick={() => {
-                          setActivePromoTab('quantities');
-                          setIsPromoOpen(true);
-                        }}
-                        className={`flex flex-col items-center justify-center gap-0.5 h-11 rounded-[0.9rem] transition-all duration-300 select-none ${
-                          activePromoTab === 'quantities' && isPromoOpen
-                            ? 'bg-blue-600 text-white shadow-md shadow-blue-100' 
-                            : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                        }`}
-                      >
-                        <Package className={`h-3 w-3 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                        <div className="flex flex-col items-center leading-none">
-                          <span className="text-[7.5px] font-black uppercase tracking-wider">CANTIDADES</span>
+                    <div className="bg-white rounded-[1.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
+                      {/* BARRA DE NAVEGACIÓN ÚNICA: REFINADA */}
+                      <div className="p-1.5 grid grid-cols-[1fr_1fr_1fr_42px] gap-1 border-b border-slate-50 bg-slate-50/40">
+                        <button 
+                          onClick={() => {
+                            setActivePromoTab('variants');
+                            setIsPromoOpen(true);
+                          }}
+                          className={`flex flex-col items-center justify-center gap-0.5 h-10 rounded-[0.7rem] transition-all duration-300 select-none ${
+                            activePromoTab === 'variants' && isPromoOpen
+                              ? 'bg-slate-900 text-white shadow-md shadow-slate-200' 
+                              : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
+                          }`}
+                        >
+                          <Settings2 className={`h-3 w-3 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
+                          <div className="flex flex-col items-center leading-none">
+                            <span className="text-[7.5px] font-black uppercase tracking-wider">VARIANTES</span>
+                            <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white/60' : 'text-slate-400'}`}>Opciones</span>
+                          </div>
+                        </button>
+  
+                        <button 
+                          onClick={() => {
+                            setActivePromoTab('quantities');
+                            setIsPromoOpen(true);
+                          }}
+                          className={`flex flex-col items-center justify-center gap-0.5 h-10 rounded-[0.7rem] transition-all duration-300 select-none ${
+                            activePromoTab === 'quantities' && isPromoOpen
+                              ? 'bg-blue-600 text-white shadow-md shadow-blue-100' 
+                              : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
+                          }`}
+                        >
+                          <Package className={`h-3 w-3 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
+                          <div className="flex flex-col items-center leading-none">
+                            <span className="text-[7.5px] font-black uppercase tracking-wider">CANTIDADES</span>
                           <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-blue-100' : 'text-slate-400'}`}>Operativa</span>
                         </div>
                       </button>
@@ -1410,7 +1446,7 @@ export function ProductsTab({
             </ScrollArea>
 
             {/* ACCIONES COMPACTAS */}
-            <div className="px-8 py-4 border-t border-slate-100 flex items-center gap-4 bg-white z-20">
+            <div className="px-6 py-3 border-t border-slate-100 flex items-center gap-4 bg-white z-20">
               <Button 
                 variant="outline" 
                 onClick={() => setIsProductDialogOpen(false)}

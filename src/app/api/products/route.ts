@@ -29,11 +29,13 @@ export async function GET(request: Request) {
       where,
       include: {
         category: true,
+        // Incluimos supplier solo si existe en el cliente de Prisma actual
+        ...( (db.product as any).fields?.supplierId ? { supplier: true } : {} ),
         variants: true
       },
-      orderBy: {
-        sortOrder: 'asc'
-      }
+      orderBy: [
+        { name: 'asc' }
+      ]
     });
 
     // Normalización mínima para el frontend si fuera necesaria
@@ -67,6 +69,7 @@ export async function POST(request: Request) {
         minQuantity: parseInt(data.minQuantity) || 1,
         stepQuantity: parseInt(data.stepQuantity) || 1,
         tierPricing: typeof data.tierPricing === 'object' ? JSON.stringify(data.tierPricing) : data.tierPricing,
+        supplierId: data.supplierId || null,
         variants: {
           create: (data.variants || []).map((v: any) => ({
             name: v.name,

@@ -34,6 +34,7 @@ export interface GalleryImage {
   minQuantity?: number;
   stepQuantity?: number;
   tierPricing?: string;
+  supplierId?: string;
 }
 
 export interface Testimonial {

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../generated/client";
 import mysql from "mysql2/promise";
 
 // 1. Prisma Client para Configuración Global (Neon/Postgres)
@@ -6,11 +6,12 @@ const prismaClientSingleton = () => {
   return new PrismaClient();
 };
 
-declare global {
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
-}
+// En desarrollo, necesitamos forzar una re-inicialización para captar cambios de esquema
+export const db = (process.env.NODE_ENV === "production") 
+  ? (globalThis.prisma || prismaClientSingleton())
+  : prismaClientSingleton();
 
-export const db = globalThis.prisma ?? prismaClientSingleton();
+console.log("--- DB INSTANCE RELOADED ---", Object.keys(db).includes('supplier') ? 'SUPPLIER OK' : 'NO SUPPLIER');
 
 if (process.env.NODE_ENV !== "production") globalThis.prisma = db;
 
