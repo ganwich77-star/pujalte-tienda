@@ -74,15 +74,16 @@ export function ShopHeader({
 
   useEffect(() => {
     setMounted(true)
-    // Check if it's first visit to highlight login
-    const hasVisited = localStorage.getItem('has_visited_shop')
-    if (!hasVisited && !isLoggedIn) {
-      // Esperar 1 segundo antes de mostrar el mensaje llamativo
+    
+    // Si no está logueado, queremos que el mensaje aparezca para guiarle
+    if (!isLoggedIn) {
+      // Pequeño delay para que no aparezca de golpe al cargar
       const timer = setTimeout(() => {
         setIsFirstVisit(true)
-        localStorage.setItem('has_visited_shop', 'true')
-      }, 1000)
+      }, 2000)
       return () => clearTimeout(timer)
+    } else {
+      setIsFirstVisit(false)
     }
   }, [isLoggedIn])
   
