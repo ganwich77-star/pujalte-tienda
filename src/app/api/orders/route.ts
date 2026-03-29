@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
     const safeTotal = total ?? data.total ?? 0;
     
     // 1. Crear el pedido en MySQL
+    const trackingNumber = `PUJ-26-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const order = await db.order.create({
       data: {
         customerName: customer?.name || customerName || 'Desconocido',
@@ -37,6 +39,7 @@ export async function POST(request: NextRequest) {
         total: parseFloat(String(safeTotal)) || 0,
         status: status,
         paymentMethod: paymentMethod,
+        paymentId: trackingNumber, // Usamos trackingNumber como referencia inicial
         items: {
           create: items.map((item: any) => ({
             productId: item.productId || item.id,
@@ -58,15 +61,15 @@ export async function POST(request: NextRequest) {
 
     // 2. Enviar correos de notificación
     try {
-      await sendOrderEmails(order);
+      await sendOrderEmails({ ...order, trackingNumber });
     } catch (mailError) {
       console.error('Error al enviar emails de pedido:', mailError);
-      // No bloqueamos la respuesta al cliente si el mail falla, pero lo logueamos
     }
     
     return NextResponse.json({ 
         id: order.id,
-        success: true 
+        success: true,
+        trackingNumber: trackingNumber
     });
   } catch (error) {
     console.error('Error creating order in MySQL:', error);

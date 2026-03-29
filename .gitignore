@@ -71,3 +71,4 @@ examples/
 db/
 Caddyfile
 components.json
+.env*.local

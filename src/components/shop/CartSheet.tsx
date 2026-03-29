@@ -50,6 +50,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useCartStore } from '@/store/cart'
+import { useUserStore } from '@/store/user'
 import { StoreConfig } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from '@/hooks/use-toast'
@@ -63,6 +64,7 @@ interface CartSheetProps {
 
 export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
   const { items, removeItem, updateQuantity, updateItem, clearCart, getTotal, getItemCount } = useCartStore()
+  const { user, isLoggedIn } = useUserStore()
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'checkout' | 'payment' | 'success'>('cart')
   const [processingPayment, setProcessingPayment] = useState(false)
   const [uploadingItem, setUploadingItem] = useState<string | null>(null)
@@ -710,7 +712,18 @@ _Pago: ${paymentMethodText}_`
                     </div>
                     <Button 
                       className="w-full h-16 rounded-3xl text-lg font-black uppercase tracking-[0.1em] shadow-2xl shadow-[#4A7C59]/30 bg-[#4A7C59] hover:bg-[#3D6649] hover:scale-[1.02] active:scale-95 transition-all duration-300" 
-                      onClick={() => setIsAuthModalOpen(true)}
+                      onClick={() => {
+                        if (isLoggedIn && user) {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            dni: user.email || '', 
+                            name: user.name || '' 
+                          }));
+                          setCheckoutStep('payment');
+                        } else {
+                          setIsAuthModalOpen(true);
+                        }
+                      }}
                     >
                       Continuar Pedido <ChevronRight className="ml-2 h-6 w-6" />
                     </Button>
@@ -865,6 +878,7 @@ _Pago: ${paymentMethodText}_`
               </div>
 
               <div className="pt-8 mt-auto grid grid-cols-5 gap-4">
+              <div className="pt-8 mt-auto grid grid-cols-5 gap-4">
                 <Button 
                   variant="ghost" 
                   onClick={() => setCheckoutStep('cart')} 
@@ -874,20 +888,24 @@ _Pago: ${paymentMethodText}_`
                 </Button>
                 <Button 
                   className={`rounded-[2rem] h-16 font-black text-base uppercase tracking-[0.1em] col-span-4 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] active:scale-95 transition-all duration-500 text-white ${(() => {
-                    const email = formData['email']?.trim() || "";
                     const name = formData['name']?.trim() || "";
                     const dni = formData['dni']?.trim() || "";
                     const phone = formData['phone']?.trim() || "";
-                    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-                    const isDniValid = dni.length >= 8;
-                    const isPhoneValid = phone.replace(/\D/g, '').length >= 9;
-                    const isValid = name.length >= 3 && isEmailValid && isDniValid && isPhoneValid && acceptTerms;
+                    const isValid = name.length >= 3 && dni.length >= 8 && phone.length >= 9 && acceptTerms;
                     return !isValid ? 'opacity-30 pointer-events-none' : 'bg-[#4A7C59] hover:bg-[#3D6649] shadow-[#4A7C59]/30';
                   })()}`}
-                  onClick={handleNextStep}
+                  onClick={() => {
+                    const email = formData['email']?.trim() || "";
+                    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                      toast({ title: 'Email inválido', description: 'Por favor, introduce un correo electrónico válido.', variant: 'destructive' });
+                      return;
+                    }
+                    handleNextStep();
+                  }}
                 >
                   SIGUIENTE <ChevronRight className="ml-3 h-6 w-6" />
                 </Button>
+              </div>
               </div>
             </motion.div>
           )}

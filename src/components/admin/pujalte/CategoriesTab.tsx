@@ -76,7 +76,7 @@ const SortableCategoryItem = ({ id, name, onDelete, onEdit, count }: CategoryIte
             <Input
               value={tempName}
               onChange={(e) => setTempName(e.target.value)}
-              className="h-9 text-sm rounded-xl border-slate-200 focus:ring-[#4A7C59] focus:border-[#4A7C59]"
+              className="h-9 text-sm rounded-xl border-slate-200 focus:ring-[#4A7C59] focus:border-[#4A7C59] text-slate-900 font-bold"
               autoFocus
             />
             <Button size="icon" onClick={handleSave} variant="ghost" className="h-9 w-9 text-emerald-600 hover:bg-emerald-50 rounded-xl">
@@ -187,7 +187,7 @@ export default function CategoriesTab({ categories, products, onUpdate }: Catego
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                    className="h-10 w-64 rounded-xl border-slate-200 bg-white"
+                    className="h-10 w-64 rounded-xl border-slate-200 bg-white text-slate-900 font-bold"
                 />
                 <Button onClick={handleAdd} className="h-10 bg-[#4A7C59] hover:bg-[#3d664a] text-white rounded-xl px-5 font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-[#4A7C59]/20">
                     <Plus className="h-4 w-4 mr-2" />
