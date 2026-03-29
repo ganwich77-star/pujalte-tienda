@@ -108,29 +108,27 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
     
     try {
       const compressedFile = await compressImage(file);
-      const formData = new FormData();
       const filename = file.name || 'foto.jpg';
-      formData.append('file', compressedFile, filename);
+      const cleanName = filename.replace(/\s+/g, '-');
+      const uniqueName = `${Date.now()}-${cleanName}`;
       
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      const { storage } = await import('@/lib/firebase');
+      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+      
+      const storageRef = ref(storage, `comuniones2026/uploads/${uniqueName}`);
+      
+      // Subimos el archivo a Firebase desde el cliente directamente (bypass de Vercel)
+      await uploadBytes(storageRef, compressedFile, { contentType: file.type || 'image/jpeg' });
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      updateItem(itemId, variantId, notes, { 
+        fileUrl: downloadURL, 
+        fileName: filename
       })
-      
-      const data = await res.json()
-      
-      if (data.success) {
-        updateItem(itemId, variantId, notes, { 
-          fileUrl: data.url, 
-          fileName: filename
-        })
-        toast({
-          title: "¡Foto subida!",
-          description: "La imagen se ha adjuntado correctamente al producto.",
-        })
-      } else {
-        throw new Error(data.error)
-      }
+      toast({
+        title: "¡Foto subida!",
+        description: "La imagen se ha adjuntado correctamente al producto y su enlace es permanente.",
+      })
     } catch (err) {
       console.error('Upload error:', err)
       toast({
