@@ -67,16 +67,16 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
   const [processingPayment, setProcessingPayment] = useState(false)
   const [uploadingItem, setUploadingItem] = useState<string | null>(null)
 
-  const compressImage = (file: File): Promise<File | Blob> => {
+  const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
-      if (file.size < 1024 * 1024 * 2) return resolve(file); // Max 2MB, passthru
+      if (file.size < 1024 * 1024 * 1) return resolve(file); // Max 1MB
       
       const img = new window.Image();
       const objectUrl = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(objectUrl);
         const canvas = document.createElement('canvas');
-        const maxDim = 1500;
+        const maxDim = 1000;
         let { width, height } = img;
         
         if (width > height && width > maxDim) {
@@ -94,16 +94,8 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
         
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob((blob) => {
-          if (blob) {
-            const compressedFile = new File([blob], file.name, {
-              type: file.type === 'image/png' ? 'image/png' : 'image/jpeg',
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          } else {
-            resolve(file);
-          }
-        }, file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
+          resolve(blob || file);
+        }, 'image/jpeg', 0.7); // Forzado a JPEG a menor tamaño en iOS
       };
       img.onerror = () => resolve(file);
       img.src = objectUrl;
@@ -116,8 +108,9 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
     
     try {
       const compressedFile = await compressImage(file);
-      const formData = new FormData()
-      formData.append('file', compressedFile, file.name)
+      const formData = new FormData();
+      const filename = file.name || 'foto.jpg';
+      formData.append('file', compressedFile, filename);
       
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -129,7 +122,7 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
       if (data.success) {
         updateItem(itemId, variantId, notes, { 
           fileUrl: data.url, 
-          fileName: file.name 
+          fileName: filename
         })
         toast({
           title: "¡Foto subida!",
@@ -679,11 +672,11 @@ _Pago: ${paymentMethodText}_`
                                   </Button>
                                 </div>
                               )}
-                                <input
+                              <input
                                   id={domId}
                                 type="file"
                                 className="hidden"
-                                accept="image/*"
+                                accept="image/jpeg, image/png, image/webp"
                                 onChange={(e) => {
                                   const file = e.target.files?.[0]
                                   if (file) handleFileUpload(item.id, item.variantId, item.notes, file)

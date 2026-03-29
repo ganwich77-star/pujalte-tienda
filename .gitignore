@@ -55,7 +55,7 @@ tmp_deploy_*
 *.zip
 BACKUP_FINAL_COMUNIONES_2026/
 download/
-upload/
+/upload/
 3000
 3001
 --port
