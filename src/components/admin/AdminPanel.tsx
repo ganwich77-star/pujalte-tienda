@@ -69,7 +69,7 @@ interface AdminPanelProps {
   editingProduct: Product | null
   uploading: boolean
   formatPrice: (price: number) => string
-  onSaveProduct: () => void
+  onSaveProduct: (data?: any) => void
   onToggleActive: (product: Product) => void
   onDeleteProduct: (id: string) => void
   onReorderProducts: (products: Product[]) => void

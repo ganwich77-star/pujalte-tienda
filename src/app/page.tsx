@@ -398,12 +398,16 @@ Mi email: ${formData.email}`
   // Admin Handlers
   const handleSaveProduct = async (data: any = productForm): Promise<boolean> => {
     // Validamos que tenga nombre. El precio solo es obligatorio si NO tiene variantes.
-    // Usamos una comprobación explícita para evitar que el número 0 sea tratado como "falta de precio".
-    const hasName = data.name && data.name.trim() !== '';
-    const hasPrice = data.price !== '' && data.price !== null && data.price !== undefined;
+    const hasName = data && data.name && data.name.trim() !== '';
+    const hasPrice = data && data.price !== '' && data.price !== null && data.price !== undefined;
     
     if (!hasName || (!data.hasVariants && !hasPrice)) {
-      toast({ title: 'Error', description: 'Nombre y precio son requeridos', variant: 'destructive' })
+      const missing = !hasName ? 'Nombre' : 'Precio';
+      toast({ 
+        title: 'Error de Validación', 
+        description: `El campo ${missing} es obligatorio para publicar.`, 
+        variant: 'destructive' 
+      })
       return false
     }
 

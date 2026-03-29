@@ -97,7 +97,7 @@ interface ProductsTabProps {
   productForm: any
   setProductForm: (form: any) => void
   editingProduct: Product | null
-  onSaveProduct: () => void
+  onSaveProduct: (data?: any) => void
   addVariant: () => void
   updateVariant: (index: number, field: string, value: any) => void
   removeVariant: (index: number) => void,
@@ -1404,8 +1404,8 @@ export function ProductsTab({
                 Cancelar
               </Button>
               <Button 
-                onClick={onSaveProduct}
-                className="flex-[2] h-10 rounded-xl font-black uppercase text-[9px] bg-black text-white hover:bg-slate-900 shadow-lg"
+                onClick={() => onSaveProduct(productForm)}
+                className="flex-[2] h-10 rounded-xl font-black uppercase text-[9px] bg-black text-white hover:bg-slate-900 shadow-lg active:scale-95 transition-all"
               >
                 {editingProduct ? 'Guardar Cambios' : 'Publicar'}
               </Button>
