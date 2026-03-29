@@ -300,7 +300,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
             onClick={() => setIsAddingCustomer(true)}
             className="h-10 sm:h-12 bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-xl sm:rounded-2xl px-5 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-[#4A7C59]/20 transition-all flex items-center gap-2 whitespace-nowrap"
           >
-            <UserPlus className="h-4 w-4" /> <span className="hidden xs:inline">Añadir Cliente</span>
+            <UserPlus className="h-4 w-4" /> <span className="inline">Añadir Cliente</span>
           </Button>
 
           <div className="relative group flex-1 sm:w-64">
