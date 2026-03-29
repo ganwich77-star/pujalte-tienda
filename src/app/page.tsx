@@ -397,6 +397,13 @@ Mi email: ${formData.email}`
 
   // Admin Handlers
   const handleSaveProduct = async (data: any = productForm): Promise<boolean> => {
+    // Si data tiene el formato de la Landing (V2.1) (detectado por el campo 'alt'), 
+    // evitamos validar aquí para que no interfiera con el catálogo normal.
+    if (data && (data.alt || data.precio) && !data.name) {
+      console.log('Omisión de validación de catálogo MySQL para item de Landing');
+      return true;
+    }
+
     if (!data.name || (!data.hasVariants && !data.price)) {
       toast({ title: 'Error', description: 'Nombre y precio son requeridos', variant: 'destructive' })
       return false

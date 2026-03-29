@@ -552,7 +552,7 @@ export default function ProductEditModal({
              <div className="flex items-center gap-4 w-full sm:w-auto">
                 <Button variant="ghost" onClick={onClose} className="flex-1 sm:flex-none h-12 rounded-xl font-black uppercase tracking-widest text-[10px] italic">Cancelar</Button>
                 <Button 
-                  onClick={handleSave} 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSave(); }} 
                   className="flex-1 sm:flex-none h-14 rounded-2xl bg-slate-950 text-white px-12 font-black uppercase tracking-[0.2em] text-[11px] italic shadow-xl shadow-slate-200/50 hover:bg-black transition-all group"
                 >
                    GUARDAR CAMBIOS
