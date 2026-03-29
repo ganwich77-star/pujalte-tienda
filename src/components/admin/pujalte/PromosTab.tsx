@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -428,7 +429,12 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-slate-400">Subtítulo</Label>
-                    <Input value={promo.subtitle} onChange={(e) => handleUpdatePromo(promo.id, 'subtitle', e.target.value)} className="rounded-xl font-bold h-11" />
+                    <Textarea 
+                      value={promo.subtitle} 
+                      onChange={(e) => handleUpdatePromo(promo.id, 'subtitle', e.target.value)} 
+                      className="rounded-xl font-bold min-h-[80px] py-3 italic" 
+                      placeholder="Escribe el subtítulo promocional con saltos de línea si lo deseas..."
+                    />
                   </div>
                   <div className="hidden">
                       <input 

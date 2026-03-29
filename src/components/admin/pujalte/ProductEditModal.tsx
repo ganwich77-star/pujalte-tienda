@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -307,7 +308,7 @@ export default function ProductEditModal({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Descripción Corta</Label>
-                       <textarea 
+                       <Textarea 
                         value={editedProduct.descripcion || ''} 
                         onChange={(e) => updateProduct({ descripcion: e.target.value })}
                         className="w-full h-32 bg-white border-2 border-slate-100 rounded-2xl font-bold text-xs px-6 py-4 focus:border-slate-300 outline-none transition-all shadow-sm resize-none italic leading-relaxed text-slate-500"

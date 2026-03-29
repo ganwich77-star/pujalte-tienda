@@ -67,16 +67,16 @@ export function ShopHeader({
   const [loginError, setLoginError] = useState<string | null>(null)
   
   const { isLoggedIn, user, login, logout } = useUserStore()
-  const [mounted, setMounted] = useState(false)
   const { toast } = useToast()
-
+  const [mounted, setMounted] = useState(false)
   const [isFirstVisit, setIsFirstVisit] = useState(false)
+  const [hasClosedThisSession, setHasClosedThisSession] = useState(false)
 
   useEffect(() => {
     setMounted(true)
     
-    // Si no está logueado, queremos que el mensaje aparezca para guiarle
-    if (!isLoggedIn) {
+    // Si no está logueado y NO ha cerrado el aviso en ESTA sesión, lo mostramos
+    if (!isLoggedIn && !hasClosedThisSession) {
       // Pequeño delay para que no aparezca de golpe al cargar
       const timer = setTimeout(() => {
         setIsFirstVisit(true)
@@ -85,7 +85,7 @@ export function ShopHeader({
     } else {
       setIsFirstVisit(false)
     }
-  }, [isLoggedIn])
+  }, [isLoggedIn, hasClosedThisSession])
   
   const fixPath = (path: string) => {
     if (!path) return ''
@@ -293,9 +293,11 @@ export function ShopHeader({
                           className="w-full bg-white text-[#4A7C59] hover:bg-slate-50 font-black text-[9px] uppercase tracking-[0.15em] h-10 rounded-xl transition-all active:scale-95 shadow-lg shadow-black/5"
                           onClick={() => {
                             setIsFirstVisit(false)
+                            setHasClosedThisSession(true)
+                            setIsLoginModalOpen(true)
                           }}
                         >
-                          ENTENDIDO
+                          ENTENDIDO E IDENTIFICARSE
                         </Button>
                       </div>
                     </PopoverContent>

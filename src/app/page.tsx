@@ -1090,12 +1090,8 @@ Mi email: ${formData.email}`
                   transition={{ duration: 0.8, ease: "easeOut" }}
                   className="text-center"
                 >
-                  <h1 className="text-5xl md:text-7xl font-light text-gray-900 mb-8 leading-[1.1] tracking-tight">
-                    {(config.subtitulo || landingData.subtitulo || "Más que fotografía, tus mejores recuerdos").split(',').map((part: string, i: number, arr: string[]) => (
-                      <span key={i} className="block">
-                        {part.trim()}{i < arr.length - 1 ? ',' : ''}
-                      </span>
-                    ))}
+                  <h1 className="text-5xl md:text-7xl font-light text-gray-900 mb-8 leading-[1.1] tracking-tight whitespace-pre-line">
+                    {config.subtitulo || landingData.subtitulo || "Más que fotografía, tus mejores recuerdos"}
                   </h1>
                   <div className="mb-10">
                     <p className="text-xs font-black tracking-[0.4em] text-[#4A7C59] uppercase opacity-80">

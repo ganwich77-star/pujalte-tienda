@@ -37,7 +37,7 @@ const HeaderContent = ({ current }: { current: Promo }) => {
       )}>
         {current.title}
       </h2>
-      <p className="text-xs md:text-base lg:text-lg text-white/80 font-medium leading-tight max-w-lg">
+      <p className="text-xs md:text-base lg:text-lg text-white/80 font-medium leading-tight max-w-lg whitespace-pre-line">
         {current.subtitle}
       </p>
     </div>

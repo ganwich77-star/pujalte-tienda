@@ -148,13 +148,13 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
             </div>
 
             <div className="p-4 sm:p-7 flex-1 flex flex-col gap-3 sm:gap-6 overflow-hidden">
-               {product.description && (
-                 <div className="bg-slate-50 p-3 sm:p-5 rounded-[1.2rem] sm:rounded-[2rem] border border-slate-100 flex-shrink-0">
-                    <p className="text-[9px] sm:text-[11px] leading-tight text-slate-500 font-bold uppercase text-center italic tracking-tight">
+                {product.description && (
+                  <div className="bg-slate-50 p-3 sm:p-5 rounded-[1.2rem] sm:rounded-[2rem] border border-slate-100 flex-shrink-0">
+                    <p className="text-[9px] sm:text-[11px] leading-tight text-slate-500 font-bold uppercase text-center italic tracking-tight whitespace-pre-line">
                        {product.description}
                     </p>
-                 </div>
-               )}
+                  </div>
+                )}
 
                {product.hasVariants && product.variants.length > 0 && (
                  <div className="flex-shrink-0">
