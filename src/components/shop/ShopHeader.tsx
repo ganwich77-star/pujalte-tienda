@@ -69,9 +69,17 @@ export function ShopHeader({
   const [mounted, setMounted] = useState(false)
   const { toast } = useToast()
 
+  const [isFirstVisit, setIsFirstVisit] = useState(false)
+
   useEffect(() => {
     setMounted(true)
-  }, [])
+    // Check if it's first visit to highlight login
+    const hasVisited = localStorage.getItem('has_visited_shop')
+    if (!hasVisited && !isLoggedIn) {
+      setIsFirstVisit(true)
+      localStorage.setItem('has_visited_shop', 'true')
+    }
+  }, [isLoggedIn])
   
   const fixPath = (path: string) => {
     if (!path) return ''
@@ -211,14 +219,61 @@ export function ShopHeader({
           {mounted && (
             <div className="flex items-center">
               {!isLoggedIn ? (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-10 w-10 rounded-full hover:bg-slate-100 text-slate-600 transition-all duration-300"
-                  onClick={() => setIsLoginModalOpen(true)}
-                >
-                  <User className="h-5 w-5" />
-                </Button>
+                <div className="relative">
+                  <Popover open={isFirstVisit} onOpenChange={setIsFirstVisit}>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size={isFirstVisit ? "default" : "icon"}
+                        className={cn(
+                          "h-10 rounded-full transition-all duration-500 relative flex items-center gap-2",
+                          isFirstVisit 
+                            ? "bg-[#4A7C59] text-white hover:bg-[#3D6649] px-4 shadow-lg shadow-[#4A7C59]/30 animate-pulse ring-4 ring-[#4A7C59]/20" 
+                            : "w-10 hover:bg-slate-100 text-slate-600"
+                        )}
+                        onClick={() => {
+                          setIsLoginModalOpen(true)
+                          setIsFirstVisit(false)
+                        }}
+                      >
+                        <User className={cn("h-5 w-5", isFirstVisit ? "animate-bounce" : "")} />
+                        {isFirstVisit && <span className="text-[10px] font-black uppercase tracking-widest translate-y-[0.5px]">IDENTIFÍCATE</span>}
+                        
+                        {!isFirstVisit && (
+                          <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4A7C59] opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-[#4A7C59]"></span>
+                          </span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-5 rounded-2xl shadow-2xl border-none bg-[#4A7C59] text-white mt-3 z-[200] animate-in fade-in zoom-in duration-500" align="end">
+                      <div className="relative space-y-3">
+                        <div className="absolute -top-8 right-2 w-4 h-4 bg-[#4A7C59] rotate-45 transform origin-bottom-left" />
+                        <div className="flex items-center gap-3">
+                          <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                            <CheckCircle2 className="h-5 w-5 text-white" />
+                          </div>
+                          <h4 className="font-black text-xs uppercase tracking-widest leading-none">¡Empieza por aquí!</h4>
+                        </div>
+                        <p className="text-[11px] font-medium leading-relaxed opacity-90">
+                          Identifícate con tu **DNI y Nombre** para poder realizar pedidos, ver tus fotos y disfrutar de una experiencia personalizada.
+                        </p>
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          className="w-full bg-white text-[#4A7C59] hover:bg-slate-100 font-black text-[10px] uppercase tracking-tighter h-8 rounded-xl"
+                          onClick={() => {
+                            setIsFirstVisit(false)
+                            setIsLoginModalOpen(true)
+                          }}
+                        >
+                          ENTENDIDO
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               ) : (
                 <div className="flex items-center gap-1.5 bg-[#4A7C59]/5 border border-[#4A7C59]/10 rounded-full pl-2.5 pr-1 h-9 shadow-sm">
                    <div className="flex flex-col items-end -space-y-0.5">

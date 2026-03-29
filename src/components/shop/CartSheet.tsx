@@ -40,6 +40,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { Button } from '@/components/ui/button'
 import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 import { db, COLLECTIONS } from '@/lib/firebase'
@@ -55,6 +56,7 @@ import { StoreConfig } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from '@/hooks/use-toast'
 import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '@/lib/utils'
 
 interface CartSheetProps {
   config: StoreConfig
@@ -462,6 +464,12 @@ _Pago: ${paymentMethodText}_`
   return (
     <>
       <SheetContent className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden border-l-0 bg-[#FCFDFE]">
+        <VisuallyHidden>
+          <SheetHeader>
+            <SheetTitle>Carrito de Compras</SheetTitle>
+            <SheetDescription>Gestiona tus productos y finaliza tu pedido</SheetDescription>
+          </SheetHeader>
+        </VisuallyHidden>
       {/* Progress Header - Now more vibrant */}
       {checkoutStep !== 'success' && (
         <div className="bg-white border-b px-4 sm:px-8 py-4 sm:py-6 sticky top-0 z-10 shadow-sm">
@@ -885,7 +893,6 @@ _Pago: ${paymentMethodText}_`
               </div>
 
               <div className="pt-8 mt-auto grid grid-cols-5 gap-4">
-              <div className="pt-8 mt-auto grid grid-cols-5 gap-4">
                 <Button 
                   variant="ghost" 
                   onClick={() => setCheckoutStep('cart')} 
@@ -912,7 +919,6 @@ _Pago: ${paymentMethodText}_`
                 >
                   SIGUIENTE <ChevronRight className="ml-3 h-6 w-6" />
                 </Button>
-              </div>
               </div>
             </motion.div>
           )}
@@ -942,77 +948,70 @@ _Pago: ${paymentMethodText}_`
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-3 space-y-6 custom-scrollbar pb-6">
-                <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'cash' | 'bizum' | 'card')} className="space-y-4">
-                  {config.enableCard && (
-                    <motion.div 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`relative flex items-center p-5 rounded-3xl border-2 cursor-pointer transition-all duration-500 group ${paymentMethod === 'card' ? 'border-[#4A7C59] bg-[#4A7C59]/[0.03]' : 'border-slate-50 bg-white shadow-sm hover:border-slate-100'}`}
-                      onClick={() => setPaymentMethod('card')}
-                    >
-                      <RadioGroupItem value="card" id="card" className="sr-only" />
-                      <div className="flex items-center gap-5 w-full">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg ${paymentMethod === 'card' ? 'bg-[#4A7C59] text-white shadow-[#4A7C59]/30 rotate-3' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-500'}`}>
-                          <CreditCard className="h-7 w-7" />
-                        </div>
-                        <div className="flex-1">
-                          <p className={`font-black text-sm uppercase tracking-wider mb-0.5 ${paymentMethod === 'card' ? 'text-[#4A7C59]' : 'text-slate-800'}`}>Tarjeta Bancaria</p>
-                          <p className="text-xs font-bold text-slate-400">Pasarela segura 256 bits</p>
-                        </div>
-                        <div className={`w-6 h-6 rounded-full border-4 flex items-center justify-center transition-all ${paymentMethod === 'card' ? 'border-[#4A7C59] bg-white' : 'border-slate-100 bg-slate-50'}`}>
-                          {paymentMethod === 'card' && <div className="w-2 h-2 rounded-full bg-[#4A7C59]" />}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
+              <div className="flex-1 overflow-y-auto pr-3 space-y-4 custom-scrollbar pb-4">
+                {(() => {
+                  const activeMethodsCount = [
+                    config.enableCard,
+                    config.enableBizum,
+                    (config.enableCash || user?.cashEnabled || cashEnabled)
+                  ].filter(Boolean).length;
 
-                  {config.enableBizum && (
-                    <motion.div 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`relative flex items-center p-5 rounded-3xl border-2 cursor-pointer transition-all duration-500 group ${paymentMethod === 'bizum' ? 'border-[#00AACB] bg-[#00AACB]/[0.03]' : 'border-slate-50 bg-white shadow-sm hover:border-slate-100'}`}
-                      onClick={() => setPaymentMethod('bizum')}
+                  return (
+                    <RadioGroup 
+                      value={paymentMethod} 
+                      onValueChange={(v) => setPaymentMethod(v as 'cash' | 'bizum' | 'card')} 
+                      className={cn(
+                        "grid gap-3",
+                        activeMethodsCount === 2 ? "grid-cols-2" : "grid-cols-3"
+                      )}
                     >
-                      <RadioGroupItem value="bizum" id="bizum" className="sr-only" />
-                      <div className="flex items-center gap-5 w-full">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg ${paymentMethod === 'bizum' ? 'bg-[#00AACB] text-white shadow-[#00AACB]/30 rotate-3' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-500'}`}>
-                          <Smartphone className="h-7 w-7" />
-                        </div>
-                        <div className="flex-1">
-                          <p className={`font-black text-sm uppercase tracking-wider mb-0.5 ${paymentMethod === 'bizum' ? 'text-[#00AACB]' : 'text-slate-800'}`}>Bizum</p>
-                          <p className="text-xs font-bold text-slate-400">Rápido y desde tu móvil</p>
-                        </div>
-                        <div className={`w-6 h-6 rounded-full border-4 flex items-center justify-center transition-all ${paymentMethod === 'bizum' ? 'border-[#00AACB] bg-white' : 'border-slate-100 bg-slate-50'}`}>
-                          {paymentMethod === 'bizum' && <div className="w-2 h-2 rounded-full bg-[#00AACB]" />}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
+                      {config.enableCard && (
+                        <motion.div 
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className={`relative flex flex-col items-center justify-center p-4 rounded-3xl border-2 cursor-pointer transition-all duration-500 group text-center ${paymentMethod === 'card' ? 'border-[#4A7C59] bg-[#4A7C59]/[0.05] shadow-lg shadow-[#4A7C59]/10' : 'border-slate-50 bg-white shadow-sm hover:border-slate-100'}`}
+                          onClick={() => setPaymentMethod('card')}
+                        >
+                          <RadioGroupItem value="card" id="card" className="sr-only" />
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 mb-2 ${paymentMethod === 'card' ? 'bg-[#4A7C59] text-white' : 'bg-slate-50 text-slate-400'}`}>
+                            <CreditCard className="h-6 w-6" />
+                          </div>
+                          <p className={`font-black text-[10px] uppercase tracking-tighter leading-tight ${paymentMethod === 'card' ? 'text-[#4A7C59]' : 'text-slate-400'}`}>Tarjeta</p>
+                        </motion.div>
+                      )}
 
-                  {config.enableCash && (user?.cashEnabled || cashEnabled) && (
-                    <motion.div 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`relative flex items-center p-5 rounded-3xl border-2 cursor-pointer transition-all duration-500 group ${paymentMethod === 'cash' ? 'border-[#C87941] bg-[#C87941]/[0.03]' : 'border-slate-50 bg-white shadow-sm hover:border-slate-100'}`}
-                      onClick={() => setPaymentMethod('cash')}
-                    >
-                      <RadioGroupItem value="cash" id="cash" className="sr-only" />
-                      <div className="flex items-center gap-5 w-full">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg ${paymentMethod === 'cash' ? 'bg-[#C87941] text-white shadow-[#C87941]/30 rotate-3' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-500'}`}>
-                          <Banknote className="h-7 w-7" />
-                        </div>
-                        <div className="flex-1">
-                          <p className={`font-black text-sm uppercase tracking-wider mb-0.5 ${paymentMethod === 'cash' ? 'text-[#C87941]' : 'text-slate-800'}`}>Recogida Local</p>
-                          <p className="text-xs font-bold text-slate-400">Paga al recoger tu pedido</p>
-                        </div>
-                        <div className={`w-6 h-6 rounded-full border-4 flex items-center justify-center transition-all ${paymentMethod === 'cash' ? 'border-[#C87941] bg-white' : 'border-slate-100 bg-slate-50'}`}>
-                          {paymentMethod === 'cash' && <div className="w-2 h-2 rounded-full bg-[#C87941]" />}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </RadioGroup>
+                      {config.enableBizum && (
+                        <motion.div 
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className={`relative flex flex-col items-center justify-center p-4 rounded-3xl border-2 cursor-pointer transition-all duration-500 group text-center ${paymentMethod === 'bizum' ? 'border-[#00AACB] bg-[#00AACB]/[0.05] shadow-lg shadow-[#00AACB]/10' : 'border-slate-50 bg-white shadow-sm hover:border-slate-100'}`}
+                          onClick={() => setPaymentMethod('bizum')}
+                        >
+                          <RadioGroupItem value="bizum" id="bizum" className="sr-only" />
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 mb-2 ${paymentMethod === 'bizum' ? 'bg-[#00AACB] text-white' : 'bg-slate-50 text-slate-400'}`}>
+                            <Smartphone className="h-6 w-6" />
+                          </div>
+                          <p className={`font-black text-[10px] uppercase tracking-tighter leading-tight ${paymentMethod === 'bizum' ? 'text-[#00AACB]' : 'text-slate-400'}`}>Bizum</p>
+                        </motion.div>
+                      )}
+
+                      {(config.enableCash || user?.cashEnabled || cashEnabled) && (
+                        <motion.div 
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className={`relative flex flex-col items-center justify-center p-4 rounded-3xl border-2 cursor-pointer transition-all duration-500 group text-center ${paymentMethod === 'cash' ? 'border-[#C87941] bg-[#C87941]/[0.05] shadow-lg shadow-[#C87941]/10' : 'border-slate-50 bg-white shadow-sm hover:border-slate-100'}`}
+                          onClick={() => setPaymentMethod('cash')}
+                        >
+                          <RadioGroupItem value="cash" id="cash" className="sr-only" />
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 mb-2 ${paymentMethod === 'cash' ? 'bg-[#C87941] text-white' : 'bg-slate-50 text-slate-400'}`}>
+                            <Banknote className="h-6 w-6" />
+                          </div>
+                          <p className={`font-black text-[10px] uppercase tracking-tighter leading-tight ${paymentMethod === 'cash' ? 'text-[#C87941]' : 'text-slate-400'}`}>Efectivo</p>
+                        </motion.div>
+                      )}
+                    </RadioGroup>
+                  );
+                })()}
 
                 <div className="mt-8">
                   <div className="p-8 rounded-[2.5rem] bg-white border border-slate-100 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] relative overflow-hidden group">
@@ -1060,16 +1059,16 @@ _Pago: ${paymentMethodText}_`
                 </div>
               </div>
 
-              <div className="pt-8 mt-auto relative">
+              <div className="pt-8 mt-auto grid grid-cols-5 gap-4">
                 <Button 
                   variant="ghost" 
                   onClick={() => setCheckoutStep('checkout')} 
-                  className="absolute left-0 top-1/2 -translate-y-1/2 rounded-3xl h-16 w-14 p-0 hover:bg-slate-50 text-slate-300 hover:text-slate-600 transition-all border-2 border-transparent z-10"
+                  className="rounded-3xl h-16 col-span-1 p-0 hover:bg-slate-50 text-slate-300 hover:text-slate-600 transition-all border-2 border-transparent"
                 >
                   <ChevronLeft className="h-8 w-8" />
                 </Button>
                 <Button 
-                  className={`w-full h-16 font-black text-base uppercase tracking-[0.1em] rounded-[2rem] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] active:scale-95 transition-all duration-500 text-white ${paymentMethod === 'cash' ? 'bg-slate-900 hover:bg-black shadow-slate-400/20' : paymentMethod === 'bizum' ? 'bg-[#00AACB] hover:bg-[#008BA5] shadow-[#00AACB]/30' : 'bg-[#4A7C59] hover:bg-[#3D6649] shadow-[#4A7C59]/30'}`} 
+                  className={`w-full h-16 font-black text-base uppercase tracking-[0.1em] rounded-[2rem] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] active:scale-95 transition-all duration-500 text-white col-span-4 ${paymentMethod === 'cash' ? 'bg-slate-900 hover:bg-black shadow-slate-400/20' : paymentMethod === 'bizum' ? 'bg-[#00AACB] hover:bg-[#008BA5] shadow-[#008BA5]/30' : 'bg-[#4A7C59] hover:bg-[#3D6649] shadow-[#4A7C59]/30'}`} 
                   onClick={paymentMethod === 'cash' ? handleWhatsAppOrder : handleCardPayment} 
                   disabled={processingPayment}
                 >
@@ -1082,15 +1081,6 @@ _Pago: ${paymentMethodText}_`
                   )}
                 </Button>
 
-                {/* Pie de marca en el checkout */}
-                <div className="pt-6 flex flex-col items-center gap-1.5 opacity-30">
-                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-[#4A7C59]">
-                    LA TECNOLOGÍA AL SERVICIO DE LOS RECUERDOS
-                  </p>
-                  <p className="text-[7px] font-black uppercase tracking-[0.4em] text-slate-900">
-                    powered by pujalte creative studio
-                  </p>
-                </div>
               </div>
             </motion.div>
           )}
@@ -1129,10 +1119,10 @@ _Pago: ${paymentMethodText}_`
               transition={{ delay: 0.5 }}
               className="flex flex-col items-center gap-1.5 border-t border-slate-900/10 pt-3 px-8"
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4A7C59]">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A7C59] whitespace-nowrap">
                 LA TECNOLOGÍA AL SERVICIO DE LOS RECUERDOS
               </p>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 opacity-60">
+              <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500 opacity-60 whitespace-nowrap mt-1">
                 POWERED BY PUJALTE CREATIVE STUDIO
               </p>
             </motion.div>
@@ -1241,12 +1231,13 @@ _Pago: ${paymentMethodText}_`
         <DialogContent className="sm:max-w-[500px] rounded-[40px] p-0 border-none bg-white overflow-hidden shadow-2xl">
           <div className="p-8 pt-10">
             <div className="mb-8 text-center">
+              <DialogTitle className="sr-only">Identificación de Cliente</DialogTitle>
               <div className="h-20 w-20 rounded-[28px] bg-gradient-to-br from-[#4A7C59] to-[#3D664A] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#4A7C59]/20 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
                 <Users className="h-10 w-10 text-white" />
               </div>
-              <DialogTitle className="text-3xl font-black text-slate-900 leading-tight mb-2 text-center">
+              <p className="text-3xl font-black text-slate-900 leading-tight mb-2 text-center">
                 ¡Bienvenido a Fotodetalles!
-              </DialogTitle>
+              </p>
               <DialogDescription className="text-slate-500 text-sm font-medium leading-relaxed max-w-[320px] mx-auto text-center">
                 Para tu comodidad, el registro solo será necesario la primera vez que compres con nosotros.
               </DialogDescription>

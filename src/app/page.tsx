@@ -976,9 +976,53 @@ Mi email: ${formData.email}`
         <div className="min-h-screen bg-white">
           <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md shadow-sm' : 'bg-transparent py-4'}`}>
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-              <button onClick={() => { console.log('Click Tienda'); setView('shop'); }} className="flex items-center gap-3 outline-none">
-                <img src={fixPath(config.logo || landingData.logo)} alt={config.storeName} className="h-10 w-auto" />
-              </button>
+              <div className="flex items-center gap-4">
+                <button onClick={() => { console.log('Click Tienda'); setView('shop'); }} className="flex items-center gap-3 outline-none">
+                  <img src={fixPath(config.logo || landingData.logo)} alt={config.storeName} className="h-10 w-auto" />
+                </button>
+                
+                {/* Menú al lado del logo en móvil */}
+                <div className="md:hidden">
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <button className="p-2 text-gray-600 hover:text-[#4A7C59] transition-colors">
+                        <Menu className="w-7 h-7" />
+                      </button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[300px] border-none p-0 flex flex-col">
+                      <div className="p-8 pb-4">
+                        <img src={fixPath(config.logo || landingData.logo)} alt={config.storeName} className="h-10 w-auto mb-8" />
+                        <SheetTitle className="text-2xl font-black uppercase tracking-tighter text-slate-900 border-none mb-2">
+                          MENÚ
+                        </SheetTitle>
+                      </div>
+                      
+                      <div className="flex-1 flex flex-col p-8 gap-6">
+                        <a href="#servicios" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Servicios</a>
+                        <a href="#productos" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Productos</a>
+                        <a href="#sobre-mi" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Sobre Mí</a>
+                        <a href="#contacto" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Contacto</a>
+                        
+                        <div className="mt-auto pt-8 border-t border-slate-100">
+                          <button 
+                            onClick={() => { 
+                              setShowSplash(true); 
+                              setTimeout(() => {
+                                setView('shop');
+                                window.scrollTo(0, 0);
+                              }, 300);
+                            }}
+                            className="w-full bg-[#4A7C59] text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-lg shadow-[#4A7C59]/20"
+                          >
+                            <ShoppingBag className="w-4 h-4" />
+                            Tienda Online
+                          </button>
+                        </div>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              </div>
               
               <div className="hidden md:flex items-center gap-8">
                 <a href="#servicios" className="text-gray-600 hover:text-[#4A7C59] transition-colors">Servicios</a>
@@ -1015,45 +1059,6 @@ Mi email: ${formData.email}`
                   <ShoppingBag className="w-4 h-4" />
                   <span>Ir a tienda</span>
                 </button>
-                
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <button className="p-2 text-gray-600 hover:text-[#4A7C59] transition-colors">
-                      <Menu className="w-7 h-7" />
-                    </button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-[300px] border-none p-0 flex flex-col">
-                    <div className="p-8 pb-4">
-                      <img src={fixPath(config.logo || landingData.logo)} alt={config.storeName} className="h-10 w-auto mb-8" />
-                      <SheetTitle className="text-2xl font-black uppercase tracking-tighter text-slate-900 border-none mb-2">
-                        MENÚ
-                      </SheetTitle>
-                    </div>
-                    
-                    <div className="flex-1 flex flex-col p-8 gap-6">
-                      <a href="#servicios" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Servicios</a>
-                      <a href="#productos" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Productos</a>
-                      <a href="#sobre-mi" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Sobre Mí</a>
-                      <a href="#contacto" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Contacto</a>
-                      
-                      <div className="mt-auto pt-8 border-t border-slate-100">
-                        <button 
-                          onClick={() => { 
-                            setShowSplash(true); 
-                            setTimeout(() => {
-                              setView('shop');
-                              window.scrollTo(0, 0);
-                            }, 300);
-                          }}
-                          className="w-full bg-[#4A7C59] text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-lg shadow-[#4A7C59]/20"
-                        >
-                          <ShoppingBag className="w-4 h-4" />
-                          Tienda Online
-                        </button>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
               </div>
             </div>
           </nav>
@@ -1592,10 +1597,6 @@ Mi email: ${formData.email}`
       )}
 
       {/* COMMON DIALOGS & OVERLAYS */}
-      {/* Debug HUD - Solo visible para depuración */}
-      <div className="fixed top-2 right-2 z-[999] opacity-10 pointer-events-none text-[8px] text-zinc-500 font-mono">
-        Banners: {config?.promos?.length || 0} | Show: {showPromo ? 'Y' : 'N'}
-      </div>
 
       {!isAdmin && (
         <>
