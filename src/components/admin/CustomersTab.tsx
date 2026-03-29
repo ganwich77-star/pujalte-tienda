@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import { 
   Users, 
   Search, 
@@ -16,7 +17,9 @@ import {
   Edit2,
   CheckCircle2,
   XCircle,
-  Trash2
+  Trash2,
+  Plus,
+  UserPlus
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -58,6 +61,14 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
   const [updating, setUpdating] = useState(false)
   const [firebaseClients, setFirebaseClients] = useState<Record<string, any>>({})
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isAddingCustomer, setIsAddingCustomer] = useState(false)
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    dni: '',
+    email: '',
+    phone: '',
+    cashEnabled: false
+  })
   const router = useRouter()
 
   // Cargar datos de clientes desde Firebase (tiene DNI, cashEnabled actualizados)
@@ -79,6 +90,35 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
     const map: Record<string, any> = {}
     snap.forEach(d => { map[d.id] = d.data() })
     setFirebaseClients(map)
+  }
+
+  const handleAddCustomer = async () => {
+    if (!newCustomer.name || (!newCustomer.email && !newCustomer.phone && !newCustomer.dni)) {
+      toast({ title: 'Datos incompletos', description: 'Nombre y al menos un dato de contacto son necesarios.', variant: 'destructive' })
+      return
+    }
+    setUpdating(true)
+    try {
+      const { doc: firestoreDoc, setDoc: firestoreSet, serverTimestamp } = await import('firebase/firestore')
+      const key = (newCustomer.dni || newCustomer.email || newCustomer.phone).trim().toUpperCase()
+      
+      await firestoreSet(firestoreDoc(db, 'clients', key), {
+        ...newCustomer,
+        dni: newCustomer.dni.trim().toUpperCase(),
+        email: newCustomer.email.toLowerCase().trim(),
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp()
+      })
+
+      toast({ title: 'Cliente añadido', description: 'El nuevo cliente se ha registrado correctamente.' })
+      setIsAddingCustomer(false)
+      setNewCustomer({ name: '', dni: '', email: '', phone: '', cashEnabled: false })
+      await reloadFirebase()
+    } catch (e) {
+      toast({ title: 'Error', description: 'No se pudo añadir el cliente.', variant: 'destructive' })
+    } finally {
+      setUpdating(false)
+    }
   }
 
   const handleDeleteCustomer = async () => {
@@ -139,6 +179,29 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
     if (dateValue.seconds) return new Date(dateValue.seconds * 1000)
     const d = new Date(dateValue)
     return isNaN(d.getTime()) ? new Date() : d
+  }
+
+  const handleToggleCash = async (customer: any) => {
+    try {
+      setUpdating(true)
+      const { doc: firestoreDoc, updateDoc: firestoreUpdate } = await import('firebase/firestore')
+      const key = customer.dni || customer.email || customer.phone
+      
+      await firestoreUpdate(firestoreDoc(db, 'clients', key), {
+        cashEnabled: !customer.cashEnabled,
+        updatedAt: new Date()
+      })
+
+      toast({ 
+        title: customer.cashEnabled ? 'Pago bloqueado' : 'Pago habilitado', 
+        description: `El cliente ${customer.name} ahora ${customer.cashEnabled ? 'no puede' : 'puede'} pagar en efectivo.` 
+      })
+      await reloadFirebase()
+    } catch (e) {
+      toast({ title: 'Error', description: 'No se pudo cambiar el estado del pago.', variant: 'destructive' })
+    } finally {
+      setUpdating(false)
+    }
   }
 
   const customers = useMemo(() => {
@@ -258,8 +321,15 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
           </div>
         </div>
 
-        <div className="flex w-full sm:w-auto">
-          <div className="relative group w-full sm:w-64">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button 
+            onClick={() => setIsAddingCustomer(true)}
+            className="h-10 sm:h-12 bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-xl sm:rounded-2xl px-5 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-[#4A7C59]/20 transition-all flex items-center gap-2 whitespace-nowrap"
+          >
+            <UserPlus className="h-4 w-4" /> <span className="hidden xs:inline">Añadir Cliente</span>
+          </Button>
+
+          <div className="relative group flex-1 sm:w-64">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors" />
             <Input
               placeholder="Buscar cliente..."
@@ -272,9 +342,9 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
             <Button 
               variant="destructive" 
               onClick={handleBulkDelete}
-              className="ml-2 h-10 sm:h-12 rounded-xl sm:rounded-2xl px-4 flex items-center gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-100"
+              className="h-10 sm:h-12 rounded-xl sm:rounded-2xl px-4 flex items-center gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-100"
             >
-              <Trash2 className="h-4 w-4" /> Borrar ({selectedIds.size})
+              <Trash2 className="h-4 w-4" /> <span className="hidden sm:inline">Borrar ({selectedIds.size})</span>
             </Button>
           )}
         </div>
@@ -380,11 +450,11 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
         </div>
 
         {/* VISTA DESKTOP (TABLE) */}
-        <div className="hidden sm:block w-full overflow-x-auto overflow-y-hidden">
-          <table className="w-full text-left border-collapse min-w-[700px] sm:min-w-auto">
+        <div className="hidden sm:block w-full overflow-hidden">
+          <table className="w-full text-left table-fixed border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-bottom border-slate-100">
-                <th className="px-5 py-5 w-12">
+                <th className="px-4 py-5 w-[40px] text-center">
                   <input 
                     type="checkbox" 
                     className="h-4 w-4 rounded border-slate-300 text-[#4A7C59] focus:ring-[#4A7C59]"
@@ -395,12 +465,11 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Cliente / DNI</th>
-                <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Contacto</th>
-                <th className="px-4 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Pedidos</th>
-                <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Inversión</th>
-                <th className="px-4 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Efectivo</th>
-                <th className="px-5 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Acción</th>
+                <th className="px-4 sm:px-5 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 w-[30%]">Cliente / DNI</th>
+                <th className="px-4 sm:px-5 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 w-[16%]">Contacto</th>
+                <th className="px-3 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-center w-[8%]">Peds.</th>
+                <th className="px-4 sm:px-5 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 w-[15%]">Inversión</th>
+                <th className="px-4 sm:px-5 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -414,7 +483,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                     exit={{ opacity: 0 }}
                     className="group hover:bg-[#4A7C59]/5 transition-colors"
                   >
-                    <td className="px-5 py-5 text-center">
+                    <td className="px-4 py-5 text-center">
                       <input 
                         type="checkbox" 
                         className="h-4 w-4 rounded border-slate-300 text-[#4A7C59] focus:ring-[#4A7C59]"
@@ -422,55 +491,57 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                         onChange={() => toggleSelect(customer.dni || customer.email || customer.phone)}
                       />
                     </td>
-                    <td className="px-5 sm:px-6 py-4 sm:py-5">
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[#4A7C59] font-black text-sm">
+                    <td className="px-4 sm:px-5 py-4 sm:py-5 overflow-hidden">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[#4A7C59] font-black text-xs">
                           {customer.name.charAt(0)}
                         </div>
-                        <div>
-                          <p className="font-black text-xs sm:text-sm text-slate-800 tracking-tight">{customer.name}</p>
-                          <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate max-w-[100px] sm:max-w-none">{customer.dni || 'SIN DNI'}</p>
+                        <div className="min-w-0 pr-2">
+                          <p className="font-black text-xs sm:text-[13px] text-slate-900 tracking-tight leading-none uppercase truncate">{customer.name}</p>
+                          <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate mt-1 opacity-70">{customer.dni || 'SIN DNI'}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                          <Mail className="h-3 w-3" /> {customer.email}
+                    <td className="px-4 sm:px-5 py-4 sm:py-5 overflow-hidden">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-300 truncate group-hover:text-slate-500 transition-colors">
+                          <Mail className="h-2.5 w-2.5 flex-shrink-0" /> <span className="truncate">{customer.email}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                          <Phone className="h-3 w-3" /> {customer.phone}
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-300 truncate group-hover:text-slate-500 transition-colors">
+                          <Phone className="h-2.5 w-2.5 flex-shrink-0" /> <span className="truncate">{customer.phone}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5 text-center">
-                      <Badge variant="outline" className="bg-slate-50 border-slate-100 font-bold text-[10px]">
+                    <td className="px-3 py-4 sm:py-5 text-center">
+                      <Badge variant="outline" className="bg-white border-slate-100 font-black text-[9px] h-5 min-w-[20px] px-1 justify-center">
                         {customer.orders.length}
                       </Badge>
                     </td>
-                    <td className="px-5 sm:px-6 py-4 sm:py-5 text-right sm:text-left">
-                      <p className="font-black text-sm sm:text-base text-[#4A7C59] tracking-tighter">{formatPrice(customer.totalSpent)}</p>
-                      <p className="text-[8px] sm:text-[9px] font-medium text-slate-400 mt-0.5">Media: {formatPrice(customer.totalSpent / Math.max(1, customer.orders.length))}</p>
+                    <td className="px-4 sm:px-5 py-4 sm:py-5 overflow-hidden">
+                      <p className="font-black text-xs sm:text-[14px] text-[#4A7C59] tracking-tighter leading-none">{formatPrice(customer.totalSpent)}</p>
+                      <p className="text-[8px] sm:text-[9px] font-bold text-slate-300 mt-1 uppercase tracking-tighter opacity-60">Avg: {formatPrice(customer.totalSpent / Math.max(1, customer.orders.length))}</p>
                     </td>
-                    <td className="px-6 py-5 text-center">
-                      {customer.cashEnabled ? (
-                        <div className="flex flex-col items-center gap-1">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                          <span className="text-[8px] font-black text-emerald-600 uppercase">Habilitado</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-1 opacity-100">
-                          <XCircle className="h-5 w-5 text-slate-300" />
-                          <span className="text-[8px] font-black text-slate-400 uppercase">Bloqueado</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-5 sm:px-6 py-4 sm:py-5 text-right">
-                      <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+                    <td className="px-4 sm:px-5 py-4 sm:py-5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1 sm:gap-1.5">
+                        {/* Botón EFECTIVO (Rápido) */}
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white shadow-sm transition-all"
+                          className={cn(
+                            "h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl shadow-sm transition-all border",
+                            customer.cashEnabled 
+                              ? "bg-emerald-50 text-emerald-500 border-emerald-100 hover:bg-emerald-100" 
+                              : "bg-slate-50 text-slate-300 border-slate-100 hover:bg-white"
+                          )}
+                          onClick={() => handleToggleCash(customer)}
+                        >
+                          <BadgeEuro className="h-4 w-4 sm:h-5 sm:w-5" />
+                        </Button>
+
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white border border-slate-100 shadow-sm transition-all"
                           onClick={() => setEditingCustomer({
                             ...customer,
                             originalEmail: customer.email,
@@ -483,7 +554,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white shadow-sm transition-all"
+                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white border border-slate-100 shadow-sm transition-all"
                           onClick={() => {
                               window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}`, '_blank')
                           }}
@@ -493,7 +564,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-red-50 text-red-300 hover:text-red-600 hover:bg-red-100 shadow-sm transition-all"
+                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-red-50 text-red-300 hover:text-red-600 hover:bg-red-100 border border-red-100 shadow-sm transition-all"
                           onClick={() => setDeletingCustomer(customer)}
                         >
                           <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -618,6 +689,81 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
               className="bg-red-600 hover:bg-red-700 text-white rounded-xl sm:rounded-2xl h-10 sm:h-12 text-xs sm:text-sm flex-1 w-full"
             >
               <Trash2 className="h-4 w-4 mr-2" /> Sí, eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de CREACIÓN (Manual) */}
+      <Dialog open={isAddingCustomer} onOpenChange={setIsAddingCustomer}>
+        <DialogContent className="w-[95vw] sm:max-w-[550px] rounded-[2.5rem] p-6 sm:p-10 border-none shadow-2xl">
+          <DialogHeader className="space-y-3">
+            <div className="w-14 h-14 bg-[#4A7C59]/10 rounded-2xl flex items-center justify-center text-[#4A7C59] mb-2">
+              <UserPlus className="w-7 h-7" />
+            </div>
+            <DialogTitle className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 leading-none">Añadir Cliente</DialogTitle>
+            <DialogDescription className="text-sm font-medium text-slate-500">
+              Registra un nuevo cliente manualmente en tu base de datos.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 py-6">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] pl-1">Nombre Completo</Label>
+              <Input 
+                placeholder="Ej: Juan Pérez"
+                value={newCustomer.name} 
+                onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                className="rounded-2xl h-12 bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-bold"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] pl-1">DNI / NIE</Label>
+              <Input 
+                placeholder="12345678Z"
+                value={newCustomer.dni} 
+                onChange={(e) => setNewCustomer({...newCustomer, dni: e.target.value})}
+                className="rounded-2xl h-12 bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-bold"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Email</Label>
+              <Input 
+                placeholder="usuario@ejemplo.com"
+                value={newCustomer.email} 
+                onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
+                className="rounded-2xl h-12 bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-medium"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Teléfono</Label>
+              <Input 
+                placeholder="600000000"
+                value={newCustomer.phone} 
+                onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                className="rounded-2xl h-12 bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-medium"
+              />
+            </div>
+            <div className="sm:col-span-2 p-5 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-between mt-2">
+              <div className="space-y-1">
+                <p className="text-sm font-black text-slate-900 leading-none">Habilitar Pago en Efectivo</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Permite que este cliente pague al recoger.</p>
+              </div>
+              <Switch 
+                checked={newCustomer.cashEnabled} 
+                onCheckedChange={(checked) => setNewCustomer({...newCustomer, cashEnabled: checked})}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex-row gap-3">
+            <Button variant="ghost" onClick={() => setIsAddingCustomer(false)} className="rounded-2xl h-12 flex-1 font-bold text-slate-400 hover:text-slate-900 mt-0">Cancelar</Button>
+            <Button 
+                onClick={handleAddCustomer}
+                disabled={updating}
+                className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-2xl px-8 h-12 flex-[1.5] font-black uppercase text-xs tracking-widest shadow-lg shadow-[#4A7C59]/20 transition-all"
+            >
+              {updating ? 'Procesando...' : 'Crear Cliente'}
             </Button>
           </DialogFooter>
         </DialogContent>
