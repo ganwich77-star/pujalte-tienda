@@ -116,8 +116,15 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
+  html, body {
     @apply bg-background text-foreground;
+    /* REGLA CRITICA: Fuerza el scroll vertical y touch-action en moviles, 
+       anulando posibles bloqueos residuales de componentes ui tipo Dialog/Sheet o framer-motion */
+    touch-action: pan-y pinch-zoom !important;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch !important;
   }
 }
 
