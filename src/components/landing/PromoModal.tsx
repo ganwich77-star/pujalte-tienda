@@ -166,7 +166,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
       />
 
       <motion.div
@@ -219,7 +219,7 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
                    <MediaContent current={current} videoRef={videoRef} />
                  </motion.div>
                </AnimatePresence>
-               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 z-10" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 z-10" />
             </div>
 
             {/* Contenido Inmersivo Agrupado (Texto + Acción) */}
@@ -262,6 +262,14 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
               </button>
             </>
           )}
+          
+          {/* Botón de cierre en la esquina superior derecha de la ventana */}
+          <button 
+            onClick={onClose}
+            className="fixed top-6 right-6 z-[250] h-12 w-12 rounded-full bg-black/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/50 transition-all border border-white/10 shadow-2xl group"
+          >
+            <X className="h-6 w-6 transition-transform group-hover:rotate-90" />
+          </button>
 
         </div>
       </motion.div>

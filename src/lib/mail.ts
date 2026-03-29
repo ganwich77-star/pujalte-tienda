@@ -6,13 +6,13 @@ const transporter = nodemailer.createTransport({
   secure: true, 
   auth: {
     user: process.env.MAIL_USER || 'hola@pujaltefotografia.es',
-    pass: process.env.MAIL_PASS,
+    pass: process.env.MAIL_PASS || 'Jpm17pass71-',
   },
 })
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pujaltefotografia.es'
 
-export const sendOrderEmails = async (order: any) => {
+export const sendOrderEmails = async (order: any, isCash: boolean = false) => {
   const { customerName, customerEmail, items, total, id, trackingNumber } = order
 
   const itemsHtml = items.map((item: any) => `
@@ -88,12 +88,13 @@ export const sendOrderEmails = async (order: any) => {
 
   const adminEmailHtml = `
     <div style="font-family: sans-serif; padding: 30px; border: 2px solid #ACC3B1; border-radius: 16px; background: #1a1a1a; color: #ffffff; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #ACC3B1; margin: 0 0 20px 0; letter-spacing: 1px;">🚀 NUEVO PEDIDO RECIBIDO</h2>
+      <h2 style="color: #ACC3B1; margin: 0 0 20px 0; letter-spacing: 1px;">🚀 ${isCash ? 'AVISO: PEDIDO PENDIENTE DE VALIDACIÓN' : 'NUEVO PEDIDO RECIBIDO'}</h2>
       
       <div style="background: #222; padding: 20px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #333;">
         <p style="margin: 0 0 10px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px;">Cliente:</strong><br/> ${customerName}</p>
         <p style="margin: 0 0 10px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px;">Email:</strong><br/> ${customerEmail}</p>
-        <p style="margin: 0 0 0 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px;">Teléfono:</strong><br/> ${order.customerPhone || 'N/A'}</p>
+        <p style="margin: 0 0 10px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px;">Teléfono:</strong><br/> ${order.customerPhone || 'N/A'}</p>
+        <p style="margin: 0 0 0 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px;">Pago:</strong><br/> ${isCash ? 'ESPECIFICO / MANUAL (PENDIENTE)' : 'PASARELA DE PAGO'}</p>
       </div>
 
       <h3 style="font-size: 12px; text-transform: uppercase; color: #555; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; letter-spacing: 1px;">Productos y Archivos 📦</h3>
@@ -112,21 +113,25 @@ export const sendOrderEmails = async (order: any) => {
   `
 
   try {
-    await transporter.sendMail({
-      from: `"Pujalte Creative Studio" <${process.env.MAIL_USER || 'hola@pujaltefotografia.es'}>`,
-      to: customerEmail,
-      subject: `✅ Pedido Confirmado - ${trackingNumber || id.slice(-6)}`,
-      html: customerEmailHtml,
-    })
+    // Solo enviamos al cliente si NO es pago en efectivo (según petición de Jose)
+    if (!isCash) {
+      await transporter.sendMail({
+        from: `"Pujalte Creative Studio" <${process.env.MAIL_USER || 'hola@pujaltefotografia.es'}>`,
+        to: customerEmail,
+        subject: `✅ Pedido Confirmado - ${trackingNumber || id.slice(-6)}`,
+        html: customerEmailHtml,
+      })
+    }
 
+    // Al administrador (Jose) se le avisa SIEMPRE
     await transporter.sendMail({
-      from: '"Gestión de Pedidos" <hola@pujaltefotografia.es>',
+      from: isCash ? '"Aviso de Pedido" <hola@pujaltefotografia.es>' : '"Gestión de Pedidos" <hola@pujaltefotografia.es>',
       to: 'hola@pujaltefotografia.es, apps@pujaltefotografia.es',
-      subject: `🚀 NUEVO PEDIDO: ${customerName}`,
+      subject: isCash ? `⚠️ PEDIDO PENDIENTE: ${customerName}` : `🚀 NUEVO PEDIDO: ${customerName}`,
       html: adminEmailHtml,
     })
 
-    console.log(`Correos enviados para el pedido ${id}`)
+    console.log(`Correos gestionados para el pedido ${id} (isCash: ${isCash})`)
   } catch (error) {
     console.error('Fallo al enviar correos de pedido:', error)
   }

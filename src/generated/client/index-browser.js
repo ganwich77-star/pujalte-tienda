@@ -155,7 +155,8 @@ exports.Prisma.ProductScalarFieldEnum = {
   minQuantity: 'minQuantity',
   stepQuantity: 'stepQuantity',
   tierPricing: 'tierPricing',
-  supplierId: 'supplierId'
+  supplierId: 'supplierId',
+  customOptions: 'customOptions'
 };
 
 exports.Prisma.ProductVariantScalarFieldEnum = {

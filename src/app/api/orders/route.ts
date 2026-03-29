@@ -61,7 +61,9 @@ export async function POST(request: NextRequest) {
 
     // 2. Enviar correos de notificación
     try {
-      await sendOrderEmails({ ...order, trackingNumber });
+      // Determinamos si es pago manual/efectivo
+      const isCash = String(paymentMethod).toUpperCase() === 'CASH';
+      await sendOrderEmails({ ...order, trackingNumber }, isCash);
     } catch (mailError) {
       console.error('Error al enviar emails de pedido:', mailError);
     }

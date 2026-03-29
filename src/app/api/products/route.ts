@@ -70,6 +70,7 @@ export async function POST(request: Request) {
         stepQuantity: parseInt(data.stepQuantity) || 1,
         tierPricing: typeof data.tierPricing === 'object' ? JSON.stringify(data.tierPricing) : data.tierPricing,
         supplierId: data.supplierId || null,
+        customOptions: data.customOptions || null,
         variants: {
           create: (data.variants || []).map((v: any) => ({
             name: v.name,
@@ -104,6 +105,7 @@ export async function PUT(request: Request) {
         stock: fields.stock !== undefined ? parseInt(fields.stock) : undefined,
         salePrice: fields.salePrice !== undefined ? parseFloat(fields.salePrice) : undefined,
         tierPricing: typeof fields.tierPricing === 'object' ? JSON.stringify(fields.tierPricing) : fields.tierPricing,
+        customOptions: fields.customOptions !== undefined ? fields.customOptions : undefined,
         variants: variants ? {
           deleteMany: {},
           create: variants.map((v: any) => ({

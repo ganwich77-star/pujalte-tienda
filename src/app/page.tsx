@@ -42,6 +42,7 @@ import { CategoryBar } from '@/components/shop/CategoryBar'
 import { ProductCard } from '@/components/shop/ProductCard'
 import { ProductListItem } from '@/components/shop/ProductListItem'
 import { LegalDialogs } from '@/components/shop/LegalDialogs'
+import { CartSheet } from '@/components/shop/CartSheet'
 import { PromoModal } from '@/components/landing/PromoModal'
 import { CookieBanner } from '@/components/landing/CookieBanner'
 import { cn } from '@/lib/utils'
@@ -107,7 +108,8 @@ const initialProductForm = {
   minQuantity: '1',
   stepQuantity: '1',
   tierPricing: [] as { minQty: number; price: number }[],
-  supplierId: ''
+  supplierId: '',
+  customOptions: '[]'
 }
 
 export default function Home() {
@@ -453,14 +455,15 @@ Mi email: ${formData.email}`
               price: parseSafePrice(t.price)
             })))
           : null,
-        variants: (dataInput.variants || []).map((v: any) => ({
-          name: v.name || "",
-          sku: v.sku || "",
-          price: parseSafePrice(v.price),
-          stock: parseInt(String(v.stock)) || 0,
-          sortOrder: v.sortOrder || 0
-        }))
-      }
+          variants: (dataInput.variants || []).map((v: any) => ({
+            name: v.name || "",
+            sku: v.sku || "",
+            price: parseSafePrice(v.price),
+            stock: parseInt(String(v.stock)) || 0,
+            sortOrder: v.sortOrder || 0
+          })),
+          customOptions: dataInput.customOptions || null
+        }
 
       // IMPORTANTE: Para evitar el error 413 "Payload Too Large" en Vercel Serverless, 
       // SOLO enviamos la imagen (Base64) si es un producto nuevo o si el usuario ha cambiado de imagen realmente.
@@ -621,7 +624,8 @@ Mi email: ${formData.email}`
         price: (v.price ?? 0).toString(),
         stock: (v.stock ?? 0).toString(),
         sortOrder: v.sortOrder ?? 0
-      }))
+      })),
+      customOptions: (product as any).customOptions || '[]'
     })
     setIsProductDialogOpen(true)
   }
@@ -873,6 +877,11 @@ Mi email: ${formData.email}`
             setIsCartOpen={setIsCartOpen}
             onBackToWeb={() => setView('landing')}
             onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+          />
+
+          <CartSheet 
+            isOpen={isCartOpen} 
+            onClose={() => setIsCartOpen(false)} 
           />
 
           <main className="container mx-auto py-8 px-4 max-w-7xl">
@@ -1299,9 +1308,13 @@ Mi email: ${formData.email}`
                       {[0, 1, 2].map((offset) => {
                         const itemIdx = (galleryIndex + offset) % filteredGallery.length
                         const img = filteredGallery[itemIdx]
-                              return (
+                        
+                        // Si no hay imagen en este índice, no renderizamos nada
+                        if (!img) return null;
+
+                        return (
                           <div 
-                            key={`${img.id}-${itemIdx}`}
+                            key={`gallery-item-${img.id || itemIdx}-${offset}`}
                             className={cn(
                               "w-full transition-all duration-500",
                               offset > 0 ? "hidden md:block" : "block"

@@ -137,8 +137,26 @@ export function ShopHeader({
             setLoginName('')
             
             toast({
-              title: "¡Bienvenido/a!",
-              description: `Hola ${data.fullName || loginName}, te has identificado correctamente.`,
+              title: (
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-[#4A7C59] flex items-center justify-center shadow-lg shadow-[#4A7C59]/20">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-sm font-black tracking-tight uppercase">¡Bienvenido/a a la Experiencia!</span>
+                </div>
+              ) as any,
+              description: (
+                <div className="flex flex-col gap-1 ml-11">
+                  <p className="text-xs text-slate-500 font-medium leading-tight">
+                    Hola <span className="text-[#4A7C59] font-black uppercase tracking-tighter">{data.fullName || loginName}</span>, es un placer volverte a ver.
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest opacity-70">
+                    SISTEMA IDENTIFICADO CORRECTAMENTE
+                  </p>
+                </div>
+              ) as any,
+              className: "bg-white/95 backdrop-blur-md border-none shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[1.5rem] p-6",
+              duration: 5000,
             })
           }
         } else {
@@ -156,7 +174,7 @@ export function ShopHeader({
   }
 
   return (
-    <header className="sticky top-0 z-[100] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm px-4">
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm px-4">
       <div className="container flex h-16 items-center justify-between max-w-7xl mx-auto">
         {/* LOGO & WEB BUTTON */}
         <div className="flex items-center gap-2 sm:gap-4">
@@ -235,7 +253,7 @@ export function ShopHeader({
                   </Button>
                 </div>
               </SheetTrigger>
-              <CartSheet config={config} formatPrice={formatPrice} onClose={() => setIsCartOpen(false)} />
+              <CartSheet isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
             </Sheet>
           ) : (
             <Button variant="outline" onClick={() => setIsAdmin(false)} className="rounded-full h-10 px-4 gap-2 border-[#4A7C59]/20 hover:bg-[#4A7C59]/5 text-[#4A7C59] font-bold border-2 hidden sm:flex">
@@ -297,7 +315,7 @@ export function ShopHeader({
                             setIsLoginModalOpen(true)
                           }}
                         >
-                          ENTENDIDO E IDENTIFICARSE
+                          ENTENDIDO
                         </Button>
                       </div>
                     </PopoverContent>

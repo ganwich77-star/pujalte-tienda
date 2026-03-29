@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon } from 'lucide-react'
+import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon, X, Palette } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -139,6 +139,15 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
         <div className="relative flex-1 flex flex-col overflow-hidden">
             <div className="relative aspect-square w-full overflow-hidden bg-slate-50 min-h-[250px] sm:min-h-0">
               <img src={fixPath(product.image || '')} alt={product.name} className="w-full h-full object-cover transition-all duration-500" />
+              
+              {/* Botón de cierre en la esquina superior derecha */}
+              <button 
+                onClick={() => setOpen(false)}
+                className="fixed top-6 right-6 z-[250] h-11 w-11 rounded-full bg-black/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/50 transition-all border border-white/10 shadow-2xl group"
+              >
+                <X className="h-5 w-5 transition-transform group-hover:rotate-90" />
+              </button>
+
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
               <div className="absolute bottom-4 left-5 right-5">
                  <DialogTitle className="text-xl sm:text-2xl font-black text-white leading-none tracking-tight uppercase italic underline decoration-blue-500 decoration-3 underline-offset-4">
@@ -155,6 +164,45 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                     </p>
                   </div>
                 )}
+
+                {/* OPCIONES DE PERSONALIZACIÓN DINÁMICAS (EJ: FORMAS PEANA) */}
+                {(() => {
+                  try {
+                    const options = product.customOptions ? JSON.parse(product.customOptions) : [];
+                    if (!Array.isArray(options) || options.length === 0) return null;
+                    
+                    return (
+                      <div className="flex flex-col gap-4 flex-shrink-0 mt-1 mb-1">
+                        {options.map((opt: any, idx: number) => (
+                          <div key={idx} className="space-y-1.5 px-0.5">
+                            <div className="flex items-center gap-2">
+                              <Palette className="h-3 w-3 text-orange-500" />
+                              <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 italic leading-none">{opt.title}</span>
+                              {opt.required && <Badge variant="outline" className="text-[6px] h-3 px-1 border-orange-200 text-orange-500 uppercase font-black tracking-tighter bg-orange-50">ELEGIR</Badge>}
+                            </div>
+                            <Select 
+                              onValueChange={(val) => {
+                                // Aquí podrías guardar la elección en un estado si fuera necesario para el carrito
+                                console.log(`[OPT] ${opt.title} selected:`, val);
+                              }}
+                            >
+                              <SelectTrigger className="w-full h-11 sm:h-12 rounded-xl border border-slate-100 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest px-4 shadow-sm hover:border-orange-200 transition-colors">
+                                <SelectValue placeholder={`SELECCIONAR ${opt.title}...`} />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl border border-slate-100 shadow-2xl p-1 bg-white">
+                                {opt.values.map((v: string) => (
+                                  <SelectItem key={v} value={v} className="text-[10px] font-black uppercase rounded-lg py-2.5 focus:bg-orange-600 focus:text-white transition-colors cursor-pointer capitalize">
+                                    {v}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  } catch (e) { return null; }
+                })()}
 
                {product.hasVariants && product.variants.length > 0 && (
                  <div className="flex-shrink-0">

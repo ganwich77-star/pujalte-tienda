@@ -47,6 +47,7 @@ model Product {
   stepQuantity    Int?             @default(1)
   tierPricing     String?
   supplierId      String?
+  customOptions   String? // JSON con opciones de personalización (ej: formas)
   category        Category?        @relation(fields: [categoryId], references: [id])
   supplier        Supplier?        @relation(fields: [supplierId], references: [id])
   variants        ProductVariant[]

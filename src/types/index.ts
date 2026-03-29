@@ -33,6 +33,7 @@ export interface Product {
   tierPricing?: { minQty: number; price: number }[] | string | null
   supplierId?: string | null
   supplier?: { id: string; name: string } | null
+  customOptions?: string | null
 }
 
 export interface Category {

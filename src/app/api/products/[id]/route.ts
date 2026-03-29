@@ -43,7 +43,7 @@ export async function PUT(
     const allowedFields = [
       'name', 'description', 'price', 'categoryId', 'active', 'image', 'stock',
       'hasVariants', 'variantType', 'variantBehavior', 'sortOrder', 'showPrice',
-      'isPack', 'packItems', 'isNew', 'salePrice', 'minQuantity', 'stepQuantity', 'tierPricing', 'supplierId'
+      'isPack', 'packItems', 'isNew', 'salePrice', 'minQuantity', 'stepQuantity', 'tierPricing', 'supplierId', 'customOptions'
     ];
 
     const filteredData: any = {};

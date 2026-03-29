@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { 
-  Plus, Package, Edit, Trash2, Eye, EyeOff, ImageIcon, 
+import {
+  Plus, Package, Edit, Trash2, Eye, EyeOff, ImageIcon,
   ImageOff, Upload, GripVertical, Check, X as CloseIcon, ZoomIn, ZoomOut,
   ArrowUp, ArrowDown, Info, Sparkles, ArrowUpDown, Search, Filter, ShoppingCart,
-  ChevronDown, ChevronUp, Percent, Settings2, Loader2
+  ChevronDown, ChevronUp, Percent, Settings2, Loader2, Palette
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Checkbox } from "@/components/ui/checkbox"
@@ -22,8 +22,8 @@ const fixPath = (path: string | null | undefined) => {
   return path.startsWith('/') ? path : `/${path}`
 }
 
-import { 
-  DndContext, 
+import {
+  DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
@@ -31,40 +31,40 @@ import {
   useSensors,
   DragEndEvent
 } from '@dnd-kit/core'
-import { 
-  arrayMove, 
-  SortableContext, 
-  sortableKeyboardCoordinates, 
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Product, Category } from '@/types'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -109,15 +109,15 @@ interface ProductsTabProps {
 // Quitamos la versión local de fixPath y usamos la de @/lib/utils importada arriba (línea 47)
 
 // Componente DebouncedInput para edición rápida sin lag de red
-function DebouncedInput({ 
-  value: initialValue, 
-  onChange, 
-  debounce = 500, 
-  ...props 
-}: { 
-  value: string | number, 
-  onChange: (val: string | number) => void, 
-  debounce?: number 
+function DebouncedInput({
+  value: initialValue,
+  onChange,
+  debounce = 500,
+  ...props
+}: {
+  value: string | number,
+  onChange: (val: string | number) => void,
+  debounce?: number
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   const [value, setValue] = useState(initialValue)
 
@@ -135,20 +135,20 @@ function DebouncedInput({
   }, [debouncedValue, onChange, initialValue])
 
   return (
-    <input 
-      {...props} 
-      value={value} 
-      onChange={e => setValue(e.target.value)} 
+    <input
+      {...props}
+      value={value}
+      onChange={e => setValue(e.target.value)}
     />
   )
 }
 
-function SortableProductRow({ 
-  product, 
-  onEditProduct, 
-  onUpdateProductField, 
-  onToggleActive, 
-  onDeleteProduct, 
+function SortableProductRow({
+  product,
+  onEditProduct,
+  onUpdateProductField,
+  onToggleActive,
+  onDeleteProduct,
   categories,
   onImageClick,
   isSelected,
@@ -172,8 +172,8 @@ function SortableProductRow({
   }
 
   return (
-    <TableRow 
-      ref={setNodeRef} 
+    <TableRow
+      ref={setNodeRef}
       style={style}
       className={`group border-b border-slate-50 transition-colors h-16 ${isDragging ? 'bg-slate-50 shadow-inner' : 'hover:bg-slate-50/50'}`}
     >
@@ -182,15 +182,15 @@ function SortableProductRow({
           <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1.5 hover:bg-black/5 rounded-lg transition-colors">
             <GripVertical className="h-4 w-4 text-slate-300" />
           </div>
-          <Checkbox 
-            checked={isSelected} 
+          <Checkbox
+            checked={isSelected}
             onCheckedChange={() => onSelect(product.id)}
             className="h-5 w-5 rounded-md border-slate-200"
           />
         </div>
       </TableCell>
       <TableCell className="w-16 px-2">
-        <div 
+        <div
           className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group/img cursor-pointer shadow-sm mx-auto transition-transform hover:scale-105 active:scale-95"
           onClick={() => onImageClick(product)}
         >
@@ -215,8 +215,8 @@ function SortableProductRow({
         </div>
       </TableCell>
       <TableCell className="w-40 px-2 lg:px-4 text-center">
-        <Select 
-          value={product.categoryId || 'none'} 
+        <Select
+          value={product.categoryId || 'none'}
           onValueChange={(val) => onUpdateProductField(product.id, 'categoryId', val === 'none' ? null : val)}
         >
           <SelectTrigger className="h-8 border-none bg-slate-50/50 rounded-lg text-[9px] font-black uppercase tracking-widest px-2 shadow-sm hover:bg-white transition-all mx-auto max-w-[140px]">
@@ -230,10 +230,10 @@ function SortableProductRow({
           </SelectContent>
         </Select>
       </TableCell>
-      
+
       <TableCell className="w-32 px-2 text-center">
-        <Select 
-          value={product.supplierId || 'none'} 
+        <Select
+          value={product.supplierId || 'none'}
           onValueChange={(val) => onUpdateProductField(product.id, 'supplierId', val === 'none' ? null : val)}
         >
           <SelectTrigger className="h-8 border-none bg-slate-50/50 rounded-lg text-[9px] font-black uppercase tracking-widest px-2 shadow-sm hover:bg-white transition-all mx-auto max-w-[120px]">
@@ -247,7 +247,7 @@ function SortableProductRow({
           </SelectContent>
         </Select>
       </TableCell>
-      
+
       <TableCell className="w-32 text-right pr-4">
         <div className="flex flex-col items-end gap-0.5">
           <div className="flex items-center gap-1">
@@ -266,22 +266,22 @@ function SortableProductRow({
 
       <TableCell className="w-44 px-2">
         <div className="flex items-center justify-end gap-2">
-          <Button 
-            size="icon" 
-            variant="ghost" 
+          <Button
+            size="icon"
+            variant="ghost"
             onClick={() => onToggleActive(product)}
             className={`h-8 w-8 rounded-lg border transition-all active:scale-90 ${
-              product.active 
-                ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' 
+              product.active
+                ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'
                 : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
             }`}
           >
             {product.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           </Button>
-          <Button 
-            size="icon" 
-            variant="ghost" 
-            onClick={() => onEditProduct(product)} 
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onEditProduct(product)}
             className="h-8 w-8 rounded-lg bg-slate-900 text-white hover:bg-black transition-all active:scale-90"
           >
             <Edit className="h-4 w-4" />
@@ -329,34 +329,34 @@ function SortableVariantRow({ index, variant, updateVariant, removeVariant }: an
   }
 
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
+    <div
+      ref={setNodeRef}
+      style={style}
       className={`flex items-center gap-3 bg-white p-3 rounded-2xl shadow-xs border ${isDragging ? 'border-blue-200 shadow-lg' : 'border-slate-100 hover:border-slate-200'} transition-all group`}
     >
       <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1.5 hover:bg-slate-50 rounded-lg text-slate-300 hover:text-slate-400 h-8 w-8 flex items-center justify-center transition-colors">
         <GripVertical className="h-4 w-4" />
       </div>
       <div className="flex-1 space-y-1">
-        <Input 
-          value={variant.name} 
-          onChange={(e) => updateVariant(index, 'name', e.target.value)} 
-          className="bg-slate-50 border-transparent h-10 text-[10px] font-black rounded-xl px-4 uppercase flex-1 focus:bg-white transition-all shadow-inner placeholder:text-slate-300" 
-          placeholder="NOMBRE (EJ: 15X15)" 
+        <Input
+          value={variant.name}
+          onChange={(e) => updateVariant(index, 'name', e.target.value)}
+          className="bg-slate-50 border-transparent h-10 text-[10px] font-black rounded-xl px-4 uppercase flex-1 focus:bg-white transition-all shadow-inner placeholder:text-slate-300"
+          placeholder="NOMBRE (EJ: 15X15)"
         />
       </div>
       <div className="relative w-28">
-        <Input 
-          type="number" 
-          value={variant.price || ''} 
-          onChange={(e) => updateVariant(index, 'price', Number(e.target.value))} 
-          className="bg-slate-50 border-transparent h-10 text-[10px] font-black rounded-xl pr-8 text-right w-full focus:bg-white transition-all shadow-inner" 
-          placeholder="0" 
+        <Input
+          type="number"
+          value={variant.price || ''}
+          onChange={(e) => updateVariant(index, 'price', Number(e.target.value))}
+          className="bg-slate-50 border-transparent h-10 text-[10px] font-black rounded-xl pr-8 text-right w-full focus:bg-white transition-all shadow-inner"
+          placeholder="0"
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300">€</span>
       </div>
-      <button 
-        onClick={() => removeVariant(index)} 
+      <button
+        onClick={() => removeVariant(index)}
         className="h-10 w-10 flex items-center justify-center text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
       >
         <Trash2 className="h-4 w-4" />
@@ -365,15 +365,15 @@ function SortableVariantRow({ index, variant, updateVariant, removeVariant }: an
   )
 }
 
-export function ProductsTab({ 
-  products, 
+export function ProductsTab({
+  products,
   categories,
   onAddProduct,
-  onEditProduct, 
-  onUpdateProductField, 
-  onToggleActive, 
-  onDeleteProduct, 
-  onReorderProducts, 
+  onEditProduct,
+  onUpdateProductField,
+  onToggleActive,
+  onDeleteProduct,
+  onReorderProducts,
   formatPrice,
   showImages,
   setIsProductDialogOpen,
@@ -423,8 +423,8 @@ export function ProductsTab({
     // Filtrado por búsqueda
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
-      filtered = filtered.filter(p => 
-        p.name.toLowerCase().includes(term) || 
+      filtered = filtered.filter(p =>
+        p.name.toLowerCase().includes(term) ||
         p.id.toLowerCase().includes(term)
       )
     }
@@ -489,10 +489,10 @@ export function ProductsTab({
       } else if (productToDeleteId) {
         await onDeleteProduct(productToDeleteId)
       }
-      
+
       toast({
         title: isBulkAction ? "BORRADO MASIVO COMPLETADO" : "PRODUCTO ELIMINADO",
-        description: isBulkAction 
+        description: isBulkAction
           ? `SE HAN ELIMINADO ${selectedIds.length} PRODUCTOS CORRECTAMENTE.`
           : "EL PRODUCTO HA SIDO BORRADO DE TU CATÁLOGO.",
         className: "bg-emerald-500 text-white border-none font-black rounded-xl",
@@ -607,8 +607,8 @@ export function ProductsTab({
 
         <div className="flex items-center gap-4">
           {selectedIds.length > 0 && (
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleBulkDelete}
               className="h-11 px-6 rounded-xl font-bold uppercase tracking-wider text-xs shadow-md"
             >
@@ -616,7 +616,7 @@ export function ProductsTab({
               ELIMINAR
             </Button>
           )}
-          <Button 
+          <Button
             onClick={onAddProduct}
             className="bg-black text-white h-11 px-8 rounded-xl font-bold uppercase tracking-wider text-sm shadow-xl hover:bg-slate-800 transition-all active:scale-95 group"
           >
@@ -630,7 +630,7 @@ export function ProductsTab({
       <div className="bg-white px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row items-center gap-4 shadow-sm relative z-10">
         <div className="relative flex-1 w-full group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
-          <Input 
+          <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="BUSCAR PRODUCTO POR NOMBRE O REF..."
@@ -638,7 +638,7 @@ export function ProductsTab({
           />
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button 
+          <Button
             variant="outline"
             className="h-11 w-11 rounded-xl bg-slate-50 border-slate-200 text-slate-400 group-focus-within:text-black group-focus-within:bg-white transition-all shadow-sm p-0"
           >
@@ -661,7 +661,7 @@ export function ProductsTab({
             </SelectContent>
           </Select>
           {sortConfig.key && (
-            <Button 
+            <Button
               onClick={() => onReorderProducts(sortedProducts)}
               className="h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center gap-2"
             >
@@ -669,8 +669,8 @@ export function ProductsTab({
               FIJAR ORDEN ACTUAL
             </Button>
           )}
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => {setSearchTerm(''); setCategoryFilter('all'); setSortConfig({ key: '', direction: null })}}
             className="h-11 w-11 rounded-xl text-slate-300 hover:text-black hover:bg-slate-100 bg-slate-50 border border-slate-200 shadow-sm"
           >
@@ -699,8 +699,8 @@ export function ProductsTab({
               <TableBody>
                 <SortableContext items={sortedProducts} strategy={verticalListSortingStrategy}>
                   {sortedProducts.map((product) => (
-                    <SortableProductRow 
-                      key={product.id} 
+                    <SortableProductRow
+                      key={product.id}
                       product={product}
                       onEditProduct={onEditProduct}
                       onUpdateProductField={onUpdateProductField}
@@ -728,12 +728,12 @@ export function ProductsTab({
       <ScrollArea className="flex-1 md:hidden bg-slate-50/50">
         <div className="space-y-2 px-3 py-4 pb-32">
           {sortedProducts.map((product) => (
-            <div 
-              key={product.id} 
+            <div
+              key={product.id}
               className="bg-white rounded-xl border border-slate-100 p-3 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden group flex gap-3 items-center"
             >
               {/* Miniatura */}
-              <div 
+              <div
                 className="h-14 w-14 rounded-lg overflow-hidden border border-slate-50 flex-shrink-0 bg-slate-50"
                 onClick={() => {
                   setCroppingProduct(product)
@@ -753,8 +753,8 @@ export function ProductsTab({
               {/* Info Principal */}
               <div className="flex-1 min-w-0 flex flex-col justify-center">
                 <div className="flex items-center gap-2">
-                   <Checkbox 
-                    checked={selectedIds.includes(product.id)} 
+                   <Checkbox
+                    checked={selectedIds.includes(product.id)}
                     onCheckedChange={() => handleSelect(product.id)}
                     className="h-4 w-4 rounded border-slate-200"
                   />
@@ -771,7 +771,7 @@ export function ProductsTab({
 
               {/* Acciones Rápidas */}
               <div className="flex items-center gap-1">
-                <Button 
+                <Button
                   size="icon"
                   variant="ghost"
                   onClick={() => onEditProduct(product)}
@@ -779,7 +779,7 @@ export function ProductsTab({
                 >
                   <Edit className="h-3.5 w-3.5" />
                 </Button>
-                
+
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-red-50 text-red-400 border border-red-100">
@@ -830,7 +830,7 @@ export function ProductsTab({
                 <CloseIcon className="h-5 w-5" />
               </Button>
             </div>
-            
+
             <div className="flex-1 relative min-h-[400px]">
               <Cropper
                 image={cropImage || ''}
@@ -857,16 +857,16 @@ export function ProductsTab({
                 />
                 <ZoomIn className="text-white/40 h-4 w-4" />
               </div>
-              
+
               <div className="flex gap-4">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => setCropImage(null)}
                   className="flex-1 h-11 rounded-xl font-bold uppercase tracking-wider text-[10px] border border-white/10 bg-transparent text-white/50 hover:bg-white/5 hover:text-white transition-all"
                 >
                   Cancelar
                 </Button>
-                <Button 
+                <Button
                   onClick={handleApplyCrop}
                   className="flex-[2] h-11 rounded-xl font-bold uppercase tracking-wider text-[10px] bg-white text-black hover:bg-slate-100 shadow-lg"
                 >
@@ -902,14 +902,14 @@ export function ProductsTab({
 
             <ScrollArea className="flex-1 min-h-0 bg-white">
               <div className="px-6 py-4 space-y-4 pb-8">
-                
+
                 {/* SECCIÓN 1: GENERAL */}
                 <section>
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                     {/* Left: Image Selection */}
                     <div className="md:col-span-4 space-y-4">
                       <div className="flex flex-col items-center gap-4">
-                        <div 
+                        <div
                           className="relative group w-24 h-24"
                           onClick={() => formImageInputRef.current?.click()}
                         >
@@ -926,12 +926,12 @@ export function ProductsTab({
                             <Upload className="h-4 w-4" />
                           </div>
                         </div>
-                        
-                        <div 
+
+                        <div
                           onClick={() => setProductForm({...productForm, isNew: !productForm.isNew})}
                           className={`w-full rounded-2xl p-3 border transition-all cursor-pointer flex items-center justify-between select-none ${
-                            productForm.isNew 
-                              ? 'bg-amber-50 border-amber-200 shadow-sm' 
+                            productForm.isNew
+                              ? 'bg-amber-50 border-amber-200 shadow-sm'
                               : 'bg-slate-50 border-slate-100 opacity-60'
                           }`}
                         >
@@ -941,8 +941,8 @@ export function ProductsTab({
                                 productForm.isNew ? 'text-amber-800' : 'text-slate-400'
                             }`}>Novedad</Label>
                           </div>
-                          <Switch 
-                            checked={!!productForm.isNew} 
+                          <Switch
+                            checked={!!productForm.isNew}
                             onCheckedChange={(checked) => setProductForm({...productForm, isNew: checked})}
                             className="scale-75 data-[state=checked]:bg-amber-500"
                           />
@@ -950,17 +950,17 @@ export function ProductsTab({
 
                         {/* PRECIO OFERTA COMPACTO BAJO NOVEDAD */}
                         <div className="w-full space-y-2">
-                          <div 
+                          <div
                             onClick={() => {
                               const isOffered = !!productForm.salePrice;
                               setProductForm({
-                                ...productForm, 
+                                ...productForm,
                                 salePrice: isOffered ? null : (productForm.price ? productForm.price * 0.9 : 0)
                               })
                             }}
                             className={`w-full rounded-2xl p-3 border transition-all cursor-pointer flex items-center justify-between select-none ${
-                              productForm.salePrice 
-                                ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
+                              productForm.salePrice
+                                ? 'bg-emerald-50 border-emerald-200 shadow-sm'
                                 : 'bg-slate-50 border-slate-100 opacity-60'
                             }`}
                           >
@@ -970,23 +970,23 @@ export function ProductsTab({
                                   productForm.salePrice ? 'text-emerald-800' : 'text-slate-400'
                               }`}>Oferta</Label>
                             </div>
-                            <Switch 
-                              checked={!!productForm.salePrice} 
+                            <Switch
+                              checked={!!productForm.salePrice}
                               onCheckedChange={(checked) => setProductForm({...productForm, salePrice: checked ? (productForm.price ? productForm.price * 0.9 : 0) : null})}
                               className="scale-75 data-[state=checked]:bg-emerald-500"
                             />
                           </div>
 
                           {!!productForm.salePrice && (
-                            <motion.div 
+                            <motion.div
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               className="w-full"
                             >
                               <div className="relative">
-                                <Input 
+                                <Input
                                   type="number" step="0.01"
-                                  value={productForm.salePrice || ''} 
+                                  value={productForm.salePrice || ''}
                                   onChange={(e) => setProductForm({...productForm, salePrice: e.target.value ? Number(e.target.value) : 0})}
                                   className="rounded-xl h-9 text-xs font-black bg-emerald-50/50 border-emerald-100 text-emerald-800 pl-3 pr-8 focus:bg-white transition-all italic text-center"
                                   placeholder="0.00"
@@ -1004,8 +1004,8 @@ export function ProductsTab({
                       <div className="grid grid-cols-[1fr_90px] gap-4 bg-slate-50/50 p-3 rounded-[1.5rem] border border-slate-100/50 items-end">
                         <div className="space-y-1.5 min-w-0">
                           <Label className="text-[9px] font-black text-blue-300 uppercase tracking-widest ml-1">Nombre Comercial</Label>
-                          <Input 
-                            value={productForm.name} 
+                          <Input
+                            value={productForm.name}
                             onChange={(e) => setProductForm({...productForm, name: e.target.value})}
                             className="rounded-xl h-11 text-sm font-black bg-white border-transparent px-4 focus:bg-white focus:border-blue-100 transition-all uppercase shadow-sm"
                             placeholder="NOMBRE..."
@@ -1014,10 +1014,10 @@ export function ProductsTab({
                         <div className="space-y-1.5">
                           <Label className="text-[9px] font-black text-blue-300 uppercase tracking-widest ml-1">Precio</Label>
                           <div className="relative group/price w-full" style={{ height: '44px' }}>
-                            <Input 
+                            <Input
                               type="number"
                               step="0.01"
-                              value={productForm.price || ''} 
+                              value={productForm.price || ''}
                               onChange={(e) => setProductForm({...productForm, price: Number(e.target.value)})}
                               style={{ height: '44px', minHeight: '44px' }}
                               className="rounded-xl !h-[44px] text-md font-black bg-white border border-slate-100 pl-3 pr-8 text-right shadow-sm group-hover/price:shadow-md transition-all w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -1031,11 +1031,11 @@ export function ProductsTab({
                       <div className="grid grid-cols-2 gap-3 bg-slate-50/50 p-3 rounded-[1.5rem] border border-slate-100/50 items-end">
                         <div className="flex flex-col gap-2 min-w-0">
                           <Label className="text-[8px] font-black text-blue-400/60 uppercase tracking-[0.2em] ml-2">Categoría</Label>
-                          <Select 
-                            value={productForm.categoryId || 'none'} 
+                          <Select
+                            value={productForm.categoryId || 'none'}
                             onValueChange={(val) => setProductForm({...productForm, categoryId: val === 'none' ? null : val})}
                           >
-                            <SelectTrigger 
+                            <SelectTrigger
                               style={{ height: '44px', minHeight: '44px' }}
                               className="rounded-xl !h-[44px] text-[10px] font-black bg-white border border-slate-100 px-4 uppercase tracking-widest shadow-sm hover:shadow-md transition-all w-full overflow-hidden flex items-center"
                             >
@@ -1051,11 +1051,11 @@ export function ProductsTab({
                         </div>
                         <div className="flex flex-col gap-2 min-w-0">
                            <Label className="text-[8px] font-black text-blue-400/60 uppercase tracking-[0.2em] ml-2">Proveedor</Label>
-                           <Select 
-                            value={productForm.supplierId || 'none'} 
+                           <Select
+                            value={productForm.supplierId || 'none'}
                             onValueChange={(val) => setProductForm({...productForm, supplierId: val === 'none' ? null : val})}
                           >
-                            <SelectTrigger 
+                            <SelectTrigger
                               style={{ height: '44px', minHeight: '44px' }}
                               className="rounded-xl !h-[44px] text-[10px] font-black bg-white border border-slate-100 px-4 uppercase tracking-widest shadow-sm hover:shadow-md transition-all w-full overflow-hidden flex items-center"
                             >
@@ -1073,8 +1073,8 @@ export function ProductsTab({
 
                       <div className="space-y-1.5">
                         <Label className="text-[9px] font-black text-blue-300 uppercase tracking-widest ml-1">Descripción</Label>
-                        <Textarea 
-                          value={productForm.description || ''} 
+                        <Textarea
+                          value={productForm.description || ''}
                           onChange={(e) => setProductForm({...productForm, description: e.target.value})}
                           className="rounded-xl min-h-[70px] text-xs bg-slate-50 border-transparent px-4 py-2 focus:bg-white transition-all shadow-sm"
                         />
@@ -1087,76 +1087,96 @@ export function ProductsTab({
                 <section className="space-y-4">
                     <div className="bg-white rounded-[1.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
                       {/* BARRA DE NAVEGACIÓN ÚNICA: REFINADA */}
-                      <div className="p-1.5 grid grid-cols-[1fr_1fr_1fr_42px] gap-1 border-b border-slate-50 bg-slate-50/40">
-                        <button 
-                          onClick={() => {
-                            setActivePromoTab('variants');
-                            setIsPromoOpen(true);
-                          }}
-                          className={`flex flex-col items-center justify-center gap-0.5 h-10 rounded-[0.7rem] transition-all duration-300 select-none ${
-                            activePromoTab === 'variants' && isPromoOpen
-                              ? 'bg-slate-900 text-white shadow-md shadow-slate-200' 
-                              : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                          }`}
-                        >
-                          <Settings2 className={`h-3 w-3 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                          <div className="flex flex-col items-center leading-none">
-                            <span className="text-[7.5px] font-black uppercase tracking-wider">VARIANTES</span>
-                            <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white/60' : 'text-slate-400'}`}>Opciones</span>
+                      <div className="p-1.5 space-y-1 bg-slate-50/40 border-b border-slate-50">
+                        <div className="grid grid-cols-4 gap-1">
+                          <button
+                            onClick={() => {
+                              setActivePromoTab('variants');
+                              setIsPromoOpen(true);
+                            }}
+                            className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
+                              activePromoTab === 'variants' && isPromoOpen
+                                ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
+                                : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
+                            }`}
+                          >
+                            <Settings2 className={`h-3 w-3 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
+                            <div className="flex flex-col items-center leading-none">
+                              <span className="text-[7.5px] font-black uppercase tracking-wider">VARIANTES</span>
+                              <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white/60' : 'text-slate-400'}`}>Opciones</span>
+                            </div>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setActivePromoTab('custom_options' as any);
+                              setIsPromoOpen(true);
+                            }}
+                            className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
+                              activePromoTab === ('custom_options' as any) && isPromoOpen
+                                ? 'bg-orange-600 text-white shadow-md shadow-orange-100'
+                                : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
+                            }`}
+                          >
+                            <Palette className={`h-3 w-3 ${activePromoTab === ('custom_options' as any) && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
+                            <div className="flex flex-col items-center leading-none">
+                              <span className="text-[7.5px] font-black uppercase tracking-wider">PERSONALIZA</span>
+                              <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === ('custom_options' as any) && isPromoOpen ? 'text-orange-100' : 'text-slate-400'}`}>Formas</span>
+                            </div>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setActivePromoTab('quantities');
+                              setIsPromoOpen(true);
+                            }}
+                            className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
+                              activePromoTab === 'quantities' && isPromoOpen
+                                ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
+                                : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
+                            }`}
+                          >
+                            <Package className={`h-3 w-3 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
+                            <div className="flex flex-col items-center leading-none">
+                              <span className="text-[7.5px] font-black uppercase tracking-wider">CANTIDADES</span>
+                            <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-blue-100' : 'text-slate-400'}`}>Operativa</span>
                           </div>
                         </button>
-  
-                        <button 
+
+                        <button
                           onClick={() => {
-                            setActivePromoTab('quantities');
+                            setActivePromoTab('tiers');
                             setIsPromoOpen(true);
                           }}
-                          className={`flex flex-col items-center justify-center gap-0.5 h-10 rounded-[0.7rem] transition-all duration-300 select-none ${
-                            activePromoTab === 'quantities' && isPromoOpen
-                              ? 'bg-blue-600 text-white shadow-md shadow-blue-100' 
+                          className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
+                            activePromoTab === 'tiers' && isPromoOpen
+                              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100'
                               : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
                           }`}
                         >
-                          <Package className={`h-3 w-3 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
+                          <ArrowUpDown className={`h-3 w-3 ${activePromoTab === 'tiers' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
                           <div className="flex flex-col items-center leading-none">
-                            <span className="text-[7.5px] font-black uppercase tracking-wider">CANTIDADES</span>
-                          <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-blue-100' : 'text-slate-400'}`}>Operativa</span>
-                        </div>
-                      </button>
+                            <span className="text-[7.5px] font-black uppercase tracking-wider">ESCALADO</span>
+                            <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'tiers' && isPromoOpen ? 'text-emerald-100' : 'text-slate-400'}`}>Ofertas</span>
+                          </div>
+                        </button>
+                      </div>
 
-                      <button 
-                        onClick={() => {
-                          setActivePromoTab('tiers');
-                          setIsPromoOpen(true);
-                        }}
-                        className={`flex flex-col items-center justify-center gap-0.5 h-11 rounded-[0.9rem] transition-all duration-300 select-none ${
-                          activePromoTab === 'tiers' && isPromoOpen
-                            ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100' 
-                            : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                        }`}
-                      >
-                        <ArrowUpDown className={`h-3 w-3 ${activePromoTab === 'tiers' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                        <div className="flex flex-col items-center leading-none">
-                          <span className="text-[7.5px] font-black uppercase tracking-wider">ESCALADO</span>
-                          <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'tiers' && isPromoOpen ? 'text-emerald-100' : 'text-slate-400'}`}>Ofertas</span>
-                        </div>
-                      </button>
-
-                      <button 
+                      <button
                         onClick={() => setIsPromoOpen(!isPromoOpen)}
-                        className={`h-11 w-full rounded-[0.9rem] flex items-center justify-center transition-all ${
-                          isPromoOpen 
-                            ? 'bg-slate-100 text-slate-500' 
-                            : 'bg-white text-slate-300 hover:text-slate-600 border border-slate-100'
+                        className={`h-7 w-full rounded-[0.6rem] flex items-center justify-center transition-all ${
+                          isPromoOpen
+                            ? 'bg-slate-100/50 text-slate-400'
+                            : 'bg-white text-slate-200 hover:bg-slate-50 hover:text-slate-400 border border-slate-100/50'
                         }`}
                       >
-                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isPromoOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-500 ease-out ${isPromoOpen ? 'rotate-180' : ''}`} />
                       </button>
                     </div>
 
                     <AnimatePresence initial={false}>
                       {isPromoOpen && (
-                        <motion.div 
+                        <motion.div
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
@@ -1169,11 +1189,11 @@ export function ProductsTab({
                                 <div className="space-y-1.5">
                                   <Label className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest ml-1">Mínimo Inicial</Label>
                                   <div className="relative group">
-                                    <Input 
-                                      type="number" 
-                                      value={productForm.minQuantity} 
-                                      onChange={(e) => setProductForm({...productForm, minQuantity: Number(e.target.value)})} 
-                                      className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                    <Input
+                                      type="number"
+                                      value={productForm.minQuantity}
+                                      onChange={(e) => setProductForm({...productForm, minQuantity: Number(e.target.value)})}
+                                      className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       placeholder="0"
                                     />
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-lg bg-blue-50 text-blue-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -1184,11 +1204,11 @@ export function ProductsTab({
                                 <div className="space-y-1.5">
                                   <Label className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest ml-1">Salto / Paso</Label>
                                   <div className="relative group">
-                                    <Input 
-                                      type="number" 
-                                      value={productForm.stepQuantity} 
-                                      onChange={(e) => setProductForm({...productForm, stepQuantity: Number(e.target.value)})} 
-                                      className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                    <Input
+                                      type="number"
+                                      value={productForm.stepQuantity}
+                                      onChange={(e) => setProductForm({...productForm, stepQuantity: Number(e.target.value)})}
+                                      className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       placeholder="0"
                                     />
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-lg bg-blue-50 text-blue-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -1253,35 +1273,35 @@ export function ProductsTab({
                                         <div key={index} className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl hover:bg-slate-50 transition-colors group/tier border border-transparent hover:border-slate-100">
                                           <div className="relative flex-1">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-300 uppercase">Mín</span>
-                                            <Input 
-                                              type="number" 
-                                              value={tier.minQty} 
+                                            <Input
+                                              type="number"
+                                              value={tier.minQty}
                                               onChange={(e) => {
                                                 const tiers = [...productForm.tierPricing];
                                                 tiers[index].minQty = Number(e.target.value);
                                                 setProductForm({...productForm, tierPricing: tiers});
-                                              }} 
-                                              className="bg-white border-slate-100 h-11 text-xs font-black text-slate-900 rounded-xl pl-8 text-center w-full focus-visible:ring-emerald-100 shadow-sm" 
+                                              }}
+                                              className="bg-white border-slate-100 h-11 text-xs font-black text-slate-900 rounded-xl pl-8 text-center w-full focus-visible:ring-emerald-100 shadow-sm"
                                             />
                                           </div>
-                                          
+
                                           <div className="relative flex-1">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[7px] font-black text-emerald-300 uppercase">PVP</span>
-                                            <Input 
-                                              type="number" 
-                                              step="0.01" 
-                                              value={tier.price} 
+                                            <Input
+                                              type="number"
+                                              step="0.01"
+                                              value={tier.price}
                                               onChange={(e) => {
                                                 const tiers = [...productForm.tierPricing];
                                                 tiers[index].price = Number(e.target.value);
                                                 setProductForm({...productForm, tierPricing: tiers});
-                                              }} 
-                                              className="bg-white border-emerald-100 h-11 text-xs font-black text-emerald-600 rounded-xl pl-8 text-center w-full focus-visible:ring-emerald-200/30 shadow-sm" 
+                                              }}
+                                              className="bg-white border-emerald-100 h-11 text-xs font-black text-emerald-600 rounded-xl pl-8 text-center w-full focus-visible:ring-emerald-200/30 shadow-sm"
                                             />
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-400/50">€</span>
                                           </div>
 
-                                          <Button 
+                                          <Button
                                             size="icon"
                                             variant="ghost"
                                             onClick={() => {
@@ -1298,7 +1318,7 @@ export function ProductsTab({
                                   )}
                                 </div>
 
-                                <Button 
+                                <Button
                                   onClick={() => {
                                     const tiers = Array.isArray(productForm.tierPricing) ? [...productForm.tierPricing] : [];
                                     const lastPrice = tiers.length > 0 ? tiers[tiers.length-1].price : productForm.price;
@@ -1325,10 +1345,10 @@ export function ProductsTab({
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Activar Variantes</span>
-                                  <Switch 
-                                    checked={productForm.hasVariants} 
-                                    onCheckedChange={(checked) => setProductForm({...productForm, hasVariants: checked})} 
-                                    className="scale-75 data-[state=checked]:bg-blue-500" 
+                                  <Switch
+                                    checked={productForm.hasVariants}
+                                    onCheckedChange={(checked) => setProductForm({...productForm, hasVariants: checked})}
+                                    className="scale-75 data-[state=checked]:bg-blue-500"
                                   />
                                 </div>
                               </div>
@@ -1355,9 +1375,9 @@ export function ProductsTab({
                                   </div>
 
                                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200 py-1">
-                                    <DndContext 
-                                      sensors={sensors} 
-                                      collisionDetection={closestCenter} 
+                                    <DndContext
+                                      sensors={sensors}
+                                      collisionDetection={closestCenter}
                                       onDragEnd={(event) => {
                                         const { active, over } = event
                                         if (over && active.id !== over.id) {
@@ -1365,36 +1385,36 @@ export function ProductsTab({
                                           const newId = over.id as string
                                           const oldIndex = parseInt(oldId.split('-')[1])
                                           const newIndex = parseInt(newId.split('-')[1])
-                                          
+
                                           const variants = productForm.variants || []
                                           const newVariants = [...variants]
                                           const [movedItem] = newVariants.splice(oldIndex, 1)
                                           newVariants.splice(newIndex, 0, movedItem)
-                                          
+
                                           setProductForm({ ...productForm, variants: newVariants })
                                         }
                                       }}
                                     >
-                                      <SortableContext 
-                                        items={(productForm.variants || []).map((_: any, i: number) => `variant-${i}`)} 
+                                      <SortableContext
+                                        items={(productForm.variants || []).map((_: any, i: number) => `variant-${i}`)}
                                         strategy={verticalListSortingStrategy}
                                       >
                                         {(productForm.variants || []).map((variant: any, index: number) => (
-                                          <SortableVariantRow 
+                                          <SortableVariantRow
                                             key={`variant-${index}`}
                                             id={`variant-${index}`}
-                                            index={index} 
-                                            variant={variant} 
-                                            updateVariant={updateVariant} 
-                                            removeVariant={removeVariant} 
+                                            index={index}
+                                            variant={variant}
+                                            updateVariant={updateVariant}
+                                            removeVariant={removeVariant}
                                           />
                                         ))}
                                       </SortableContext>
                                     </DndContext>
                                   </div>
-                                  <Button 
-                                    variant="ghost" 
-                                    onClick={addVariant} 
+                                  <Button
+                                    variant="ghost"
+                                    onClick={addVariant}
                                     className="w-full text-[9px] font-black text-slate-400 hover:text-blue-500 hover:bg-blue-50 uppercase tracking-widest h-12 bg-slate-50/50 border border-dashed border-slate-200 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 group/addv"
                                   >
                                     <Plus className="h-4 w-4 transition-transform group-hover/addv:rotate-90" /> Añadir Opción Técnica
@@ -1406,7 +1426,7 @@ export function ProductsTab({
                                      <Settings2 className="h-6 w-6 text-slate-200" />
                                    </div>
                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center max-w-[200px]">Crea opciones técnicas como tamaños, colores o materiales</p>
-                                   <Button 
+                                   <Button
                                     onClick={() => setProductForm({...productForm, hasVariants: true})}
                                     className="mt-4 bg-slate-900 text-white rounded-xl px-6 h-10 text-[9px] font-black uppercase tracking-widest"
                                    >
@@ -1414,6 +1434,127 @@ export function ProductsTab({
                                    </Button>
                                 </div>
                               )}
+                            </div>
+                          )}
+
+                          {activePromoTab === ('custom_options' as any) && (
+                            <div className="flex flex-col h-[450px]">
+                              {/* CABECERA COMPACTA STICKY */}
+                              <div className="p-4 flex items-center justify-between border-b border-slate-50 bg-white/80 backdrop-blur-md sticky top-0 z-10 rounded-t-3xl">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-6 w-6 rounded-lg bg-orange-600 flex items-center justify-center shadow-md">
+                                    <Palette className="h-3 w-3 text-white" />
+                                  </div>
+                                  <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest leading-none">Personalizar Formas</span>
+                                </div>
+                                <Badge variant="outline" className="text-[7px] font-black bg-orange-50 text-orange-600 border-orange-100 uppercase py-0 h-4">PRECIO FIJO</Badge>
+                              </div>
+
+                              {/* ÁREA DE CONTENIDO CON SCROLL */}
+                              <ScrollArea className="flex-1 px-4 py-2 bg-slate-50/20">
+                                <div className="space-y-2 py-2">
+                                  {(() => {
+                                    let options: { title: string, values: string[], required: boolean }[] = [];
+                                    try {
+                                      options = productForm.customOptions ? JSON.parse(productForm.customOptions) : [];
+                                    } catch (e) { options = []; }
+                                    
+                                    if (options.length === 0) {
+                                      return (
+                                        <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-2xl p-6 bg-white/50 my-2">
+                                           <Palette className="h-5 w-5 text-slate-200 mb-2" />
+                                           <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest text-center">Sin formas configuradas</p>
+                                        </div>
+                                      );
+                                    }
+                                    return (
+                                      <div className="space-y-2">
+                                        {options.map((opt: any, idx: number) => (
+                                          <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2 relative group hover:border-orange-200 transition-all">
+                                            <div className="flex items-center justify-between bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-100">
+                                              <div className="flex items-center gap-2 flex-1">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-orange-500 shrink-0" />
+                                                <input 
+                                                  defaultValue={opt.title || `FORMA #${idx + 1}`}
+                                                  onBlur={(e) => {
+                                                    const newOpts = [...options];
+                                                    newOpts[idx].title = e.target.value.toUpperCase();
+                                                    setProductForm({...productForm, customOptions: JSON.stringify(newOpts)});
+                                                  }}
+                                                  className="bg-transparent border-none p-0 text-[8px] font-black text-slate-900 uppercase tracking-widest italic w-full focus:outline-none focus:ring-0 placeholder:text-slate-300"
+                                                  placeholder="NOMBRE OPCIÓN..."
+                                                />
+                                              </div>
+                                              <button 
+                                                onClick={() => {
+                                                  const newOpts = [...options];
+                                                  newOpts.splice(idx, 1);
+                                                  setProductForm({...productForm, customOptions: JSON.stringify(newOpts)});
+                                                }}
+                                                className="h-5 w-5 rounded-md flex items-center justify-center text-slate-300 hover:bg-red-50 hover:text-red-500 transition-all"
+                                              >
+                                                <Trash2 className="h-3 w-3" />
+                                              </button>
+                                            </div>
+                                            
+                                            <div className="px-1">
+                                              {/* Estado local para permitir escribir comas sin que el filtrado las borre al instante */}
+                                              <Input 
+                                                defaultValue={opt.values?.join(', ') || ''} 
+                                                onBlur={(e) => {
+                                                  const newOpts = [...options];
+                                                  newOpts[idx].values = e.target.value.split(',').map((v: string) => v.trim()).filter((v: string) => v !== '');
+                                                  setProductForm({...productForm, customOptions: JSON.stringify(newOpts)});
+                                                }}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') {
+                                                    const newOpts = [...options];
+                                                    newOpts[idx].values = (e.currentTarget.value).split(',').map((v: string) => v.trim()).filter((v: string) => v !== '');
+                                                    setProductForm({...productForm, customOptions: JSON.stringify(newOpts)});
+                                                  }
+                                                }}
+                                                placeholder="VALORES: CIRCULO, ESTRELLA..." 
+                                                className="bg-slate-50/50 rounded-lg h-9 text-[9px] font-bold px-3 uppercase border-none focus:ring-1 focus:ring-orange-100 transition-all font-mono" 
+                                              />
+                                            </div>
+                                            
+                                            <div className="flex items-center justify-between px-1 pt-0.5">
+                                              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Es Obligatoria</span>
+                                              <Switch 
+                                                checked={opt.required} 
+                                                onCheckedChange={(checked) => {
+                                                  const newOpts = [...options];
+                                                  newOpts[idx].required = checked;
+                                                  setProductForm({...productForm, customOptions: JSON.stringify(newOpts)});
+                                                }}
+                                                className="scale-75 data-[state=checked]:bg-orange-500" 
+                                              />
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </ScrollArea>
+
+                              {/* ACCIÓN FIJA EN EL PIE */}
+                              <div className="p-4 bg-white border-t border-slate-100 rounded-b-3xl">
+                                <Button 
+                                  onClick={() => {
+                                    let options: { title: string, values: string[], required: boolean }[] = [];
+                                    try {
+                                      options = productForm.customOptions ? JSON.parse(productForm.customOptions) : [];
+                                    } catch (e) { options = []; }
+                                    options.push({ title: 'FORMA', values: [], required: true });
+                                    setProductForm({...productForm, customOptions: JSON.stringify(options)});
+                                  }}
+                                  className="w-full bg-orange-600 text-white hover:bg-black rounded-xl h-10 text-[9px] font-black uppercase tracking-widest shadow-lg shadow-orange-100 flex items-center justify-center gap-2 group/addp"
+                                >
+                                  <Plus className="h-3 w-3 transition-transform group-hover/addp:scale-125" />
+                                  AÑADIR NUEVA FORMA
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </motion.div>
@@ -1431,8 +1572,8 @@ export function ProductsTab({
                     <Switch checked={productForm.showPrice !== false} onCheckedChange={(checked) => setProductForm({...productForm, showPrice: checked})} className="scale-75 data-[state=checked]:bg-blue-500" />
                   </div>
                   <div className={`rounded-2xl p-4 flex items-center justify-between border transition-all duration-300 ${
-                    productForm.active !== false 
-                      ? 'bg-emerald-50/30 border-emerald-100' 
+                    productForm.active !== false
+                      ? 'bg-emerald-50/30 border-emerald-100'
                       : 'bg-slate-50/50 border-slate-100'
                   }`}>
                     <div className="flex flex-col">
@@ -1447,14 +1588,14 @@ export function ProductsTab({
 
             {/* ACCIONES COMPACTAS */}
             <div className="px-6 py-3 border-t border-slate-100 flex items-center gap-4 bg-white z-20">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setIsProductDialogOpen(false)}
                 className="flex-1 h-10 rounded-xl font-black uppercase text-[9px] text-slate-400 border-slate-100 border-2"
               >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 disabled={isSaving}
                 onClick={async (e) => {
                   e.preventDefault();
@@ -1482,22 +1623,22 @@ export function ProductsTab({
                 {isBulkAction ? `ELIMINAR ${selectedIds.length} PRODUCTOS` : 'ELIMINAR PRODUCTO'}
               </AlertDialogTitle>
               <AlertDialogDescription className="text-sm font-medium text-slate-500 text-center uppercase tracking-widest leading-relaxed">
-                {isBulkAction 
-                  ? 'Esta acción retirará todos los elementos seleccionados de la tienda de forma permanente.' 
+                {isBulkAction
+                  ? 'Esta acción retirará todos los elementos seleccionados de la tienda de forma permanente.'
                   : 'Esta acción retirará este elemento de la tienda de forma inmediata.'}
                 <br />
                 <span className="text-red-500 font-black mt-2 inline-block">¿CONFIRMAS LA OPERACIÓN?</span>
               </AlertDialogDescription>
             </div>
           </AlertDialogHeader>
-          
+
           {isDeleting && (
             <div className="mt-8 space-y-3">
               <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }} 
-                  animate={{ width: `${deleteProgress}%` }} 
-                  className="h-full bg-red-500" 
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${deleteProgress}%` }}
+                  className="h-full bg-red-500"
                 />
               </div>
               <p className="text-[10px] font-black text-slate-400 text-center uppercase tracking-tighter">Procesando: {deleteProgress}%</p>
@@ -1505,13 +1646,13 @@ export function ProductsTab({
           )}
 
           <AlertDialogFooter className="mt-10 gap-4">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               disabled={isDeleting}
               className="h-12 rounded-2xl font-black uppercase text-[10px] tracking-widest flex-1 border-slate-200 hover:bg-slate-50 transition-all"
             >
               CANCELAR
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={(e) => { e.preventDefault(); confirmDelete(); }}
               disabled={isDeleting}
               className="h-12 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-black uppercase text-[10px] tracking-widest flex-1 border-none shadow-lg shadow-red-100 transition-all active:scale-95"

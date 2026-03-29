@@ -2715,6 +2715,7 @@ export namespace Prisma {
     stepQuantity: number | null
     tierPricing: string | null
     supplierId: string | null
+    customOptions: string | null
   }
 
   export type ProductMaxAggregateOutputType = {
@@ -2742,6 +2743,7 @@ export namespace Prisma {
     stepQuantity: number | null
     tierPricing: string | null
     supplierId: string | null
+    customOptions: string | null
   }
 
   export type ProductCountAggregateOutputType = {
@@ -2769,6 +2771,7 @@ export namespace Prisma {
     stepQuantity: number
     tierPricing: number
     supplierId: number
+    customOptions: number
     _all: number
   }
 
@@ -2816,6 +2819,7 @@ export namespace Prisma {
     stepQuantity?: true
     tierPricing?: true
     supplierId?: true
+    customOptions?: true
   }
 
   export type ProductMaxAggregateInputType = {
@@ -2843,6 +2847,7 @@ export namespace Prisma {
     stepQuantity?: true
     tierPricing?: true
     supplierId?: true
+    customOptions?: true
   }
 
   export type ProductCountAggregateInputType = {
@@ -2870,6 +2875,7 @@ export namespace Prisma {
     stepQuantity?: true
     tierPricing?: true
     supplierId?: true
+    customOptions?: true
     _all?: true
   }
 
@@ -2984,6 +2990,7 @@ export namespace Prisma {
     stepQuantity: number | null
     tierPricing: string | null
     supplierId: string | null
+    customOptions: string | null
     _count: ProductCountAggregateOutputType | null
     _avg: ProductAvgAggregateOutputType | null
     _sum: ProductSumAggregateOutputType | null
@@ -3030,6 +3037,7 @@ export namespace Prisma {
     stepQuantity?: boolean
     tierPricing?: boolean
     supplierId?: boolean
+    customOptions?: boolean
     category?: boolean | Product$categoryArgs<ExtArgs>
     supplier?: boolean | Product$supplierArgs<ExtArgs>
     variants?: boolean | Product$variantsArgs<ExtArgs>
@@ -3061,6 +3069,7 @@ export namespace Prisma {
     stepQuantity?: boolean
     tierPricing?: boolean
     supplierId?: boolean
+    customOptions?: boolean
     category?: boolean | Product$categoryArgs<ExtArgs>
     supplier?: boolean | Product$supplierArgs<ExtArgs>
   }, ExtArgs["result"]["product"]>
@@ -3090,6 +3099,7 @@ export namespace Prisma {
     stepQuantity?: boolean
     tierPricing?: boolean
     supplierId?: boolean
+    customOptions?: boolean
     category?: boolean | Product$categoryArgs<ExtArgs>
     supplier?: boolean | Product$supplierArgs<ExtArgs>
   }, ExtArgs["result"]["product"]>
@@ -3119,9 +3129,10 @@ export namespace Prisma {
     stepQuantity?: boolean
     tierPricing?: boolean
     supplierId?: boolean
+    customOptions?: boolean
   }
 
-  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "price" | "image" | "stock" | "categoryId" | "active" | "showPrice" | "isPack" | "packItems" | "hasVariants" | "variantType" | "variantBehavior" | "sortOrder" | "createdAt" | "updatedAt" | "firebaseId" | "isNew" | "salePrice" | "minQuantity" | "stepQuantity" | "tierPricing" | "supplierId", ExtArgs["result"]["product"]>
+  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "price" | "image" | "stock" | "categoryId" | "active" | "showPrice" | "isPack" | "packItems" | "hasVariants" | "variantType" | "variantBehavior" | "sortOrder" | "createdAt" | "updatedAt" | "firebaseId" | "isNew" | "salePrice" | "minQuantity" | "stepQuantity" | "tierPricing" | "supplierId" | "customOptions", ExtArgs["result"]["product"]>
   export type ProductInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     category?: boolean | Product$categoryArgs<ExtArgs>
     supplier?: boolean | Product$supplierArgs<ExtArgs>
@@ -3169,6 +3180,7 @@ export namespace Prisma {
       stepQuantity: number | null
       tierPricing: string | null
       supplierId: string | null
+      customOptions: string | null
     }, ExtArgs["result"]["product"]>
     composites: {}
   }
@@ -3619,6 +3631,7 @@ export namespace Prisma {
     readonly stepQuantity: FieldRef<"Product", 'Int'>
     readonly tierPricing: FieldRef<"Product", 'String'>
     readonly supplierId: FieldRef<"Product", 'String'>
+    readonly customOptions: FieldRef<"Product", 'String'>
   }
     
 
@@ -9806,7 +9819,8 @@ export namespace Prisma {
     minQuantity: 'minQuantity',
     stepQuantity: 'stepQuantity',
     tierPricing: 'tierPricing',
-    supplierId: 'supplierId'
+    supplierId: 'supplierId',
+    customOptions: 'customOptions'
   };
 
   export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
@@ -10110,6 +10124,7 @@ export namespace Prisma {
     stepQuantity?: IntNullableFilter<"Product"> | number | null
     tierPricing?: StringNullableFilter<"Product"> | string | null
     supplierId?: StringNullableFilter<"Product"> | string | null
+    customOptions?: StringNullableFilter<"Product"> | string | null
     category?: XOR<CategoryNullableScalarRelationFilter, CategoryWhereInput> | null
     supplier?: XOR<SupplierNullableScalarRelationFilter, SupplierWhereInput> | null
     variants?: ProductVariantListRelationFilter
@@ -10140,6 +10155,7 @@ export namespace Prisma {
     stepQuantity?: SortOrderInput | SortOrder
     tierPricing?: SortOrderInput | SortOrder
     supplierId?: SortOrderInput | SortOrder
+    customOptions?: SortOrderInput | SortOrder
     category?: CategoryOrderByWithRelationInput
     supplier?: SupplierOrderByWithRelationInput
     variants?: ProductVariantOrderByRelationAggregateInput
@@ -10173,6 +10189,7 @@ export namespace Prisma {
     stepQuantity?: IntNullableFilter<"Product"> | number | null
     tierPricing?: StringNullableFilter<"Product"> | string | null
     supplierId?: StringNullableFilter<"Product"> | string | null
+    customOptions?: StringNullableFilter<"Product"> | string | null
     category?: XOR<CategoryNullableScalarRelationFilter, CategoryWhereInput> | null
     supplier?: XOR<SupplierNullableScalarRelationFilter, SupplierWhereInput> | null
     variants?: ProductVariantListRelationFilter
@@ -10203,6 +10220,7 @@ export namespace Prisma {
     stepQuantity?: SortOrderInput | SortOrder
     tierPricing?: SortOrderInput | SortOrder
     supplierId?: SortOrderInput | SortOrder
+    customOptions?: SortOrderInput | SortOrder
     _count?: ProductCountOrderByAggregateInput
     _avg?: ProductAvgOrderByAggregateInput
     _max?: ProductMaxOrderByAggregateInput
@@ -10238,6 +10256,7 @@ export namespace Prisma {
     stepQuantity?: IntNullableWithAggregatesFilter<"Product"> | number | null
     tierPricing?: StringNullableWithAggregatesFilter<"Product"> | string | null
     supplierId?: StringNullableWithAggregatesFilter<"Product"> | string | null
+    customOptions?: StringNullableWithAggregatesFilter<"Product"> | string | null
   }
 
   export type ProductVariantWhereInput = {
@@ -10730,6 +10749,7 @@ export namespace Prisma {
     minQuantity?: number | null
     stepQuantity?: number | null
     tierPricing?: string | null
+    customOptions?: string | null
     category?: CategoryCreateNestedOneWithoutProductsInput
     supplier?: SupplierCreateNestedOneWithoutProductsInput
     variants?: ProductVariantCreateNestedManyWithoutProductInput
@@ -10760,6 +10780,7 @@ export namespace Prisma {
     stepQuantity?: number | null
     tierPricing?: string | null
     supplierId?: string | null
+    customOptions?: string | null
     variants?: ProductVariantUncheckedCreateNestedManyWithoutProductInput
   }
 
@@ -10786,6 +10807,7 @@ export namespace Prisma {
     minQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
     category?: CategoryUpdateOneWithoutProductsNestedInput
     supplier?: SupplierUpdateOneWithoutProductsNestedInput
     variants?: ProductVariantUpdateManyWithoutProductNestedInput
@@ -10816,6 +10838,7 @@ export namespace Prisma {
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
     supplierId?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
     variants?: ProductVariantUncheckedUpdateManyWithoutProductNestedInput
   }
 
@@ -10844,6 +10867,7 @@ export namespace Prisma {
     stepQuantity?: number | null
     tierPricing?: string | null
     supplierId?: string | null
+    customOptions?: string | null
   }
 
   export type ProductUpdateManyMutationInput = {
@@ -10869,6 +10893,7 @@ export namespace Prisma {
     minQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ProductUncheckedUpdateManyInput = {
@@ -10896,6 +10921,7 @@ export namespace Prisma {
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
     supplierId?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ProductVariantCreateInput = {
@@ -11604,6 +11630,7 @@ export namespace Prisma {
     stepQuantity?: SortOrder
     tierPricing?: SortOrder
     supplierId?: SortOrder
+    customOptions?: SortOrder
   }
 
   export type ProductAvgOrderByAggregateInput = {
@@ -11640,6 +11667,7 @@ export namespace Prisma {
     stepQuantity?: SortOrder
     tierPricing?: SortOrder
     supplierId?: SortOrder
+    customOptions?: SortOrder
   }
 
   export type ProductMinOrderByAggregateInput = {
@@ -11667,6 +11695,7 @@ export namespace Prisma {
     stepQuantity?: SortOrder
     tierPricing?: SortOrder
     supplierId?: SortOrder
+    customOptions?: SortOrder
   }
 
   export type ProductSumOrderByAggregateInput = {
@@ -12575,6 +12604,7 @@ export namespace Prisma {
     minQuantity?: number | null
     stepQuantity?: number | null
     tierPricing?: string | null
+    customOptions?: string | null
     supplier?: SupplierCreateNestedOneWithoutProductsInput
     variants?: ProductVariantCreateNestedManyWithoutProductInput
   }
@@ -12603,6 +12633,7 @@ export namespace Prisma {
     stepQuantity?: number | null
     tierPricing?: string | null
     supplierId?: string | null
+    customOptions?: string | null
     variants?: ProductVariantUncheckedCreateNestedManyWithoutProductInput
   }
 
@@ -12660,6 +12691,7 @@ export namespace Prisma {
     stepQuantity?: IntNullableFilter<"Product"> | number | null
     tierPricing?: StringNullableFilter<"Product"> | string | null
     supplierId?: StringNullableFilter<"Product"> | string | null
+    customOptions?: StringNullableFilter<"Product"> | string | null
   }
 
   export type CategoryCreateWithoutProductsInput = {
@@ -12869,6 +12901,7 @@ export namespace Prisma {
     minQuantity?: number | null
     stepQuantity?: number | null
     tierPricing?: string | null
+    customOptions?: string | null
     category?: CategoryCreateNestedOneWithoutProductsInput
     supplier?: SupplierCreateNestedOneWithoutProductsInput
   }
@@ -12898,6 +12931,7 @@ export namespace Prisma {
     stepQuantity?: number | null
     tierPricing?: string | null
     supplierId?: string | null
+    customOptions?: string | null
   }
 
   export type ProductCreateOrConnectWithoutVariantsInput = {
@@ -12939,6 +12973,7 @@ export namespace Prisma {
     minQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
     category?: CategoryUpdateOneWithoutProductsNestedInput
     supplier?: SupplierUpdateOneWithoutProductsNestedInput
   }
@@ -12968,6 +13003,7 @@ export namespace Prisma {
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
     supplierId?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderItemCreateWithoutOrderInput = {
@@ -13149,6 +13185,7 @@ export namespace Prisma {
     minQuantity?: number | null
     stepQuantity?: number | null
     tierPricing?: string | null
+    customOptions?: string | null
     category?: CategoryCreateNestedOneWithoutProductsInput
     variants?: ProductVariantCreateNestedManyWithoutProductInput
   }
@@ -13177,6 +13214,7 @@ export namespace Prisma {
     minQuantity?: number | null
     stepQuantity?: number | null
     tierPricing?: string | null
+    customOptions?: string | null
     variants?: ProductVariantUncheckedCreateNestedManyWithoutProductInput
   }
 
@@ -13230,6 +13268,7 @@ export namespace Prisma {
     stepQuantity?: number | null
     tierPricing?: string | null
     supplierId?: string | null
+    customOptions?: string | null
   }
 
   export type ProductUpdateWithoutCategoryInput = {
@@ -13255,6 +13294,7 @@ export namespace Prisma {
     minQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
     supplier?: SupplierUpdateOneWithoutProductsNestedInput
     variants?: ProductVariantUpdateManyWithoutProductNestedInput
   }
@@ -13283,6 +13323,7 @@ export namespace Prisma {
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
     supplierId?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
     variants?: ProductVariantUncheckedUpdateManyWithoutProductNestedInput
   }
 
@@ -13310,6 +13351,7 @@ export namespace Prisma {
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
     supplierId?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ProductVariantCreateManyProductInput = {
@@ -13448,6 +13490,7 @@ export namespace Prisma {
     minQuantity?: number | null
     stepQuantity?: number | null
     tierPricing?: string | null
+    customOptions?: string | null
   }
 
   export type ProductUpdateWithoutSupplierInput = {
@@ -13473,6 +13516,7 @@ export namespace Prisma {
     minQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
     category?: CategoryUpdateOneWithoutProductsNestedInput
     variants?: ProductVariantUpdateManyWithoutProductNestedInput
   }
@@ -13501,6 +13545,7 @@ export namespace Prisma {
     minQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
     variants?: ProductVariantUncheckedUpdateManyWithoutProductNestedInput
   }
 
@@ -13528,6 +13573,7 @@ export namespace Prisma {
     minQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     stepQuantity?: NullableIntFieldUpdateOperationsInput | number | null
     tierPricing?: NullableStringFieldUpdateOperationsInput | string | null
+    customOptions?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
 
