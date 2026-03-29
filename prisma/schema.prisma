@@ -1,7 +1,7 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-1.1.x", "rhel-openssl-1.0.x"]
   output        = "../src/generated/client"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "rhel-openssl-1.0.x"]
 }
 
 datasource db {
@@ -47,7 +47,7 @@ model Product {
   stepQuantity    Int?             @default(1)
   tierPricing     String?
   supplierId      String?
-  customOptions   String? // JSON con opciones de personalización (ej: formas)
+  customOptions   String?
   category        Category?        @relation(fields: [categoryId], references: [id])
   supplier        Supplier?        @relation(fields: [supplierId], references: [id])
   variants        ProductVariant[]

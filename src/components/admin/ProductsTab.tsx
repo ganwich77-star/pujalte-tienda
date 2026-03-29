@@ -1475,9 +1475,10 @@ export function ProductsTab({
                                               <div className="flex items-center gap-2 flex-1">
                                                 <div className="h-1.5 w-1.5 rounded-full bg-orange-500 shrink-0" />
                                                 <input 
-                                                  defaultValue={opt.title || `FORMA #${idx + 1}`}
-                                                  onBlur={(e) => {
+                                                  value={opt.titleRaw !== undefined ? opt.titleRaw : (opt.title || '')}
+                                                  onChange={(e) => {
                                                     const newOpts = [...options];
+                                                    newOpts[idx].titleRaw = e.target.value;
                                                     newOpts[idx].title = e.target.value.toUpperCase();
                                                     setProductForm({...productForm, customOptions: JSON.stringify(newOpts)});
                                                   }}
@@ -1500,17 +1501,16 @@ export function ProductsTab({
                                             <div className="px-1">
                                               {/* Estado local para permitir escribir comas sin que el filtrado las borre al instante */}
                                               <Input 
-                                                defaultValue={opt.values?.join(', ') || ''} 
-                                                onBlur={(e) => {
+                                                value={opt.valuesRaw !== undefined ? opt.valuesRaw : (opt.values?.join(', ') || '')} 
+                                                onChange={(e) => {
                                                   const newOpts = [...options];
+                                                  newOpts[idx].valuesRaw = e.target.value;
                                                   newOpts[idx].values = e.target.value.split(',').map((v: string) => v.trim()).filter((v: string) => v !== '');
                                                   setProductForm({...productForm, customOptions: JSON.stringify(newOpts)});
                                                 }}
                                                 onKeyDown={(e) => {
                                                   if (e.key === 'Enter') {
-                                                    const newOpts = [...options];
-                                                    newOpts[idx].values = (e.currentTarget.value).split(',').map((v: string) => v.trim()).filter((v: string) => v !== '');
-                                                    setProductForm({...productForm, customOptions: JSON.stringify(newOpts)});
+                                                    e.preventDefault();
                                                   }
                                                 }}
                                                 placeholder="VALORES: CIRCULO, ESTRELLA..." 
