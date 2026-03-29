@@ -67,13 +67,57 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
   const [processingPayment, setProcessingPayment] = useState(false)
   const [uploadingItem, setUploadingItem] = useState<string | null>(null)
 
+  const compressImage = (file: File): Promise<File | Blob> => {
+    return new Promise((resolve) => {
+      if (file.size < 1024 * 1024 * 2) return resolve(file); // Max 2MB, passthru
+      
+      const img = new window.Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const canvas = document.createElement('canvas');
+        const maxDim = 1500;
+        let { width, height } = img;
+        
+        if (width > height && width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(file);
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: file.type === 'image/png' ? 'image/png' : 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        }, file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
+      };
+      img.onerror = () => resolve(file);
+      img.src = objectUrl;
+    });
+  };
+
   const handleFileUpload = async (itemId: string, variantId: string | undefined, notes: string | undefined, file: File) => {
     const itemKey = `${itemId}-${variantId || 'default'}-${notes || 'no-notes'}`
     setUploadingItem(itemKey)
     
     try {
+      const compressedFile = await compressImage(file);
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', compressedFile, file.name)
       
       const res = await fetch('/api/upload', {
         method: 'POST',
