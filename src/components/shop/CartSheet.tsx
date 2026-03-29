@@ -29,11 +29,17 @@ import {
   Users,
   Fingerprint,
   Info,
-  Store
+  Store,
+  Camera,
+  Type,
+  Palette,
+  Eye,
+  Upload,
+  X
 } from 'lucide-react'
-import { useCartStore } from '@/store/cart'
+import { useCartStore, CartItem } from '@/store/cart'
 import { useUserStore } from '@/store/user'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, fixPath } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Dialog, 
@@ -47,7 +53,7 @@ import { useConfig } from '@/hooks/use-config'
 import { toast } from 'sonner'
 
 export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
-  const { items, removeItem, updateQuantity, clearCart, getTotal, getItemCount } = useCartStore()
+  const { items, removeItem, updateQuantity, clearCart, getTotal, getItemCount, updateItem } = useCartStore()
   const { isLoggedIn, user: loggedUser } = useUserStore()
   const { config } = useConfig()
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'checkout' | 'payment' | 'success'>('cart')
@@ -71,6 +77,45 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
   const [showDniInput, setShowDniInput] = useState(false)
   const [dniLogin, setDniLogin] = useState('')
 
+  const [zoomedItem, setZoomedItem] = useState<{ id: string, variantId?: string, notes?: string, photoUrl: string } | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handleReplacePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !zoomedItem) return;
+
+    setIsUploadingPhoto(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) {
+        const oldNotes = zoomedItem.notes || '';
+        const noteParts = oldNotes.split(' | ').filter(Boolean);
+        const newNotesParts = noteParts.map(p => {
+           if(p.startsWith('FOTO:')) return `FOTO: ${data.url}`;
+           return p;
+        });
+        
+        let newNotes = newNotesParts.join(' | ');
+        if (!newNotesParts.some(p => p.startsWith('FOTO:'))) {
+          newNotes = newNotes ? `${newNotes} | FOTO: ${data.url}` : `FOTO: ${data.url}`;
+        }
+
+        updateItem(zoomedItem.id, zoomedItem.variantId, zoomedItem.notes, { notes: newNotes });
+        setZoomedItem(null); 
+        toast.success("Foto actualizada correctamente");
+      }
+    } catch (err) {
+      console.error("Error al subir nueva foto", err);
+      toast.error("Hubo un error al cambiar la foto");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  }
+
   useEffect(() => {
     if (isOpen) {
       setCheckoutStep('cart')
@@ -80,18 +125,17 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
   const handleNextStep = () => {
     if (checkoutStep === 'cart') {
       if (isLoggedIn && loggedUser) {
-        // Rellenar datos automáticamente desde el perfil logueado
         setShippingData({
           firstName: loggedUser.name?.split(' ')[0] || '',
           lastName: loggedUser.name?.split(' ').slice(1).join(' ') || '',
           email: loggedUser.email || '',
           phone: loggedUser.phone || '',
           address: loggedUser.address || '',
-          city: '', // Estos campos podrías guardarlos también en el store si quieres 100% autocompletado
+          city: '', 
           zipCode: '',
           dni: loggedUser.dni || ''
         })
-        setCheckoutStep('payment') // SALTO DIRECTO AL PAGO
+        setCheckoutStep('payment') 
       } else {
         setIsAuthModalOpen(true)
       }
@@ -137,7 +181,6 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
 
   const handleCardPayment = async () => {
     setProcessingPayment(true)
-    // Simular delay de pasarela
     await new Promise(resolve => setTimeout(resolve, 2000))
     
     try {
@@ -185,7 +228,7 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
           productName: item.name,
           quantity: item.quantity,
           price: item.price,
-          note: item.notes // Aseguramos que se envía como 'note' para que la API lo reciba bien
+          note: item.notes 
         })),
         customer: shippingData,
         total: getTotal(),
@@ -201,7 +244,7 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
 
       if (response.ok) {
         const order = await response.json()
-        setTrackingCode(order.trackingNumber || order.trackingCode) // Soportamos ambos nombres de campo
+        setTrackingCode(order.trackingNumber || order.trackingCode) 
         setCheckoutStep('success')
         clearCart()
         toast.success("Pedido confirmado. Revisa tu email.")
@@ -224,12 +267,10 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
     <>
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent className="w-full sm:max-w-[540px] p-0 flex flex-col border-none shadow-2xl bg-[#F8FAFC]">
-          {/* Título oculto para accesibilidad (Radix UI) */}
           <SheetHeader className="sr-only">
             <SheetTitle>Carrito de Compras - Pujalte Creative Studio</SheetTitle>
           </SheetHeader>
           
-          {/* Header persistente */}
           <div className="bg-white px-8 py-6 border-b border-slate-100 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-2xl bg-[#4A7C59]/10 flex items-center justify-center">
@@ -247,7 +288,6 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                 </div>
               </div>
             </div>
-            
           </div>
 
           <div className="flex-1 overflow-hidden relative">
@@ -271,40 +311,100 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                     </div>
                   ) : (
                     <>
-                      <button onClick={onClose} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 hover:text-[#4A7C59] transition-colors group">
+                      <button onClick={onClose} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 hover:text-[#4A7C59] transition-colors group bg-transparent border-none p-0 outline-none shadow-none">
                         <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Seguir Comprando
                       </button>
                       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                        {items.map((item) => (
-                          <div key={item.id} className="group bg-white rounded-3xl p-4 border border-slate-100 hover:border-[#4A7C59]/20 transition-all duration-300 shadow-sm hover:shadow-md">
-                            <div className="flex gap-5">
-                              <div className="h-24 w-24 rounded-2xl overflow-hidden bg-slate-50 border border-slate-50 shrink-0 relative">
-                                {item.image ? (
-                                  <img src={item.image} alt={item.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                ) : (
-                                  <div className="h-full w-full flex items-center justify-center">
-                                    <ShoppingBag className="h-8 w-8 text-slate-200" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0 py-1">
-                                <div className="flex justify-between items-start mb-1">
-                                  <h4 className="font-black text-slate-900 truncate pr-4 text-base leading-tight uppercase tracking-tight">{item.name}</h4>
-                                  <button onClick={() => removeItem(item.id)} className="text-slate-300 hover:text-red-500 transition-colors p-1"><Trash2 className="h-4 w-4" /></button>
+                        {items.map((item) => {
+                          const noteParts = item.notes?.split(' | ') || [];
+                          // El primer elemento suele ser la variante (ej: "Madera")
+                          // Si hay foto, suele empezar por "FOTO: "
+                          // El resto son observaciones
+                          const photoPart = noteParts.find(p => p.startsWith('FOTO:'));
+                          const photoUrl = photoPart?.split('FOTO: ')[1];
+                          const variantPart = item.variantName || noteParts.find(p => !p.startsWith('FOTO:') && !p.includes(':'));
+                          const otherObservations = noteParts.filter(p => p !== photoPart && p !== variantPart && p !== item.variantName);
+
+                          return (
+                            <div key={`${item.id}-${item.variantId}-${item.notes}`} className="group bg-white rounded-3xl p-4 border border-slate-100 hover:border-[#4A7C59]/20 transition-all duration-300 shadow-sm hover:shadow-md">
+                              <div className="flex gap-5">
+                                <div className="h-24 w-24 rounded-2xl overflow-hidden bg-slate-50 border border-slate-50 shrink-0 relative">
+                                  {item.image ? (
+                                    <img src={fixPath(item.image)} alt={item.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                  ) : (
+                                    <div className="h-full w-full flex items-center justify-center">
+                                      <ShoppingBag className="h-8 w-8 text-slate-200" />
+                                    </div>
+                                  )}
                                 </div>
-                                <p className="text-lg font-black text-[#4A7C59] mb-3">{formatCurrency(item.price)}</p>
-                                <div className="flex items-center gap-4 bg-slate-50 w-fit p-1 rounded-xl border border-slate-100/50">
-                                  <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="h-7 w-7 rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-slate-100 transition-all"><Minus className="h-3 w-3" /></button>
-                                  <span className="text-sm font-black text-slate-900 w-4 text-center">{item.quantity}</span>
-                                  <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="h-7 w-7 rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-slate-100 transition-all"><Plus className="h-3 w-3" /></button>
+                                <div className="flex-1 min-w-0 py-1 flex flex-col">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <div className="flex-1">
+                                      <h4 className="font-black text-slate-900 truncate pr-4 text-base leading-tight uppercase tracking-tight">{item.name}</h4>
+                                      
+                                      {/* PRECIO JUSTO DEBAJO DEL TEXTO DEL NOMBRE */}
+                                      <p className="text-lg font-black text-[#4A7C59] leading-none mt-1">{formatCurrency(item.price)}</p>
+
+                                      {/* OPCIONES DEBAJO DEL PRECIO */}
+                                      <div className="mt-3 space-y-2">
+                                        {/* TAMAÑO / COLOR / VARIANTE */}
+                                        {variantPart && (
+                                          <div className="flex items-center gap-2">
+                                            <Badge variant="secondary" className="bg-[#4A7C59]/5 text-[#4A7C59] text-[8px] font-black uppercase px-2 py-0 border-none rounded-md flex items-center gap-1">
+                                              <Palette className="h-2.5 w-2.5" /> {variantPart}
+                                            </Badge>
+                                          </div>
+                                        )}
+
+                                        {/* OBSERVACIONES ADICIONALES */}
+                                        {otherObservations.length > 0 && (
+                                          <div className="flex flex-wrap gap-1">
+                                            {otherObservations.map((obs, idx) => (
+                                              <Badge key={idx} variant="outline" className="text-[7px] font-bold uppercase border-slate-100 text-slate-400 rounded-md">
+                                                {obs}
+                                              </Badge>
+                                            ))}
+                                          </div>
+                                        )}
+
+                                        {/* FOTO MINIATURA */}
+                                        {photoUrl && (
+                                          <div className="flex items-center gap-2">
+                                            <Badge variant="secondary" className="bg-orange-50 text-orange-600 text-[8px] font-black uppercase px-2 py-0 border-none rounded-md flex items-center gap-1">
+                                              <Camera className="h-2.5 w-2.5" /> Foto Personalizada
+                                            </Badge>
+                                            <button 
+                                              onClick={() => setZoomedItem({ id: item.id, variantId: item.variantId, notes: item.notes, photoUrl })}
+                                              className="h-8 w-8 rounded-lg overflow-hidden border-2 border-orange-100 shadow-sm relative group/img cursor-zoom-in block"
+                                            >
+                                              <img src={photoUrl} className="h-full w-full object-cover" alt="Personalización" />
+                                              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                                <Eye className="h-3 w-3 text-white" />
+                                              </div>
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <button onClick={() => removeItem(item.id, item.variantId, item.notes)} className="text-slate-200 hover:text-red-500 transition-colors p-1"><Trash2 className="h-4 w-4" /></button>
+                                  </div>
+                                  
+                                  <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
+                                    <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Cantidad</span>
+                                    <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-xl border border-slate-100/50 scale-90">
+                                      <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1), item.variantId, item.notes || '')} className="h-7 w-7 rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-slate-100 transition-all font-black">-</button>
+                                      <span className="text-sm font-black text-slate-900 w-4 text-center">{item.quantity}</span>
+                                      <button onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId, item.notes || '')} className="h-7 w-7 rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-slate-100 transition-all font-black">+</button>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
-                      <div className="mt-8 pt-8 border-t border-slate-100">
+                      <div className="mt-8 pt-8 border-t border-slate-100 shrink-0">
                         <div className="flex flex-col gap-6 mb-8">
                           <div className="flex justify-between items-end">
                             <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]">Total Pedido</span>
@@ -444,7 +544,7 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                   <div className="w-24 h-24 rounded-[2.5rem] bg-[#4A7C59] flex items-center justify-center mb-8 shadow-2xl shadow-[#4A7C59]/30 border-4 border-white animate-bounce-subtle">
                     <CheckCircle2 className="h-12 w-12 text-white" />
                   </div>
-                  <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight uppercase italic italic italic">¡Pedido Realizado!</h3>
+                  <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight uppercase italic">¡Pedido Realizado!</h3>
                   <div className="h-1 w-12 bg-[#4A7C59] mx-auto rounded-full mb-6" />
                   <p className="text-slate-500 font-bold mb-8 leading-relaxed">Gracias por confiar en Pujalte Creative Studio.<br/>Tu número de seguimiento es:</p>
                   <div className="bg-slate-900 text-white px-8 py-5 rounded-3xl font-black text-2xl tracking-[0.3em] mb-12 shadow-inner border border-white/10 uppercase">{trackingCode}</div>
@@ -456,7 +556,6 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
         </SheetContent>
       </Sheet>
 
-      {/* MODALES LEGALES */}
       <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
         <DialogContent className="sm:max-w-[500px] rounded-3xl">
           <DialogHeader>
@@ -568,6 +667,24 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
             </p>
           </div>
           <div className="h-1.5 w-full bg-gradient-to-r from-[#4A7C59]/0 via-[#4A7C59]/30 to-[#4A7C59]/0" />
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={!!zoomedItem} onOpenChange={(open) => !open && setZoomedItem(null)}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-white rounded-3xl border-none shadow-2xl">
+          {zoomedItem && (
+             <div className="relative">
+               <img src={zoomedItem.photoUrl} className="w-full h-auto max-h-[70vh] object-contain bg-slate-100" />
+
+               <div className="p-6 bg-white flex flex-col gap-3">
+                 <input type="file" id={`cart-img-upload`} className="hidden" accept="image/*" onChange={handleReplacePhoto} disabled={isUploadingPhoto} />
+                 <label htmlFor="cart-img-upload" className="cursor-pointer border-2 border-dashed border-[#4A7C59]/30 hover:border-[#4A7C59] bg-[#4A7C59]/5 flex h-14 items-center justify-center gap-2 rounded-2xl text-[#4A7C59] font-black uppercase text-xs transition-colors">
+                   {isUploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Upload className="h-4 w-4"/> Cambiar Foto</>}
+                 </label>
+                 <Button onClick={() => setZoomedItem(null)} variant="outline" className="h-14 rounded-2xl font-black uppercase tracking-widest text-slate-500">Cerrar y Salir</Button>
+               </div>
+             </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

@@ -370,7 +370,8 @@ Mi email: ${formData.email}`
       basePrice: product.price || 0,
       salePrice: product.salePrice || undefined,
       tierPricing: product.tierPricing || undefined,
-      variantBehavior: product.variantBehavior || undefined
+      variantBehavior: product.variantBehavior || undefined,
+      notes: (product as any).notes
     }
     setItemWithNote(cartItem)
     setTempNote('')
@@ -378,7 +379,8 @@ Mi email: ${formData.email}`
 
   const confirmAddToCart = () => {
     if (itemWithNote) {
-      addItem({ ...itemWithNote, notes: tempNote })
+      const combinedNotes = [itemWithNote.notes, tempNote].filter(Boolean).join(' | ');
+      addItem({ ...itemWithNote, notes: combinedNotes })
       toast({ 
         title: '¡Añadido al carrito!', 
         description: `${itemWithNote.name} ${itemWithNote.variantName ? `— ${itemWithNote.variantName}` : ''}${tempNote ? ' (con nota)' : ''}`,

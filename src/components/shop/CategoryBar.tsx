@@ -50,7 +50,7 @@ export function CategoryBar({ categories, selectedCategoryId, onCategorySelect }
   }, [])
 
   return (
-    <div className="sticky top-[65px] z-40 w-full bg-background/80 backdrop-blur-md border-b border-border/40 py-4 mb-8">
+    <div className="sticky top-[65px] z-30 w-full bg-background/80 backdrop-blur-md border-b border-border/40 py-4 mb-8">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="relative group/bar flex items-center">
           

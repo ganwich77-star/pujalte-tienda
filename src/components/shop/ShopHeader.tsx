@@ -142,16 +142,13 @@ export function ShopHeader({
                   <div className="h-8 w-8 rounded-full bg-[#4A7C59] flex items-center justify-center shadow-lg shadow-[#4A7C59]/20">
                     <User className="h-4 w-4 text-white" />
                   </div>
-                  <span className="text-sm font-black tracking-tight uppercase">¡Bienvenido/a a la Experiencia!</span>
+                  <span className="text-sm font-black tracking-tight uppercase">Bienvenid@ a la mejor experiencia para crear tus mejores recuerdos.</span>
                 </div>
               ) as any,
               description: (
                 <div className="flex flex-col gap-1 ml-11">
                   <p className="text-xs text-slate-500 font-medium leading-tight">
-                    Hola <span className="text-[#4A7C59] font-black uppercase tracking-tighter">{data.fullName || loginName}</span>, es un placer volverte a ver.
-                  </p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest opacity-70">
-                    SISTEMA IDENTIFICADO CORRECTAMENTE
+                    <span className="text-[#4A7C59] font-black uppercase tracking-tighter">{(data.fullName || loginName).split(' ')[0]}</span>, es un placer volverte a ver.
                   </p>
                 </div>
               ) as any,
@@ -376,13 +373,13 @@ export function ShopHeader({
       {/* LOGIN MODAL (CENTRADO TOTAL EN VENTANA DEL NAVEGADOR) */}
       <AnimatePresence>
         {isLoginModalOpen && (
-          <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 min-h-[100dvh]">
+          <div className="fixed inset-0 z-[999999999] flex items-center justify-center p-4 min-h-[100dvh]">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsLoginModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
             />
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 0 }}
@@ -397,7 +394,7 @@ export function ShopHeader({
                 x: 0 
               }}
               exit={{ scale: 0.95, opacity: 0, y: 0 }}
-              className="bg-white w-full max-w-[360px] rounded-[2rem] shadow-2xl relative overflow-hidden p-6 z-[1000000]"
+              className="bg-white w-full max-w-[360px] rounded-[2rem] shadow-2xl relative overflow-hidden p-6 z-[1000000000]"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-[#4A7C59]" />
               
