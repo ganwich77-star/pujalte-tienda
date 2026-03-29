@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import SplashScreen from '@/components/SplashScreen'
 import landingData from '@/data/landing-config.json'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -89,6 +89,26 @@ const defaultConfig: StoreConfig = {
   formFields: []
 }
 
+const initialProductForm = {
+  name: '',
+  description: '',
+  price: '',
+  stock: '0',
+  categoryId: '',
+  image: '',
+  imagePosition: 'center',
+  hasVariants: false,
+  showPrice: true,
+  isPack: false,
+  packItems: '[]',
+  variantType: '',
+  variantBehavior: 'add',
+  variants: [] as { id?: string; name: string; sku?: string; price: string; stock: string; sortOrder: number }[],
+  minQuantity: '1',
+  stepQuantity: '1',
+  tierPricing: [] as { minQty: number; price: number }[]
+}
+
 export default function Home() {
   const [showSplash, setShowSplash] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -120,25 +140,8 @@ export default function Home() {
   const [config, setConfig] = useState<StoreConfig>(defaultConfig)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
-  const [productForm, setProductForm] = useState({
-    name: '',
-    description: '',
-    price: '',
-    stock: '0',
-    categoryId: '',
-    image: '',
-    imagePosition: 'center',
-    hasVariants: false,
-    showPrice: true,
-    isPack: false,
-    packItems: '[]',
-    variantType: '',
-    variantBehavior: 'add',
-    variants: [] as { id?: string; name: string; sku?: string; price: string; stock: string; sortOrder: number }[],
-    minQuantity: '1',
-    stepQuantity: '1',
-    tierPricing: [] as { minQty: number; price: number }[]
-  })
+  const [isSaving, setIsSaving] = useState(false)
+  const [productForm, setProductForm] = useState(initialProductForm)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [itemWithNote, setItemWithNote] = useState<CartItem | null>(null)
@@ -254,7 +257,7 @@ Mi email: ${formData.email}`
 
   const fetchAllProducts = async () => {
     try {
-      const res = await fetch('/api/products?all=true')
+      const res = await fetch(`/api/products?all=true&t=${Date.now()}`)
       if (res.ok) {
         const data = await res.json()
         setProducts(data)
@@ -396,27 +399,32 @@ Mi email: ${formData.email}`
   }
 
   // Admin Handlers
-  const handleSaveProduct = async (data: any = productForm): Promise<boolean> => {
+  const handleSaveProduct = async (dataInput: any = productForm): Promise<boolean> => {
+    // Evitar que se envíe varias veces si ya se está guardando
+    if (isSaving) return false
+
     // Validamos que tenga nombre. El precio solo es obligatorio si NO tiene variantes.
-    const hasName = data && data.name && data.name.trim() !== '';
-    const hasPrice = data && data.price !== '' && data.price !== null && data.price !== undefined;
+    const hasName = dataInput && dataInput.name && dataInput.name.trim() !== '';
+    const hasPrice = dataInput && dataInput.price !== '' && dataInput.price !== null && dataInput.price !== undefined;
     
-    if (!hasName || (!data.hasVariants && !hasPrice)) {
+    if (!hasName || (!dataInput.hasVariants && !hasPrice)) {
       const missing = !hasName ? 'Nombre' : 'Precio';
       toast({ 
         title: 'Error de Validación', 
         description: `El campo ${missing} es obligatorio para publicar.`, 
-        variant: 'destructive' 
+        variant: 'destructive',
+        className: "bg-red-50 text-red-600 border-red-100 font-bold"
       })
       return false
     }
 
+    setIsSaving(true)
     try {
       const isUpdate = !!editingProduct
-      const url = '/api/products' // Unificado para usar el manejador de MySQL que incluye todas las lógicas
+      // Usamos el endpoint unificado que mejor manejamos en Prisma
+      const url = isUpdate ? `/api/products/${editingProduct.id}` : '/api/products'
       const method = isUpdate ? 'PUT' : 'POST'
       
-      // Función auxiliar para parsear números con coma o punto
       const parseSafePrice = (val: any) => {
         if (!val && val !== 0) return 0;
         const s = String(val).replace(',', '.').replace(/[^\d.]/g, '');
@@ -424,36 +432,34 @@ Mi email: ${formData.email}`
       };
 
       const body = {
-        id: editingProduct?.id,
-        name: productForm.name,
-        description: productForm.description,
-        price: parseSafePrice(productForm.price),
-        categoryId: (productForm.categoryId === 'none' || !productForm.categoryId) ? null : productForm.categoryId,
-        active: (productForm as any).active !== undefined ? !!(productForm as any).active : true,
-        image: productForm.image || null,
-        hasVariants: !!productForm.hasVariants,
-        showPrice: (productForm as any).showPrice ?? true,
-        isPack: (productForm as any).isPack ?? false,
-        packItems: (productForm as any).packItems ?? '[]',
-        variantType: productForm.hasVariants ? productForm.variantType : null,
-        variantBehavior: productForm.variantBehavior || 'add',
-        isNew: (productForm as any).isNew || false,
-        salePrice: (productForm as any).salePrice ? parseSafePrice((productForm as any).salePrice) : null,
-        minQuantity: parseInt(String(productForm.minQuantity)) || 1,
-        stepQuantity: parseInt(String(productForm.stepQuantity)) || 1,
-        tierPricing: Array.isArray(productForm.tierPricing) && productForm.tierPricing.length > 0 
-          ? JSON.stringify(productForm.tierPricing.map(t => ({
+        name: dataInput.name,
+        description: dataInput.description,
+        price: parseSafePrice(dataInput.price),
+        categoryId: (dataInput.categoryId === 'none' || !dataInput.categoryId) ? null : dataInput.categoryId,
+        active: (dataInput as any).active !== false,
+        image: dataInput.image || null,
+        hasVariants: !!dataInput.hasVariants,
+        showPrice: (dataInput as any).showPrice ?? true,
+        isPack: (dataInput as any).isPack ?? false,
+        packItems: (dataInput as any).packItems ?? '[]',
+        variantType: dataInput.hasVariants ? dataInput.variantType : null,
+        variantBehavior: dataInput.variantBehavior || 'add',
+        isNew: !!(dataInput as any).isNew,
+        salePrice: (dataInput as any).salePrice ? parseSafePrice((dataInput as any).salePrice) : null,
+        minQuantity: parseInt(String(dataInput.minQuantity)) || 1,
+        stepQuantity: parseInt(String(dataInput.stepQuantity)) || 1,
+        tierPricing: Array.isArray(dataInput.tierPricing) && dataInput.tierPricing.length > 0 
+          ? JSON.stringify(dataInput.tierPricing.map((t: any) => ({
               minQty: parseInt(String(t.minQty)) || 1,
               price: parseSafePrice(t.price)
             })))
           : null,
-        variants: productForm.variants.map(v => ({
+        variants: (dataInput.variants || []).map((v: any) => ({
           name: v.name || "",
           sku: v.sku || "",
           price: parseSafePrice(v.price),
           stock: parseInt(String(v.stock)) || 0,
-          sortOrder: v.sortOrder || 0,
-          active: true
+          sortOrder: v.sortOrder || 0
         }))
       }
       
@@ -464,20 +470,32 @@ Mi email: ${formData.email}`
       })
 
       if (!res.ok) throw new Error('Error al guardar producto')
-      const savedProduct = await res.json()
       
-      // Se eliminan las llamadas individuales a /api/variants ya que ahora el endpoint de producto maneja todo el array de variantes
-      
-      toast({ title: '¡Guardado!', description: 'Producto guardado correctamente' })
+      toast({ 
+        title: '¡Guardado!', 
+        description: 'Producto guardado correctamente en la base de datos',
+        className: "bg-[#4A7C59] text-white border-none font-bold rounded-xl"
+      })
+
+      // Cierre ordenado
       setIsProductDialogOpen(false)
-      resetProductForm()
-      fetchAllProducts()
-      fetchStats()
+      
+      // Delay de seguridad antes de resetear estados para evitar glitches visuales
+      setTimeout(() => {
+        setEditingProduct(null)
+        setProductForm(initialProductForm)
+        fetchAllProducts()
+        fetchStats()
+      }, 100)
+      
       return true
     } catch (error) {
       console.error(error)
       toast({ title: 'Error', description: 'No se pudo guardar el producto', variant: 'destructive' })
       return false
+    } finally {
+      setIsSaving(true) // Esperamos a que todo se asiente antes de liberar el botton
+      setTimeout(() => setIsSaving(false), 500)
     }
   }
 
@@ -521,28 +539,39 @@ Mi email: ${formData.email}`
     handleUpdateProductField(product.id, 'active', !product.active)
   }
 
-  const handleUpdateProductField = async (productId: string, field: string, value: any) => {
+  const handleUpdateProductField = useCallback(async (productId: string, field: string, value: any) => {
+    // Si el modal está abierto, bloqueamos actualizaciones rápidas en línea para evitar conflictos
+    if (isProductDialogOpen) return
+
     try {
       const product = products.find(p => p.id === productId)
       if (!product) return
 
-      const updatedProduct = { ...product, [field]: value }
+      // Creamos un payload mínimo con solo el campo a actualizar para evitar errores de red o validación excesiva
+      const payload = { [field]: value }
       
-      const res = await fetch(`/api/products/${productId}`, {
+      const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedProduct)
+        body: JSON.stringify(payload)
       })
 
-      if (!res.ok) throw new Error('Error al actualizar campo')
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error HTTP: ${res.status}`)
+      }
       
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, [field]: value } : p))
-      toast({ title: 'Actualizado', description: `${field} actualizado correctamente` })
+      
+      // Mostrar toast solo para cambios manuales significativos, no para cada tecla o campo técnico
+      if (['name', 'price', 'salePrice', 'stock', 'categoryId'].includes(field)) {
+        toast({ title: 'Actualizado', description: `${field} actualizado correctamente` })
+      }
     } catch (error) {
       console.error(error)
       toast({ title: 'Error', description: 'No se pudo actualizar el campo', variant: 'destructive' })
     }
-  }
+  }, [products, isProductDialogOpen, toast])
 
   const handleDeleteVariant = async (variantId: string) => {
     try {
@@ -553,12 +582,9 @@ Mi email: ${formData.email}`
   }
 
   const resetProductForm = () => {
-    setProductForm({ 
-      name: '', description: '', price: '', stock: '0', categoryId: '', image: '', imagePosition: 'center',
-      hasVariants: false, showPrice: true, isPack: false, packItems: '[]', variantType: '', variantBehavior: 'add', variants: [],
-      minQuantity: '1', stepQuantity: '1', tierPricing: []
-    })
+    setIsProductDialogOpen(false)
     setEditingProduct(null)
+    setProductForm(initialProductForm)
   }
 
   const openEditProduct = (product: Product) => {
@@ -723,16 +749,18 @@ Mi email: ${formData.email}`
 
   const allCombinedProducts = useMemo(() => {
     // Los productos ya vienen normalizados por el API que hemos blindado previamente
-    return (products || []).map((p: any) => ({
-      ...p,
-      id: String(p.id || p.alt || Math.random()),
-      name: p.name || p.alt || 'Producto',
-      image: p.image || p.src || '',
-      price: Number(p.price || p.precio || 0),
-      description: p.description || p.descripcion || '',
-      categoryId: p.categoryId || p.categoria || 'social',
-      active: p.active !== undefined ? p.active : (p.activa !== undefined ? p.activa : true)
-    }));
+    return (products || [])
+      .sort((a: any, b: any) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0))
+      .map((p: any) => ({
+        ...p,
+        id: String(p.id || p.alt || Math.random()),
+        name: p.name || p.alt || 'Producto',
+        image: p.image || p.src || '',
+        price: Number(p.price || p.precio || 0),
+        description: p.description || p.descripcion || '',
+        categoryId: p.categoryId || p.categoria || 'social',
+        active: p.active !== undefined ? p.active : (p.activa !== undefined ? p.activa : true)
+      }));
   }, [products]);
 
   const filteredProducts = allCombinedProducts.filter(product => {
@@ -789,6 +817,7 @@ Mi email: ${formData.email}`
           setShowImages={toggleShowImages}
           isProductDialogOpen={isProductDialogOpen}
           setIsProductDialogOpen={setIsProductDialogOpen}
+          isSaving={isSaving}
           productForm={productForm}
           setProductForm={setProductForm}
           editingProduct={editingProduct}

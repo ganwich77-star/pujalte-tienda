@@ -514,7 +514,7 @@ export default function AdminPage() {
                     <Switch
                       id={`v-${key}`}
                       checked={value}
-                      onCheckedChange={(checked) => setConfig({...config, visibilidad: {...config.visibilidad, [key]: checked}})}
+                      onCheckedChange={(checked) => setConfig(prev => prev ? ({...prev, visibilidad: {...prev.visibilidad, [key]: checked}}) : prev)}
                     />
                   </div>
                 ))}
@@ -559,7 +559,10 @@ export default function AdminPage() {
                       <label className="text-xs font-bold tracking-widest uppercase text-gray-400">Tu Historia (Markdown soportado)</label>
                       <Textarea
                         value={config.sobreMi.texto}
-                        onChange={(e) => setConfig({...config, sobreMi: {...config.sobreMi, texto: e.target.value}})}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setConfig(prev => prev ? ({...prev, sobreMi: {...prev.sobreMi, texto: val}}) : prev);
+                        }}
                         className="bg-gray-50/50 font-light text-lg leading-relaxed"
                         rows={12}
                       />
@@ -589,7 +592,7 @@ export default function AdminPage() {
             <CategoriesTab
               categories={config.categorias || []}
               products={config.galeria || []}
-              onUpdate={(newCategories) => setConfig({ ...config, categorias: newCategories })}
+              onUpdate={(newCategories) => setConfig(prev => prev ? ({ ...prev, categorias: newCategories }) : prev)}
             />
           </TabsContent>
 

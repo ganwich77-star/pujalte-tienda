@@ -59,7 +59,7 @@ export default function ProductEditModal({
 }: ProductEditModalProps) {
   const [editedProduct, setEditedProduct] = useState<GalleryImage | null>(null);
   const [tierPrices, setTierPrices] = useState<TierPrice[]>([]);
-  const [activeTab, setActiveTab] = useState("general");
+  const [activeTab, setActiveTab] = useState("variantes");
   const [openSections, setOpenSections] = useState<string[]>([]);
 
   const toggleSection = (id: string) => {
@@ -67,7 +67,8 @@ export default function ProductEditModal({
   };
 
   useEffect(() => {
-    if (product) {
+    if (product && isOpen) {
+      setActiveTab("variantes");
       setEditedProduct({ ...product });
       try {
         let tiers: any[] = [];
@@ -158,6 +159,12 @@ export default function ProductEditModal({
 
           <nav className="flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0 scrollbar-none">
             <SidebarTab 
+              active={activeTab === 'variantes'} 
+              onClick={() => setActiveTab('variantes')}
+              icon={<Layers2 className="h-4 w-4" />}
+              label="Variantes"
+            />
+            <SidebarTab 
               active={activeTab === 'general'} 
               onClick={() => setActiveTab('general')}
               icon={<LayoutGrid className="h-4 w-4" />}
@@ -168,12 +175,6 @@ export default function ProductEditModal({
               onClick={() => setActiveTab('precios')}
               icon={<BarChart3 className="h-4 w-4" />}
               label="Precios"
-            />
-            <SidebarTab 
-              active={activeTab === 'variantes'} 
-              onClick={() => setActiveTab('variantes')}
-              icon={<Layers2 className="h-4 w-4" />}
-              label="Variantes"
             />
           </nav>
 

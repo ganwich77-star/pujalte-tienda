@@ -122,7 +122,8 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
 
       toast({ title: 'Cliente añadido', description: 'El nuevo cliente se ha registrado correctamente.' })
       
-      // Enviar email de bienvenida automáticamente
+      /* 
+      // Desactivado: El correo se envía manualmente desde la tabla de acciones
       try {
         await fetch('/api/admin/send-welcome-email', {
           method: 'POST',
@@ -137,6 +138,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
       } catch (e) {
         console.error('Error enviando mail automático:', e)
       }
+      */
 
       setIsAddingCustomer(false)
       setNewCustomer({ name: '', dni: '', email: '', phone: '', cashEnabled: false })
@@ -528,7 +530,7 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                 <th className="px-4 sm:px-5 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 w-[16%]">Contacto</th>
                 <th className="px-3 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-center w-[8%]">Peds.</th>
                 <th className="px-4 sm:px-5 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 w-[15%]">Inversión</th>
-                <th className="px-4 sm:px-5 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Acción</th>
+                <th className="px-4 sm:px-5 py-4 sm:py-5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -580,8 +582,8 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
                       <p className="font-black text-xs sm:text-[14px] text-[#4A7C59] tracking-tighter leading-none">{formatPrice(customer.totalSpent)}</p>
                       <p className="text-[8px] sm:text-[9px] font-bold text-slate-300 mt-1 uppercase tracking-tighter opacity-60">Avg: {formatPrice(customer.totalSpent / Math.max(1, customer.orders.length))}</p>
                     </td>
-                    <td className="px-4 sm:px-5 py-4 sm:py-5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1 sm:gap-1.5">
+                    <td className="px-4 sm:px-5 py-4 sm:py-5 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                         {/* Botón EFECTIVO (Rápido) */}
                         <Tooltip>
                           <TooltipTrigger asChild>

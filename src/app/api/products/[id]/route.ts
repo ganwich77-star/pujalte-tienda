@@ -48,28 +48,42 @@ export async function PUT(
     allowedFields.forEach(field => {
       if (body[field] !== undefined) {
         if (field === 'price' || field === 'salePrice') {
-           // Gestión de decimales (punto o coma)
            const cleanVal = String(body[field]).replace(',', '.').replace(/[^\d.]/g, '');
            filteredData[field] = parseFloat(cleanVal) || 0;
         } else if (field === 'stock' || field === 'sortOrder' || field === 'minQuantity' || field === 'stepQuantity') {
            filteredData[field] = parseInt(String(body[field])) || 0;
+        } else if (field === 'tierPricing') {
+           // Si el frente envía un objeto/array para los precios por tramos, lo serializamos a string para el DB
+           filteredData[field] = typeof body[field] === 'object' ? JSON.stringify(body[field]) : body[field];
         } else {
            filteredData[field] = body[field];
         }
       }
     });
 
-    await db.product.update({
-      where: { id },
-      data: filteredData
-    });
-
-    const updatedProduct = await db.product.findUnique({
-      where: { id },
-      include: { variants: { orderBy: { sortOrder: 'asc' } } }
+    // 2. Transacción para asegurar integridad de producto y variantes
+    const result = await db.$transaction(async (tx) => {
+      // Recreamos las variantes si vienen en el body (o las mantenemos si no vienen)
+      return await tx.product.update({
+        where: { id },
+        data: {
+          ...filteredData,
+          variants: (body.variants && Array.isArray(body.variants)) ? {
+            deleteMany: {},
+            create: body.variants.map((v: any) => ({
+              name: v.name || "",
+              price: parseFloat(String(v.price).replace(',', '.')) || 0,
+              stock: parseInt(String(v.stock)) || 0,
+              sku: v.sku || null,
+              sortOrder: v.sortOrder || 0
+            }))
+          } : undefined
+        },
+        include: { variants: { orderBy: { sortOrder: 'asc' } } }
+      })
     });
     
-    return NextResponse.json(updatedProduct)
+    return NextResponse.json(result)
   } catch (error: any) {
     console.error('Error updating product in MySQL:', error)
     return NextResponse.json({ error: 'Error al actualizar producto' }, { status: 500 })

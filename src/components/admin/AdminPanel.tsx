@@ -69,6 +69,7 @@ interface AdminPanelProps {
   editingProduct: Product | null
   uploading: boolean
   formatPrice: (price: number) => string
+  isSaving: boolean
   onSaveProduct: (data?: any) => void
   onToggleActive: (product: Product) => void
   onDeleteProduct: (id: string) => void
@@ -96,7 +97,7 @@ export function AdminPanel(props: AdminPanelProps) {
     stats, orders, categories, products, config, showImages, setShowImages,
     formatPrice, onUpdateStatus, onDeleteOrder, uploading, onFileUpload,
     onDownloadTemplate, onSaveConfig, onUpdateConfig, onRefreshCategories,
-    onLogout, onViewStore
+    onLogout, onViewStore, isSaving
   } = props
 
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -339,6 +340,7 @@ export function AdminPanel(props: AdminPanelProps) {
                   onAddProduct={props.onAddProduct}
                   onEditProduct={props.onEditProduct}
                   onUpdateProductField={props.onUpdateProductField}
+                  isSaving={isSaving}
                   addVariant={props.addVariant}
                   updateVariant={props.updateVariant}
                   removeVariant={props.removeVariant}

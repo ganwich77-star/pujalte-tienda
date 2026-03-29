@@ -172,13 +172,13 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                      <SelectTrigger className="w-full h-11 sm:h-14 rounded-xl sm:rounded-2xl border-none bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest px-5 shadow-lg">
                        <SelectValue placeholder="ELIGE UNA OPCIÓN..." />
                      </SelectTrigger>
-                     <SelectContent className="rounded-xl border-none shadow-2xl p-1 bg-slate-900 text-white min-w-[280px]">
-                       <SelectItem value="base" className="text-[10px] font-black uppercase rounded-lg py-3 focus:bg-white/10">
-                         <div className="flex items-center justify-between w-full"><span>ESTÁNDAR</span><span className="text-white/40 ml-4">{formatPrice(activeBasePrice)}</span></div>
+                     <SelectContent className="rounded-xl border border-white/10 shadow-2xl p-1 bg-slate-900 text-white min-w-[280px]">
+                       <SelectItem value="base" className="text-[10px] font-black uppercase rounded-lg py-3 focus:bg-white/10 focus:text-white transition-colors focus:text-white transition-colors">
+                         <div className="flex items-center justify-between w-full"><span>ESTÁNDAR</span><span className="text-white/60 ml-4 font-bold">{formatPrice(activeBasePrice)}</span></div>
                        </SelectItem>
                        {product.variants.filter(v => v.name).map(variant => (
-                         <SelectItem key={variant.id} value={variant.id} className="text-[10px] font-black uppercase rounded-lg py-3 focus:bg-white/10">
-                           <div className="flex items-center justify-between w-full gap-8"><span>{variant.name}</span><span className="text-white/40">{formatPrice(product.variantBehavior === 'replace' ? Number(variant.price) : activeBasePrice + Number(variant.price))}</span></div>
+                         <SelectItem key={variant.id} value={variant.id} className="text-[10px] font-black uppercase rounded-lg py-3 focus:bg-white/10 focus:text-white transition-colors">
+                           <div className="flex items-center justify-between w-full gap-8"><span>{variant.name}</span><span className="text-white/60 font-bold">{formatPrice(product.variantBehavior === 'replace' ? Number(variant.price) : activeBasePrice + Number(variant.price))}</span></div>
                          </SelectItem>
                        ))}
                      </SelectContent>

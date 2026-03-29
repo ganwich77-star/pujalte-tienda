@@ -32,7 +32,7 @@ const fixPath = (path: string | null | undefined) => {
 
 interface ProductsTabProps {
   config: LandingConfig
-  setConfig: (config: LandingConfig) => void
+  setConfig: React.Dispatch<React.SetStateAction<LandingConfig | null>>
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, aspect: number, callback: (url: string) => void) => void
   injectPreset: (name: string) => void
   handleImportCSV: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -100,18 +100,24 @@ export default function ProductsTab({
   }, [products, searchTerm, selectedCategory, sortBy, sortOrder])
 
   const handleToggleField = (id: string | number, field: keyof GalleryImage) => {
-    const updatedGaleria = config.galeria.map(item => {
-      if (String(item.id) === String(id)) {
-        return { ...item, [field]: !item[field] }
-      }
-      return item
+    setConfig(prev => {
+      if (!prev) return prev;
+      const updatedGaleria = prev.galeria.map(item => {
+        if (String(item.id) === String(id)) {
+          return { ...item, [field]: !item[field] }
+        }
+        return item
+      })
+      return { ...prev, galeria: updatedGaleria }
     })
-    setConfig({ ...config, galeria: updatedGaleria })
   }
 
   const handleDelete = (id: string | number) => {
-    const updatedGaleria = config.galeria.filter(item => String(item.id) !== String(id))
-    setConfig({ ...config, galeria: updatedGaleria })
+    setConfig(prev => {
+      if (!prev) return prev;
+      const updatedGaleria = prev.galeria.filter(item => String(item.id) !== String(id))
+      return { ...prev, galeria: updatedGaleria }
+    })
     setProductToDelete(null)
   }
 
@@ -121,10 +127,13 @@ export default function ProductsTab({
   }
 
   const handleSaveProduct = (updatedProduct: GalleryImage) => {
-    const updatedGaleria = config.galeria.map(item => 
-      String(item.id) === String(updatedProduct.id) ? updatedProduct : item
-    )
-    setConfig({ ...config, galeria: updatedGaleria })
+    setConfig(prev => {
+      if (!prev) return prev;
+      const updatedGaleria = prev.galeria.map(item => 
+        String(item.id) === String(updatedProduct.id) ? updatedProduct : item
+      )
+      return { ...prev, galeria: updatedGaleria }
+    })
     setIsEditModalOpen(false)
     setEditingProduct(null)
     
@@ -176,7 +185,10 @@ export default function ProductsTab({
                     precio: 0,
                     mostrarPrecio: true
                   }
-                  setConfig({ ...config, galeria: [...config.galeria, newItem] })
+                  setConfig(prev => {
+                    if (!prev) return prev;
+                    return { ...prev, galeria: [...prev.galeria, newItem] }
+                  })
                   handleEdit(newItem)
                 }}
                 className="rounded-xl px-4 py-3 font-black text-[10px] uppercase tracking-widest gap-3 cursor-pointer"

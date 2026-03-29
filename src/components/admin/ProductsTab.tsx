@@ -5,7 +5,7 @@ import {
   Plus, Package, Edit, Trash2, Eye, EyeOff, ImageIcon, 
   ImageOff, Upload, GripVertical, Check, X as CloseIcon, ZoomIn, ZoomOut,
   ArrowUp, ArrowDown, Info, Sparkles, ArrowUpDown, Search, Filter, ShoppingCart,
-  ChevronDown, ChevronUp, Percent, Settings2
+  ChevronDown, ChevronUp, Percent, Settings2, Loader2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Checkbox } from "@/components/ui/checkbox"
@@ -100,7 +100,8 @@ interface ProductsTabProps {
   onSaveProduct: (data?: any) => void
   addVariant: () => void
   updateVariant: (index: number, field: string, value: any) => void
-  removeVariant: (index: number) => void,
+  removeVariant: (index: number) => void
+  isSaving: boolean
   resetProductForm: () => void
 }
 
@@ -126,7 +127,8 @@ function DebouncedInput({
   const debouncedValue = useDebounce(value, debounce)
 
   React.useEffect(() => {
-    if (debouncedValue !== initialValue) {
+    // Usamos comparación laxa para evitar bucles entre string (input) y number (db)
+    if (debouncedValue != initialValue) {
       onChange(debouncedValue)
     }
   }, [debouncedValue, onChange, initialValue])
@@ -364,10 +366,11 @@ export function ProductsTab({
   addVariant,
   updateVariant,
   removeVariant,
+  isSaving,
   resetProductForm
 }: ProductsTabProps) {
   const [cropImage, setCropImage] = useState<string | null>(null)
-  const [activePromoTab, setActivePromoTab] = useState<'quantities' | 'tiers' | 'variants'>('quantities')
+  const [activePromoTab, setActivePromoTab] = useState<'quantities' | 'tiers' | 'variants'>('variants')
   const [isPromoOpen, setIsPromoOpen] = useState(true)
   const [croppingProduct, setCroppingProduct] = useState<Product | null>(null)
   const [cropForForm, setCropForForm] = useState(false)
@@ -383,6 +386,13 @@ export function ProductsTab({
   const [sortConfig, setSortConfig] = useState<{key: string, direction: 'asc' | 'desc' | null}>({ key: '', direction: null })
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+
+  // Asegura que al abrir el diálogo de producto, la pestaña por defecto sea Variantes
+  React.useEffect(() => {
+    if (isProductDialogOpen) {
+      setActivePromoTab('variants');
+    }
+  }, [isProductDialogOpen]);
 
   const imageInputRef = React.useRef<HTMLInputElement>(null)
   const formImageInputRef = React.useRef<HTMLInputElement>(null)
@@ -626,9 +636,18 @@ export function ProductsTab({
               ))}
             </SelectContent>
           </Select>
+          {sortConfig.key && (
+            <Button 
+              onClick={() => onReorderProducts(sortedProducts)}
+              className="h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center gap-2"
+            >
+              <Check className="h-4 w-4" />
+              FIJAR ORDEN ACTUAL
+            </Button>
+          )}
           <Button 
             variant="ghost" 
-            onClick={() => {setSearchTerm(''); setCategoryFilter('all')}}
+            onClick={() => {setSearchTerm(''); setCategoryFilter('all'); setSortConfig({ key: '', direction: null })}}
             className="h-11 w-11 rounded-xl text-slate-300 hover:text-black hover:bg-slate-100 bg-slate-50 border border-slate-200 shadow-sm"
           >
             <CloseIcon className="h-5 w-5" />
@@ -647,7 +666,19 @@ export function ProductsTab({
                   </TableHead>
                   <TableHead className="w-16 px-2 text-center text-[9px] font-black uppercase tracking-widest text-slate-400">Preview</TableHead>
                   <TableHead className="text-[9px] font-black uppercase tracking-widest text-slate-400">Producto y Referencia</TableHead>
-                  <TableHead className="w-40 text-[9px] font-black uppercase tracking-widest text-slate-400">Categoría</TableHead>
+                <TableHead 
+                  className="w-40 text-[9px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-black transition-colors"
+                  onClick={() => toggleSort('categoryId')}
+                >
+                  <div className="flex items-center gap-1">
+                    Categoría
+                    {sortConfig.key === 'categoryId' ? (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 opacity-20" />
+                    )}
+                  </div>
+                </TableHead>
                   <TableHead className="w-32 text-right text-[9px] font-black uppercase tracking-widest text-slate-400 pr-4">PVP</TableHead>
                   <TableHead className="w-44 text-right pr-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Acciones</TableHead>
                 </TableRow>
@@ -1023,6 +1054,24 @@ export function ProductsTab({
                     <div className="p-1.5 grid grid-cols-[1fr_1fr_1fr_42px] gap-1 border-b border-slate-50 bg-slate-50/40">
                       <button 
                         onClick={() => {
+                          setActivePromoTab('variants');
+                          setIsPromoOpen(true);
+                        }}
+                        className={`flex flex-col items-center justify-center gap-0.5 h-11 rounded-[0.9rem] transition-all duration-300 select-none ${
+                          activePromoTab === 'variants' && isPromoOpen
+                            ? 'bg-slate-900 text-white shadow-md shadow-slate-200' 
+                            : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
+                        }`}
+                      >
+                        <Settings2 className={`h-3 w-3 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
+                        <div className="flex flex-col items-center leading-none">
+                          <span className="text-[7.5px] font-black uppercase tracking-wider">VARIANTES</span>
+                          <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white/60' : 'text-slate-400'}`}>Opciones</span>
+                        </div>
+                      </button>
+
+                      <button 
+                        onClick={() => {
                           setActivePromoTab('quantities');
                           setIsPromoOpen(true);
                         }}
@@ -1054,24 +1103,6 @@ export function ProductsTab({
                         <div className="flex flex-col items-center leading-none">
                           <span className="text-[7.5px] font-black uppercase tracking-wider">ESCALADO</span>
                           <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'tiers' && isPromoOpen ? 'text-emerald-100' : 'text-slate-400'}`}>Ofertas</span>
-                        </div>
-                      </button>
-
-                      <button 
-                        onClick={() => {
-                          setActivePromoTab('variants');
-                          setIsPromoOpen(true);
-                        }}
-                        className={`flex flex-col items-center justify-center gap-0.5 h-11 rounded-[0.9rem] transition-all duration-300 select-none ${
-                          activePromoTab === 'variants' && isPromoOpen
-                            ? 'bg-slate-900 text-white shadow-md shadow-slate-200' 
-                            : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                        }`}
-                      >
-                        <Settings2 className={`h-3 w-3 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                        <div className="flex flex-col items-center leading-none">
-                          <span className="text-[7.5px] font-black uppercase tracking-wider">VARIANTES</span>
-                          <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white/60' : 'text-slate-400'}`}>Opciones</span>
                         </div>
                       </button>
 
@@ -1388,9 +1419,15 @@ export function ProductsTab({
                 Cancelar
               </Button>
               <Button 
-                onClick={() => onSaveProduct(productForm)}
-                className="flex-[2] h-10 rounded-xl font-black uppercase text-[9px] bg-black text-white hover:bg-slate-900 shadow-lg active:scale-95 transition-all"
+                disabled={isSaving}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSaveProduct(productForm);
+                }}
+                className="flex-[2] h-10 rounded-xl font-black uppercase text-[9px] bg-black text-white hover:bg-slate-900 shadow-lg active:scale-95 transition-all flex items-center justify-center"
               >
+                {isSaving && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
                 {editingProduct ? 'Guardar Cambios' : 'Publicar'}
               </Button>
             </div>
