@@ -158,9 +158,16 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false)
   const [showReturnsModal, setShowReturnsModal] = useState(false)
 
+  // Sincronizar permiso de efectivo del usuario logueado
+  useEffect(() => {
+    if (isLoggedIn && user?.cashEnabled) {
+      setCashEnabled(true)
+    }
+  }, [isLoggedIn, user])
+
   // Escuchar cambios en el cliente para activar el pago en efectivo en tiempo real
   useEffect(() => {
-    const dni = formData['dni']?.trim().toUpperCase();
+    const dni = (formData['dni'] || user?.email)?.trim().toUpperCase();
     if (!dni || dni.length < 8) return;
 
     const unsub = onSnapshot(doc(db, COLLECTIONS.CLIENTS, dni), (docSnap) => {
