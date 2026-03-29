@@ -205,25 +205,49 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
 
           {/* --- VERSIÓN DESKTOP (CINEMATOGRÁFICA) --- */}
           <div className="hidden md:block relative w-full aspect-video">
-            {/* Fondo Multimedia */}
-            <div className="absolute inset-0 z-0">
-               <MediaContent current={current} videoRef={videoRef} />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+            {/* Fondo Multimedia con Fundido Suave */}
+            <div className="absolute inset-0 z-0 overflow-hidden">
+               <AnimatePresence mode="popLayout">
+                 <motion.div
+                   key={index}
+                   initial={{ opacity: 0, scale: 1.05 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   exit={{ opacity: 0, scale: 0.95 }}
+                   transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+                   className="absolute inset-0"
+                 >
+                   <MediaContent current={current} videoRef={videoRef} />
+                 </motion.div>
+               </AnimatePresence>
+               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 z-10" />
             </div>
 
-            {/* Contenido Único Superpuesto (Sin duplicados) */}
-            <div className="absolute inset-0 z-20 flex flex-col justify-between p-12 lg:p-16">
-              <AnimatePresence mode="wait">
-                <motion.div key={index} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                  <HeaderContent current={current} />
-                </motion.div>
-              </AnimatePresence>
+            {/* Contenido Inmersivo Agrupado (Texto + Acción) */}
+            <div className={cn(
+              "absolute inset-0 z-20 flex flex-col p-8 md:p-16 lg:p-24",
+              current.contentPosition === 'top-left' && "justify-start items-start",
+              current.contentPosition === 'top-right' && "justify-start items-end",
+              current.contentPosition === 'bottom-left' && "justify-end items-start",
+              current.contentPosition === 'bottom-right' && "justify-end items-end",
+              current.contentPosition === 'center' && "justify-center items-center text-center",
+              !current.contentPosition && "justify-end items-start"
+            )}>
+              <div className={cn(
+                "flex flex-col gap-8 md:gap-10 transition-all max-w-2xl",
+                current.contentPosition === 'center' && "items-center"
+              )}>
+                <AnimatePresence mode="wait">
+                  <motion.div key={index} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                    <HeaderContent current={current} />
+                  </motion.div>
+                </AnimatePresence>
 
-              <AnimatePresence mode="wait">
-                <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
-                  <FooterContent current={current} handleAction={handleAction} />
-                </motion.div>
-              </AnimatePresence>
+                <AnimatePresence mode="wait">
+                  <motion.div key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
+                    <FooterContent current={current} handleAction={handleAction} />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </div>
           </div>
 
@@ -239,10 +263,6 @@ export function PromoModal({ promos, onClose, onOpenStore, onContact }: PromoMod
             </>
           )}
 
-          {/* Botón Cerrar */}
-          <button onClick={onClose} className="absolute top-4 right-4 z-[60] p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md transition-all border border-white/10">
-            <X className="w-5 h-5 focus:outline-none" />
-          </button>
         </div>
       </motion.div>
     </div>

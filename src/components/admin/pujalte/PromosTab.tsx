@@ -158,13 +158,7 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
           </h2>
           <p className="text-slate-500 text-xs md:text-sm font-medium max-w-lg">Gestiona el carrusel de entrada de la web. Mejora el impacto visual con contenido optimizado.</p>
         </div>
-        <Button 
-          onClick={handleAddPromo}
-          className="w-full md:w-auto bg-[#4A7C59] hover:bg-[#3d664a] rounded-2xl px-6 md:px-10 h-14 md:h-16 font-black uppercase tracking-widest text-[10px] md:text-xs shadow-2xl shadow-[#4A7C59]/20 gap-3 transition-all active:scale-95 group"
-        >
-          <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform" />
-          Nuevo Banner
-        </Button>
+
       </div>
 
       {/* Guía de Optimización Premium */}
@@ -235,7 +229,7 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
             value={`item-${promo.id}`} 
             className={cn(
               "border-2 rounded-[2rem] overflow-hidden transition-all duration-300 bg-white",
-              promo.activa ? 'border-slate-100 shadow-md' : 'border-slate-100 opacity-70 grayscale'
+              promo.activa ? 'border-slate-100 shadow-md' : 'border-slate-200 opacity-90'
             )}
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 md:px-6 py-4 bg-slate-50/50">
@@ -341,7 +335,11 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
 
             <AccordionContent className="p-8 pt-0 border-t border-slate-100 bg-white">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
-                <div className="relative aspect-video rounded-3xl bg-slate-900 overflow-hidden shadow-inner group">
+                <div 
+                  className="relative aspect-video rounded-3xl bg-slate-950 overflow-hidden shadow-2xl group cursor-pointer border-2 border-transparent hover:border-[#4A7C59]/50 transition-all"
+                  onClick={() => document.getElementById(`file-${promo.id}`)?.click()}
+                >
+                  {/* Media Rendering */}
                   {promo.type === 'video' || promo.url?.match(/\.(mp4|mov|webm|m4v)/i) ? (
                     <video 
                       src={fixPath(promo.url)} 
@@ -349,7 +347,7 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                       playsInline 
                       autoPlay 
                       loop
-                      className="w-full h-full object-cover opacity-80 transition-all duration-300" 
+                      className="w-full h-full object-cover group-hover:opacity-40 transition-all duration-500" 
                       style={{ 
                         transform: promo.zoom ? `scale(${promo.zoomScale || 1.1})` : 'scale(1)',
                         transformOrigin: `center ${promo.zoomY ?? 50}%`
@@ -359,39 +357,62 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                     <img 
                       src={fixPath(promo.url)} 
                       alt="" 
-                      className="w-full h-full object-cover opacity-80 transition-all duration-300" 
+                      className="w-full h-full object-cover group-hover:opacity-40 transition-all duration-500" 
                       style={{ 
                         transform: promo.zoom ? `scale(${promo.zoomScale || 1.1})` : 'scale(1)',
                         transformOrigin: `center ${promo.zoomY ?? 50}%`
                       }}
                     />
                   )}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                    <div className={cn(
-                      "absolute flex flex-col gap-2 p-4",
-                      promo.contentPosition === 'top-left' && "top-0 left-0 text-left",
-                      promo.contentPosition === 'top-right' && "top-0 right-0 text-right",
-                      promo.contentPosition === 'bottom-left' && "bottom-0 left-0 text-left",
-                      promo.contentPosition === 'bottom-right' && "bottom-0 right-0 text-right",
-                      promo.contentPosition === 'center' && "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center",
-                      !promo.contentPosition && "bottom-0 left-0 text-left"
-                    )}>
-                      <span className={cn(
-                        "inline-block px-2 py-0.5 rounded-full text-[6px] font-black text-white uppercase mb-1 shadow-sm",
-                        promo.color ? `bg-gradient-to-r ${promo.color}` : 'bg-slate-400'
-                      )}>
-                        {promo.badge}
-                      </span>
-                      <p className="text-white text-[10px] font-black leading-tight drop-shadow-md">{promo.title}</p>
+
+                  {/* Overlay de Subida al Hover */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20">
+                    <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 mb-2 transform scale-75 group-hover:scale-100 transition-transform duration-500">
+                      <Plus className="h-8 w-8 text-white" />
                     </div>
+                    <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] drop-shadow-lg">Cambiar Contenido</span>
+                    <span className="text-[8px] font-bold text-white/60 uppercase mt-1 italic tracking-widest">IMAGEN O VÍDEO</span>
                   </div>
-                  <Button 
-                    variant="secondary"
-                    className="absolute top-3 right-3 h-8 px-3 rounded-lg bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-black/60 text-[9px] font-black uppercase"
-                    onClick={() => setPreviewPromo(promo)}
-                  >
-                    <Eye className="h-3 w-3 mr-2" /> Probar
-                  </Button>
+
+                  {/* Etiqueta de previsualización de posición */}
+                  <div className={cn(
+                    "absolute flex flex-col gap-2 p-4 pointer-events-none transition-opacity duration-300 group-hover:opacity-20",
+                    promo.contentPosition === 'top-left' && "top-0 left-0 text-left",
+                    promo.contentPosition === 'top-right' && "top-0 right-0 text-right",
+                    promo.contentPosition === 'bottom-left' && "bottom-0 left-0 text-left",
+                    promo.contentPosition === 'bottom-right' && "bottom-0 right-0 text-right",
+                    promo.contentPosition === 'center' && "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center",
+                    !promo.contentPosition && "bottom-0 left-0 text-left"
+                  )}>
+                    <span className={cn(
+                      "inline-block px-2 py-0.5 rounded-full text-[6px] font-black text-white uppercase mb-1 shadow-sm",
+                      promo.color ? `bg-gradient-to-r ${promo.color}` : 'bg-slate-400'
+                    )}>
+                      {promo.badge}
+                    </span>
+                    <p className="text-white text-[10px] font-black leading-tight shadow-black drop-shadow-md">{promo.title}</p>
+                  </div>
+
+                  {/* Botón Probar Independiente con Stop Propagation */}
+                  <div className="absolute top-4 right-4 z-20">
+                    <Button 
+                      variant="secondary"
+                      className="h-9 px-4 rounded-xl bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-[#4A7C59] text-[9px] font-black uppercase transition-all shadow-xl"
+                      onClick={(e) => { e.stopPropagation(); setPreviewPromo(promo); }}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-2" /> Previa
+                    </Button>
+                  </div>
+
+                  {/* Indicador de carga si existe */}
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm z-30">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="h-10 w-10 border-4 border-[#4A7C59]/30 border-t-[#4A7C59] rounded-full animate-spin" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Subiendo...</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-8 lg:col-span-2">
@@ -409,18 +430,7 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                     <Label className="text-[10px] font-black uppercase text-slate-400">Subtítulo</Label>
                     <Input value={promo.subtitle} onChange={(e) => handleUpdatePromo(promo.id, 'subtitle', e.target.value)} className="rounded-xl font-bold h-11" />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-400">Media URL</Label>
-                    <div className="flex gap-2">
-                      <Input value={promo.url} onChange={(e) => handleUpdatePromo(promo.id, 'url', e.target.value)} className="rounded-xl font-bold h-11 flex-1" />
-                      <Button 
-                        variant="outline" 
-                        className={cn("h-11 rounded-xl px-4 border-dashed", isUploading && "animate-pulse")}
-                        disabled={isUploading}
-                        onClick={() => document.getElementById(`file-${promo.id}`)?.click()}
-                      >
-                        <ImageIcon className="h-4 w-4" />
-                      </Button>
+                  <div className="hidden">
                       <input 
                         id={`file-${promo.id}`} 
                         type="file" 
@@ -448,7 +458,6 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
                           }
                         }} 
                       />
-                    </div>
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 mt-6 bg-slate-100/50 p-6 rounded-2xl border border-slate-200/60">
@@ -631,10 +640,19 @@ export function PromosTab({ config, onUpdateConfig, onSave }: PromosTabProps) {
         ))}
       </Accordion>
 
-      <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">
+      <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-10 pb-6 border-t border-slate-100 mt-8">
+        <Button 
+          variant="outline"
+          onClick={handleAddPromo}
+          className="w-full sm:w-auto border-2 border-[#4A7C59] text-[#4A7C59] hover:bg-[#4A7C59]/5 rounded-2xl px-8 h-12 md:h-14 font-black uppercase tracking-widest text-[10px] md:text-xs transition-all active:scale-95 group gap-2"
+        >
+          <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform" />
+          Añadir Nuevo Banner
+        </Button>
+
         <Button 
           onClick={() => onSave(config)}
-          className="w-full sm:w-auto bg-[#4A7C59] hover:bg-[#3d664a] rounded-2xl px-12 h-14 md:h-16 font-black uppercase tracking-widest text-sm md:text-lg shadow-xl shadow-[#4A7C59]/20 transition-all active:scale-95"
+          className="w-full sm:w-auto bg-[#4A7C59] hover:bg-[#3d664a] rounded-2xl px-10 h-12 md:h-14 font-black uppercase tracking-widest text-xs md:text-sm shadow-xl shadow-[#4A7C59]/20 transition-all active:scale-95"
         >
           Guardar Todos los Cambios
         </Button>
