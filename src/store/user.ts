@@ -6,8 +6,9 @@ interface UserState {
   user: {
     email: string
     name?: string
+    cashEnabled?: boolean
   } | null
-  login: (email: string, name?: string) => void
+  login: (email: string, name?: string, cashEnabled?: boolean) => void
   logout: () => void
 }
 
@@ -16,9 +17,9 @@ export const useUserStore = create<UserState>()(
     (set) => ({
       isLoggedIn: false,
       user: null,
-      login: (email, name) => set({ 
+      login: (email, name, cashEnabled) => set({ 
         isLoggedIn: true, 
-        user: { email, name } 
+        user: { email, name, cashEnabled } 
       }),
       logout: () => set({ 
         isLoggedIn: false, 

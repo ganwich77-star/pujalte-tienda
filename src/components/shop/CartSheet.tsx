@@ -983,7 +983,7 @@ _Pago: ${paymentMethodText}_`
                     </motion.div>
                   )}
 
-                  {config.enableCash && cashEnabled && (
+                  {config.enableCash && (user?.cashEnabled || cashEnabled) && (
                     <motion.div 
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}

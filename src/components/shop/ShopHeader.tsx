@@ -91,12 +91,25 @@ export function ShopHeader({
     }
   }
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!loginDni || !loginName) return
 
-    const normalizedDni = loginDni.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
-    login(normalizedDni, loginName)
+    const normalizedDni = loginDni.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+    
+    // Obtener información adicional del cliente si existe (como el pago en efectivo)
+    let cashEnabled = false
+    try {
+      const res = await fetch(`/api/clients/check-cash?dni=${normalizedDni}`)
+      if (res.ok) {
+        const data = await res.json()
+        cashEnabled = !!data.cashEnabled
+      }
+    } catch (e) { 
+      console.error('Error fetching cash status:', e) 
+    }
+
+    login(normalizedDni, loginName, cashEnabled)
     setIsLoginModalOpen(false)
     setLoginDni('')
     setLoginName('')
