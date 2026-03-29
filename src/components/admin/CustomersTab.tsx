@@ -205,14 +205,15 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
   }
 
   const customers = useMemo(() => {
-    // 1. Iniciamos el mapa con todos los clientes de Firebase (LA ÚNICA FUENTE DE VERDAD)
+    // 1. Iniciamos el mapa SOLO con los clientes que EXISTEN en Firebase
+    // Esto garantiza que si borras un cliente de la base de datos, NO volverá a aparecer
+    // aunque tenga pedidos antiguos en el historial.
     const customerMap = new Map<string, any>()
     
     Object.values(firebaseClients).forEach((fc: any) => {
       const fcDni = (fc.dni || '').trim().toUpperCase()
       const fcEmail = (fc.email || '').toLowerCase().trim()
       const fcPhone = (fc.phone || '').trim()
-      // Clave del mapa, priorizando DNI
       const key = fcDni || fcEmail || fcPhone
       
       if (key) {
@@ -226,20 +227,19 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
           totalSpent: 0,
           lastOrderDate: fc.createdAt ? formatDate(fc.createdAt) : new Date(0),
           marketing: fc.marketing || false,
-          cashEnabled: fc.cashEnabled || false,
-          isFirebaseOrigin: true
+          cashEnabled: fc.cashEnabled || false
         })
       }
     })
 
-    // 2. Vinculamos los pedidos a los clientes que EXISTEN en la base de datos
+    // 2. Vinculamos los pedidos SOLO a los clientes que SI están registrados
     orders.forEach(order => {
       const customFields = (order.customFields || {}) as Record<string, any>
       const dni = (customFields.dni || '').trim().toUpperCase()
       const email = (order.customerEmail?.toLowerCase() || '').trim()
       const phone = (order.customerPhone || '').trim()
       
-      // Buscar coincidencia en la base de datos por DNI, Email o Teléfono
+      // Buscar coincidencia en nuestra lista de Firebase
       let matchKey: string | null = null;
       if (dni && customerMap.has(dni)) matchKey = dni;
       else if (email && customerMap.has(email)) matchKey = email;
@@ -257,38 +257,12 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
         if (customFields.marketing === 'true' || customFields.marketing === true) {
           entry.marketing = true
         }
-      } else {
-        // OPCIONAL: Si queremos mostrar un cliente que NO está en Firebase (auto-registro)
-        // Solo lo hacemos si el nombre NO es un nombre de prueba claro
-        const name = order.customerName || '';
-        const isTest = /(SABADO|PRUEBA|TEST|PENDIENTE|BORRAR|NUEVO)/i.test(name);
-        
-        if (!isTest) {
-          const key = dni || email || phone;
-          if (key && !customerMap.has(key)) {
-            customerMap.set(key, {
-              name: order.customerName,
-              email: order.customerEmail || 'Sin email',
-              phone: order.customerPhone,
-              address: order.address || '',
-              dni: dni,
-              orders: [order],
-              totalSpent: order.total,
-              lastOrderDate: formatDate(order.createdAt),
-              marketing: false,
-              cashEnabled: false,
-              isFirebaseOrigin: false
-            })
-          }
-        }
       }
     })
 
-    // 3. Devolvemos la lista ordenada: Priorizamos los que han SIDO EDITADOS o son más recientes
+    // 3. Ordenamos: VIPs (más inversión) primero, luego los más recientes
     return Array.from(customerMap.values()).sort((a, b) => {
-      // Si son clientes con pedidos, ordenamos por gasto (VIPs arriba)
       if (b.totalSpent !== a.totalSpent) return b.totalSpent - a.totalSpent
-      // Si no, por fecha más reciente de actividad
       return b.lastOrderDate.getTime() - a.lastOrderDate.getTime()
     })
   }, [orders, firebaseClients])
