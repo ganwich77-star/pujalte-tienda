@@ -64,6 +64,7 @@ export function ShopHeader({
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const [loginDni, setLoginDni] = useState('')
   const [loginName, setLoginName] = useState('')
+  const [loginError, setLoginError] = useState<string | null>(null)
   
   const { isLoggedIn, user, login, logout } = useUserStore()
   const [mounted, setMounted] = useState(false)
@@ -103,33 +104,54 @@ export function ShopHeader({
     }
   }
 
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!loginDni || !loginName) return
+    if (!loginDni || !loginName || isLoggingIn) return
 
-    const normalizedDni = loginDni.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+    setIsLoggingIn(true)
+    setLoginError(null)
+    const normalizedDni = loginDni.trim().toUpperCase()
+    const normalizedName = loginName.trim().toUpperCase()
     
-    // Obtener información adicional del cliente si existe (como el pago en efectivo)
-    let cashEnabled = false
     try {
-      const res = await fetch(`/api/clients/check-cash?dni=${normalizedDni}`)
+      // Pasamos tanto el DNI como el NOMBRE a la API para verificar ambos
+      const res = await fetch(`/api/clients/check-cash?dni=${normalizedDni}&name=${normalizedName}`)
       if (res.ok) {
         const data = await res.json()
-        cashEnabled = !!data.cashEnabled
+        
+        if (data.exists) {
+          if (data.errorType === 'NAME_MISMATCH') {
+            setLoginError("EL NOMBRE NO COINCIDE CON EL REGISTRADO")
+          } else {
+            login({
+              email: data.dni, // Usamos el DNI completo desde la DB
+              name: data.fullName || loginName.trim(),
+              dni: data.dni,
+              cashEnabled: !!data.cashEnabled
+            })
+            setIsLoginModalOpen(false)
+            setLoginDni('')
+            setLoginName('')
+            
+            toast({
+              title: "¡Bienvenido/a!",
+              description: `Hola ${data.fullName || loginName}, te has identificado correctamente.`,
+            })
+          }
+        } else {
+          setLoginError("DNI NO REGISTRADO EN EL SISTEMA")
+        }
+      } else {
+        throw new Error('Error en la verificación')
       }
     } catch (e) { 
-      console.error('Error fetching cash status:', e) 
+      console.error('Error in login flow:', e)
+      setLoginError("ERROR DE CONEXIÓN AL VERIFICAR")
+    } finally {
+      setIsLoggingIn(false)
     }
-
-    login(normalizedDni, loginName, cashEnabled)
-    setIsLoginModalOpen(false)
-    setLoginDni('')
-    setLoginName('')
-    
-    toast({
-      title: "¡Bienvenido/a!",
-      description: `Hola ${loginName}, te has identificado correctamente.`,
-    })
   }
 
   return (
@@ -251,23 +273,23 @@ export function ShopHeader({
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 p-8 rounded-[2.5rem] shadow-2xl border-none bg-[#4A7C59] text-white mt-4 z-[200] animate-in fade-in zoom-in duration-500 origin-top" align="end">
-                      <div className="relative space-y-6 flex flex-col items-center text-center">
+                    <PopoverContent className="w-60 p-4 rounded-[1.5rem] shadow-2xl border-none bg-[#4A7C59] text-white mt-4 z-[200] animate-in fade-in zoom-in duration-500 origin-top" align="end">
+                      <div className="relative space-y-3 flex flex-col items-center text-center">
                         <div className="absolute -top-11 right-3 w-6 h-6 bg-[#4A7C59] rotate-45 transform origin-bottom-left" />
                         
-                        <div className="flex flex-col items-center gap-4">
-                          <div className="bg-white/20 p-3 rounded-full backdrop-blur-md">
-                            <CheckCircle2 className="h-6 w-6 text-white" />
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="bg-white/20 p-1.5 rounded-full backdrop-blur-md">
+                            <CheckCircle2 className="h-4 w-4 text-white" />
                           </div>
-                          <h4 className="font-black text-sm uppercase tracking-[0.2em] leading-none">¡Empieza por aquí!</h4>
+                          <h4 className="font-black text-[10px] uppercase tracking-[0.2em] leading-none">¡Empieza por aquí!</h4>
                         </div>
                         
-                        <p className="text-[12px] font-medium leading-relaxed opacity-90 px-2">
-                          Identifícate con tu **DNI y Nombre** para poder realizar pedidos, ver tus fotos y disfrutar de una experiencia personalizada.
+                        <p className="text-[10px] font-medium leading-relaxed opacity-90 px-0.5">
+                          Identifícate con tu **DNI y Nombre** para poder realizar pedidos y disfrutar de una experiencia personalizada.
                         </p>
-                                      <Button 
+                        <Button 
                           variant="secondary" 
-                          className="w-full bg-white text-[#4A7C59] hover:bg-slate-50 font-black text-xs uppercase tracking-widest h-14 rounded-[1.5rem] transition-all active:scale-95 shadow-lg shadow-black/5"
+                          className="w-full bg-white text-[#4A7C59] hover:bg-slate-50 font-black text-[9px] uppercase tracking-[0.15em] h-10 rounded-xl transition-all active:scale-95 shadow-lg shadow-black/5"
                           onClick={() => {
                             setIsFirstVisit(false)
                           }}
@@ -343,7 +365,16 @@ export function ShopHeader({
             />
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 0 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
+              animate={loginError ? { 
+                scale: 1, 
+                opacity: 1, 
+                x: [0, -10, 10, -10, 10, 0],
+                transition: { duration: 0.4 }
+              } : { 
+                scale: 1, 
+                opacity: 1, 
+                x: 0 
+              }}
               exit={{ scale: 0.95, opacity: 0, y: 0 }}
               className="bg-white w-full max-w-[360px] rounded-[2rem] shadow-2xl relative overflow-hidden p-6 z-[1000000]"
             >
@@ -383,10 +414,31 @@ export function ShopHeader({
                     placeholder="TU DNI O NIE..."
                     required
                     value={loginDni}
-                    onChange={(e) => setLoginDni(e.target.value)}
-                    className="h-11 rounded-xl pl-10 bg-slate-50 border-0 font-black text-xs focus-visible:ring-1 focus-visible:ring-[#4A7C59]/20 uppercase"
+                    onChange={(e) => {
+                      setLoginDni(e.target.value)
+                      setLoginError(null)
+                    }}
+                    className={cn(
+                      "h-11 rounded-xl pl-10 bg-slate-50 border-0 font-black text-xs focus-visible:ring-1 uppercase",
+                      loginError ? "ring-2 ring-red-500/50 bg-red-50" : "focus-visible:ring-[#4A7C59]/20"
+                    )}
                   />
                 </div>
+
+                <AnimatePresence>
+                  {loginError && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <p className="text-[9px] text-red-600 font-black uppercase tracking-widest bg-red-50 py-2 px-3 rounded-lg border border-red-100 italic">
+                        {loginError}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 
                 <div className="pt-4 space-y-3 text-center">
                   <Button 

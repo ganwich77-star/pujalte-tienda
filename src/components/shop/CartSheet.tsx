@@ -484,7 +484,7 @@ _Pago: ${paymentMethodText}_`
 
   return (
     <>
-      <SheetContent className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden border-l-0 bg-[#FCFDFE]">
+      <SheetContent className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden border-l-0 bg-[#FCFDFE] !top-16 !h-[calc(100svh-64px)] pointer-events-auto" style={{ top: '64px', height: 'calc(100svh - 64px)' }}>
         <VisuallyHidden>
           <SheetHeader>
             <SheetTitle>Carrito de Compras</SheetTitle>
