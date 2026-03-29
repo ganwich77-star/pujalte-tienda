@@ -302,6 +302,7 @@ _Pago: ${paymentMethodText}_`
             quantity: item.quantity,
             price: item.price
           })),
+          total: getTotal(),
           paymentMethod, paymentStatus: 'pending'
         })
       })
@@ -1093,7 +1094,7 @@ _Pago: ${paymentMethodText}_`
             className="mb-6 relative z-10 pt-8"
           >
             <img 
-              src={config.logo ? (config.logo.startsWith('/') ? `/pujaltefotografia${config.logo}` : `/${config.logo}`) : "/logo_ia.png"} 
+              src={config.logo ? (config.logo.startsWith('/') ? config.logo : `/${config.logo}`) : "/logo_ia.png"} 
               alt="Logo" 
               className="h-24 w-auto mx-auto mb-4 drop-shadow-lg" 
             />

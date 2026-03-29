@@ -56,7 +56,9 @@ export async function POST(request: NextRequest) {
         variantName: item.variantName || null,
         quantity: item.quantity || 1,
         price: parseFloat(String(item.price)) || 0,
-        note: item.note || ""
+        note: item.note || "",
+        fileUrl: item.fileUrl || null,
+        fileName: item.fileName || null
       }))
     };
 

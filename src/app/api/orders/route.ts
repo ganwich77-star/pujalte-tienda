@@ -23,24 +23,24 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    const { items, total, customer, status = 'pending', paymentMethod = 'cash' } = data;
+    const { items, total, customer, customerName, customerEmail, customerPhone, status = 'pending', paymentMethod = 'cash' } = data;
 
-    // Nota: El modelo cliente no existe en este prisma simplificado, 
-    // pero guardamos los datos del cliente dentro del Pedido (Order)
+    // Calculamos el total seguro
+    const safeTotal = total ?? data.total ?? 0;
     
     // 1. Crear el pedido en MySQL
     const order = await db.order.create({
       data: {
-        customerName: customer.name,
-        customerEmail: customer.email,
-        customerPhone: customer.phone,
-        total: parseFloat(String(total)) || 0,
+        customerName: customer?.name || customerName || 'Desconocido',
+        customerEmail: customer?.email || customerEmail || null,
+        customerPhone: customer?.phone || customerPhone || '',
+        total: parseFloat(String(safeTotal)) || 0,
         status: status,
         paymentMethod: paymentMethod,
         items: {
           create: items.map((item: any) => ({
             productId: item.productId || item.id,
-            productName: item.name,
+            productName: item.productName || item.name || 'Producto sin nombre',
             variantId: item.variantId || null,
             variantName: item.variantName || null,
             quantity: parseInt(String(item.quantity)) || 1,
