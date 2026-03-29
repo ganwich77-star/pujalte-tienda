@@ -430,13 +430,12 @@ Mi email: ${formData.email}`
         return parseFloat(s) || 0;
       };
 
-      const body = {
+      const body: any = {
         name: dataInput.name,
         description: dataInput.description,
         price: parseSafePrice(dataInput.price),
         categoryId: (dataInput.categoryId === 'none' || !dataInput.categoryId) ? null : dataInput.categoryId,
         active: (dataInput as any).active !== false,
-        image: dataInput.image || dataInput.image_url || null,
         hasVariants: !!dataInput.hasVariants,
         showPrice: (dataInput as any).showPrice ?? true,
         isPack: (dataInput as any).isPack ?? false,
@@ -461,6 +460,13 @@ Mi email: ${formData.email}`
           stock: parseInt(String(v.stock)) || 0,
           sortOrder: v.sortOrder || 0
         }))
+      }
+
+      // IMPORTANTE: Para evitar el error 413 "Payload Too Large" en Vercel Serverless, 
+      // SOLO enviamos la imagen (Base64) si es un producto nuevo o si el usuario ha cambiado de imagen realmente.
+      const currentImage = dataInput.image || dataInput.image_url || null;
+      if (!isUpdate || currentImage !== editingProduct?.image) {
+        body.image = currentImage;
       }
       
       const res = await fetch(url, {
