@@ -147,6 +147,21 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
 
   // Form state
   const [formData, setFormData] = useState<Record<string, string>>({})
+  
+  // Sincronizar datos del usuario logueado con el formulario
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || prev.name || '',
+        phone: user.phone || prev.phone || '',
+        email: user.email || prev.email || '',
+        dni: user.dni || prev.dni || '',
+        address: user.address || prev.address || '',
+      }))
+    }
+  }, [isLoggedIn, user])
+
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bizum' | 'card'>('card')
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [trackingCode, setTrackingCode] = useState<string | null>(null)
@@ -261,10 +276,10 @@ export function CartSheet({ config, formatPrice, onClose }: CartSheetProps) {
 
     const message = `🛒 *NUEVO PEDIDO #${orderId.slice(-8).toUpperCase()}*
 
-👤 *Cliente:* ${formData['name'] || 'N/A'}
-📱 *Teléfono:* ${formData['phone'] || 'N/A'}
-📧 *Email:* ${formData['email'] || 'No proporcionado'}
-📍 *Dirección:* ${formData['address'] || 'No proporcionada'}
+👤 *Cliente:* ${user?.name || formData['name'] || 'N/A'}
+📱 *Teléfono:* ${user?.phone || formData['phone'] || 'N/A'}
+📧 *Email:* ${user?.email || formData['email'] || 'No proporcionado'}
+📍 *Dirección:* ${user?.address || formData['address'] || 'No proporcionada'}
 
 📦 *Productos:*
 ${itemsList}
@@ -279,16 +294,19 @@ _Pago: ${paymentMethodText}_`
   }
 
   const handleWhatsAppOrder = async () => {
-    const requiredFields = (config.formFields || []).filter(f => f.required && f.active)
-    const missingFields = requiredFields.filter(f => !formData[f.id])
+    // Si no está logueado, validamos los campos del formulario manual
+    if (!isLoggedIn) {
+      const requiredFields = (config.formFields || []).filter(f => f.required && f.active)
+      const missingFields = requiredFields.filter(f => !formData[f.id])
 
-    if (missingFields.length > 0) {
-      toast({ 
-        title: 'Campos requeridos', 
-        description: `Por favor completa: ${missingFields.map(f => f.label).join(', ')}`, 
-        variant: 'destructive' 
-      })
-      return
+      if (missingFields.length > 0) {
+        toast({ 
+          title: 'Campos requeridos', 
+          description: `Por favor completa: ${missingFields.map(f => f.label).join(', ')}`, 
+          variant: 'destructive' 
+        })
+        return
+      }
     }
 
     try {
@@ -296,10 +314,10 @@ _Pago: ${paymentMethodText}_`
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerName: formData['name'],
-          customerPhone: formData['phone'],
-          customerEmail: formData['email'],
-          address: formData['address'],
+          customerName: user?.name || formData['name'],
+          customerPhone: user?.phone || formData['phone'],
+          customerEmail: user?.email || formData['email'],
+          address: user?.address || formData['address'],
           notes: formData['notes'],
           customFields: formData,
           items: items.map(item => ({
@@ -332,16 +350,19 @@ _Pago: ${paymentMethodText}_`
   }
 
   const handleCardPayment = async () => {
-    const requiredFields = (config.formFields || []).filter(f => f.required && f.active)
-    const missingFields = requiredFields.filter(f => !formData[f.id])
+    // Si no está logueado, validamos los campos del formulario manual
+    if (!isLoggedIn) {
+      const requiredFields = (config.formFields || []).filter(f => f.required && f.active)
+      const missingFields = requiredFields.filter(f => !formData[f.id])
 
-    if (missingFields.length > 0) {
-      toast({ 
-        title: 'Campos requeridos', 
-        description: `Por favor completa: ${missingFields.map(f => f.label).join(', ')}`, 
-        variant: 'destructive' 
-      })
-      return
+      if (missingFields.length > 0) {
+        toast({ 
+          title: 'Campos requeridos', 
+          description: `Por favor completa: ${missingFields.map(f => f.label).join(', ')}`, 
+          variant: 'destructive' 
+        })
+        return
+      }
     }
 
     setProcessingPayment(true)
@@ -351,10 +372,10 @@ _Pago: ${paymentMethodText}_`
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerName: formData['name'], 
-          customerPhone: formData['phone'], 
-          customerEmail: formData['email'], 
-          address: formData['address'], 
+          customerName: user?.name || formData['name'], 
+          customerPhone: user?.phone || formData['phone'], 
+          customerEmail: user?.email || formData['email'], 
+          address: user?.address || formData['address'], 
           notes: formData['notes'],
           customFields: formData,
           items: items.map(item => ({
@@ -788,6 +809,30 @@ _Pago: ${paymentMethodText}_`
               </div>
 
               <div className="flex-1 overflow-y-auto pr-3 space-y-6 custom-scrollbar pb-6">
+                {!isLoggedIn && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-6 rounded-[2.5rem] bg-gradient-to-br from-[#4A7C59] to-[#3D6649] text-white shadow-xl shadow-[#4A7C59]/20 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-all"
+                    onClick={() => {
+                      setShowDniInput(true);
+                      setIsAuthModalOpen(true);
+                    }}
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform duration-700">
+                      <LogIn className="h-16 w-16" />
+                    </div>
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">¿Es un placer verte de nuevo?</span>
+                      </div>
+                      <h4 className="text-xl font-black tracking-tight leading-tight mb-1">Pulsa aquí para <br/>recuperar tus datos</h4>
+                      <p className="text-[11px] font-medium opacity-70">Identifícate con tu DNI para comprar en un segundo.</p>
+                    </div>
+                  </motion.div>
+                )}
+
                 <div className="grid grid-cols-1 gap-5">
                   <div className="bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100 space-y-5">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

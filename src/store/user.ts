@@ -1,14 +1,19 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
+interface User {
+  email: string
+  name?: string
+  phone?: string
+  dni?: string
+  address?: string
+  cashEnabled?: boolean
+}
+
 interface UserState {
   isLoggedIn: boolean
-  user: {
-    email: string
-    name?: string
-    cashEnabled?: boolean
-  } | null
-  login: (email: string, name?: string, cashEnabled?: boolean) => void
+  user: User | null
+  login: (userData: User) => void
   logout: () => void
 }
 
@@ -17,9 +22,9 @@ export const useUserStore = create<UserState>()(
     (set) => ({
       isLoggedIn: false,
       user: null,
-      login: (email, name, cashEnabled) => set({ 
+      login: (userData) => set({ 
         isLoggedIn: true, 
-        user: { email, name, cashEnabled } 
+        user: userData 
       }),
       logout: () => set({ 
         isLoggedIn: false, 

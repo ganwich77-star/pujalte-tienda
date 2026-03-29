@@ -76,8 +76,12 @@ export function ShopHeader({
     // Check if it's first visit to highlight login
     const hasVisited = localStorage.getItem('has_visited_shop')
     if (!hasVisited && !isLoggedIn) {
-      setIsFirstVisit(true)
-      localStorage.setItem('has_visited_shop', 'true')
+      // Esperar 1 segundo antes de mostrar el mensaje llamativo
+      const timer = setTimeout(() => {
+        setIsFirstVisit(true)
+        localStorage.setItem('has_visited_shop', 'true')
+      }, 1000)
+      return () => clearTimeout(timer)
     }
   }, [isLoggedIn])
   
@@ -247,25 +251,25 @@ export function ShopHeader({
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-72 p-5 rounded-2xl shadow-2xl border-none bg-[#4A7C59] text-white mt-3 z-[200] animate-in fade-in zoom-in duration-500" align="end">
-                      <div className="relative space-y-3">
-                        <div className="absolute -top-8 right-2 w-4 h-4 bg-[#4A7C59] rotate-45 transform origin-bottom-left" />
-                        <div className="flex items-center gap-3">
-                          <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
-                            <CheckCircle2 className="h-5 w-5 text-white" />
+                    <PopoverContent className="w-80 p-8 rounded-[2.5rem] shadow-2xl border-none bg-[#4A7C59] text-white mt-4 z-[200] animate-in fade-in zoom-in duration-500 origin-top" align="end">
+                      <div className="relative space-y-6 flex flex-col items-center text-center">
+                        <div className="absolute -top-11 right-3 w-6 h-6 bg-[#4A7C59] rotate-45 transform origin-bottom-left" />
+                        
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="bg-white/20 p-3 rounded-full backdrop-blur-md">
+                            <CheckCircle2 className="h-6 w-6 text-white" />
                           </div>
-                          <h4 className="font-black text-xs uppercase tracking-widest leading-none">¡Empieza por aquí!</h4>
+                          <h4 className="font-black text-sm uppercase tracking-[0.2em] leading-none">¡Empieza por aquí!</h4>
                         </div>
-                        <p className="text-[11px] font-medium leading-relaxed opacity-90">
+                        
+                        <p className="text-[12px] font-medium leading-relaxed opacity-90 px-2">
                           Identifícate con tu **DNI y Nombre** para poder realizar pedidos, ver tus fotos y disfrutar de una experiencia personalizada.
                         </p>
-                        <Button 
+                                      <Button 
                           variant="secondary" 
-                          size="sm" 
-                          className="w-full bg-white text-[#4A7C59] hover:bg-slate-100 font-black text-[10px] uppercase tracking-tighter h-8 rounded-xl"
+                          className="w-full bg-white text-[#4A7C59] hover:bg-slate-50 font-black text-xs uppercase tracking-widest h-14 rounded-[1.5rem] transition-all active:scale-95 shadow-lg shadow-black/5"
                           onClick={() => {
                             setIsFirstVisit(false)
-                            setIsLoginModalOpen(true)
                           }}
                         >
                           ENTENDIDO
@@ -401,6 +405,7 @@ export function ShopHeader({
           </div>
         )}
       </AnimatePresence>
+
       {/* ADMIN DIALOG - PREMIUM DESIGN */}
       <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
         <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] p-8 border-none shadow-2xl">
@@ -462,7 +467,6 @@ export function ShopHeader({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </header>
   )
 }
