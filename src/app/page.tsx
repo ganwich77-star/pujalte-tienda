@@ -118,6 +118,16 @@ export default function Home() {
   const [view, setView] = useState<'landing' | 'shop'>('landing')
   const [isScrolled, setIsScrolled] = useState(false)
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false)
+  
+  // FIX de Scroll y Menú Movil 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  useEffect(() => {
+    // Si la vista cambia o el menú se oculta, fuerzo a Radix a soltar el bloqueo del body.
+    document.body.style.pointerEvents = "auto";
+    document.body.style.overflow = "auto";
+    document.body.removeAttribute("data-scroll-locked");
+  }, [view, mobileMenuOpen])
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50)
@@ -994,7 +1004,7 @@ Mi email: ${formData.email}`
                 
                 {/* Menú al lado del logo en móvil */}
                 <div className="md:hidden">
-                  <Sheet>
+                  <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                     <SheetTrigger asChild>
                       <button className="p-2 text-gray-600 hover:text-[#4A7C59] transition-colors">
                         <Menu className="w-7 h-7" />
@@ -1009,18 +1019,21 @@ Mi email: ${formData.email}`
                       </div>
                       
                       <div className="flex-1 flex flex-col p-8 gap-6">
-                        <a href="#servicios" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Servicios</a>
-                        <a href="#productos" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Productos</a>
-                        <a href="#sobre-mi" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Sobre Mí</a>
-                        <a href="#contacto" className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Contacto</a>
+                        <a href="#servicios" onClick={() => setMobileMenuOpen(false)} className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Servicios</a>
+                        <a href="#productos" onClick={() => setMobileMenuOpen(false)} className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Productos</a>
+                        <a href="#sobre-mi" onClick={() => setMobileMenuOpen(false)} className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Sobre Mí</a>
+                        <a href="#contacto" onClick={() => setMobileMenuOpen(false)} className="text-xl font-bold text-slate-600 hover:text-[#4A7C59] transition-colors">Contacto</a>
                         
                         <div className="mt-auto pt-8 border-t border-slate-100">
                           <button 
                             onClick={() => { 
-                              setShowSplash(true); 
+                              setMobileMenuOpen(false);
                               setTimeout(() => {
-                                setView('shop');
-                                window.scrollTo(0, 0);
+                                setShowSplash(true); 
+                                setTimeout(() => {
+                                  setView('shop');
+                                  window.scrollTo(0, 0);
+                                }, 300);
                               }, 300);
                             }}
                             className="w-full bg-[#4A7C59] text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-lg shadow-[#4A7C59]/20"
