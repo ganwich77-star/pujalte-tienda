@@ -184,7 +184,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
       </DialogTrigger>
 
       {/* Modal ampliado para ver la foto a gran tamaño */}
-      <DialogContent showCloseButton={false} className="w-[95vw] max-h-[95vh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all">
+      <DialogContent showCloseButton={false} className="w-[95vw] max-h-[82dvh] sm:max-h-[90dvh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all">
         <div className="relative flex-1 flex flex-col overflow-hidden">
             <div className="relative aspect-square w-full overflow-hidden bg-slate-50 min-h-[250px] sm:min-h-0">
               <img src={fixPath(product.image || '')} alt={product.name} className="w-full h-full object-cover transition-all duration-500" />
