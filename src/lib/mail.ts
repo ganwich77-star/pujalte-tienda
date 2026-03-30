@@ -170,7 +170,7 @@ export const sendWelcomeEmails = async (client: { dni: string, name: string, ema
           </p>
 
           <div style="text-align: center; margin: 40px 0;">
-            <a href="https://pujalte-tienda.vercel.app/#contacto" style="display: inline-block; background: #4A7C59; color: #ffffff; padding: 20px 50px; text-decoration: none; border-radius: 16px; font-weight: 900; font-size: 15px; letter-spacing: 0.05em; text-transform: uppercase;">
+            <a href="https://pujalte-tienda.vercel.app/" style="display: inline-block; background: #4A7C59; color: #ffffff; padding: 20px 50px; text-decoration: none; border-radius: 16px; font-weight: 900; font-size: 15px; letter-spacing: 0.05em; text-transform: uppercase;">
               CONFIRMAR MI CUENTA
             </a>
           </div>
