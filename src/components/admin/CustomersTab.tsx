@@ -756,7 +756,49 @@ export function CustomersTab({ orders, formatPrice }: CustomersTabProps) {
             <Button variant="ghost" onClick={() => setEditingCustomer(null)} className="rounded-xl sm:rounded-2xl text-xs sm:text-sm h-10 sm:h-12 w-full sm:w-auto mt-0">Cancelar</Button>
             <Button 
                 onClick={async () => {
-                    // ... (lógica de guardado que no cambia)
+                  if (!editingCustomer.name || !editingCustomer.email) {
+                    toast({ title: 'Datos incompletos', description: 'Nombre y Email son obligatorios.', variant: 'destructive' })
+                    return
+                  }
+                  
+                  setUpdating(true)
+                  try {
+                    const { doc: firestoreDoc, deleteDoc: firestoreDelete, setDoc: firestoreSet, serverTimestamp } = await import('firebase/firestore')
+                    
+                    const oldKey = (editingCustomer.originalDni || editingCustomer.originalEmail || editingCustomer.originalPhone).trim().toUpperCase()
+                    const newKey = (editingCustomer.dni || editingCustomer.email || editingCustomer.phone).trim().toUpperCase()
+
+                    const updatedData = {
+                      name: editingCustomer.name,
+                      dni: (editingCustomer.dni || '').trim().toUpperCase(),
+                      email: (editingCustomer.email || '').toLowerCase().trim(),
+                      phone: (editingCustomer.phone || '').trim(),
+                      cashEnabled: !!editingCustomer.cashEnabled,
+                      updatedAt: serverTimestamp()
+                    }
+
+                    // Si la clave ha cambiado (ej: cambió el DNI), debemos borrar el documento viejo y crear uno nuevo
+                    if (oldKey !== newKey) {
+                      await firestoreDelete(firestoreDoc(db, COLLECTIONS.CLIENTS, oldKey))
+                      await firestoreSet(firestoreDoc(db, COLLECTIONS.CLIENTS, newKey), {
+                        ...updatedData,
+                        createdAt: editingCustomer.createdAt || serverTimestamp()
+                      })
+                    } else {
+                      // Si la clave es la misma, solo actualizamos
+                      const { updateDoc: firestoreUpdate } = await import('firebase/firestore')
+                      await firestoreUpdate(firestoreDoc(db, COLLECTIONS.CLIENTS, oldKey), updatedData)
+                    }
+
+                    toast({ title: 'Cliente actualizado', description: 'Los cambios se han guardado correctamente.' })
+                    setEditingCustomer(null)
+                    await reloadFirebase()
+                  } catch (e) {
+                    console.error('Error al actualizar cliente:', e)
+                    toast({ title: 'Error', description: 'No se pudo actualizar el cliente.', variant: 'destructive' })
+                  } finally {
+                    setUpdating(false)
+                  }
                 }}
                 disabled={updating}
                 className="bg-[#4A7C59] hover:bg-[#3D6649] rounded-xl sm:rounded-2xl px-8 text-xs sm:text-sm h-10 sm:h-12 w-full sm:w-auto"

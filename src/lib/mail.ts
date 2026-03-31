@@ -175,11 +175,22 @@ export const sendWelcomeEmails = async (client: { dni: string, name: string, ema
             </a>
           </div>
 
-          <!-- Sección DNI -->
-          <div style="background: #f8fafc; padding: 30px; border-radius: 20px; margin-top: 40px; border: 1px solid #f1f5f9;">
-            <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 800; color: #4A7C59; text-transform: uppercase; letter-spacing: 0.1em;">🔒 ¿CÓMO ENTRARÁS A PARTIR DE AHORA?</p>
-            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #64748b;">
-              Es muy fácil. Para tus próximas compras o visitas, no necesitas recordar contraseñas. Solo tendrás que introducir tu <strong>${dni}</strong> y ya podrás acceder para finalizar tus compras.
+          <!-- Sección Credenciales -->
+          <div style="background: #f8fafc; padding: 40px; border-radius: 24px; margin-top: 40px; border: 2px solid #e2e8f0;">
+            <p style="margin: 0 0 20px 0; font-size: 13px; font-weight: 800; color: #4A7C59; text-transform: uppercase; letter-spacing: 0.15em; text-align: center;">🎨 TUS DATOS DE ACCESO 🔒</p>
+            
+            <div style="background: #ffffff; padding: 20px; border-radius: 16px; border: 1px solid #f1f5f9; margin-bottom: 15px;">
+              <p style="margin: 0; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">👤 USUARIO</p>
+              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: 900; color: #1e293b; letter-spacing: -0.02em;">${name.split(' ')[0].toUpperCase()}</p>
+            </div>
+
+            <div style="background: #ffffff; padding: 20px; border-radius: 16px; border: 1px solid #f1f5f9;">
+              <p style="margin: 0; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">🔑 CONTRASEÑA (TU DNI)</p>
+              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: 900; color: #4A7C59; letter-spacing: 0.05em;">${dni}</p>
+            </div>
+
+            <p style="margin: 20px 0 0 0; font-size: 13px; line-height: 1.6; color: #64748b; text-align: center; font-style: italic;">
+              Usa estos datos cada vez que quieras finalizar un pedido o ver el estado de tu cuenta.
             </p>
           </div>
         </div>
