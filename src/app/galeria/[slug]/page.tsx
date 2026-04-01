@@ -1009,7 +1009,7 @@ export default function GalleryPage() {
 
             <div className="max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar">
               <AnimatePresence mode="wait">
-                {photoToBuy && !favorites.has(photoToBuy.id) ? (
+                {photoToBuy && client.gallerySettings?.shopRequiresFavorite && !favorites.has(photoToBuy.id) ? (
                   <motion.div 
                     key="no-favorite-message"
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -1026,22 +1026,25 @@ export default function GalleryPage() {
                         ¡Esta foto es espectacular!
                       </h3>
                       <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-sm mx-auto">
-                        Para poder añadir artículos personalizados con esta imagen, primero debes <span className="text-[#4A7C59] font-black italic underline">seleccionarla como favorita</span>.
+                        Para poder comprar artículos con esta imagen, primero debes <span className="text-[#4A7C59] font-black italic underline">seleccionarla como favorita</span>.
                       </p>
-                      <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] bg-orange-100/50 py-2 px-4 rounded-full inline-block">
-                        ✨ ¡Recuerda! Puede contar como una foto extra ✨
-                      </p>
+                      
+                      {client.gallerySettings?.includedPhotos && client.gallerySettings.includedPhotos > 0 && (
+                        <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] bg-orange-100/50 py-2.5 px-6 rounded-full inline-block border border-orange-200 shadow-sm">
+                          ✨ Sumará a tus {client.gallerySettings.includedPhotos} fotos incluidas ✨
+                        </p>
+                      )}
                     </div>
 
                     <Button 
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleFavorite(photoToBuy.id);
-                        toast({ title: "¡Foto seleccionada!", description: "Ya puedes elegir tus artículos." });
+                        toast({ title: "¡Foto seleccionada!", description: "Catálogo de artículos desbloqueado." });
                       }}
                       className="bg-slate-900 hover:bg-black text-white rounded-full h-14 px-10 font-black uppercase text-[11px] tracking-widest shadow-2xl flex gap-2 active:scale-95 transition-all"
                     >
-                      <Heart className="h-4 w-4 fill-current" /> Seleccionar como favorita ahora
+                      <Heart className="h-4 w-4 fill-current" /> Seleccionar para comprar
                     </Button>
                   </motion.div>
                 ) : !selectedProduct ? (

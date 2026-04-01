@@ -1072,7 +1072,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
               </TabsContent>
 
               <TabsContent value="galeria" className="space-y-5 outline-none">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="space-y-1.5">
                     <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Fotos Incluidas (0 = Ilimitadas)</Label>
                     <Input 
@@ -1098,6 +1098,20 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                       className="rounded-xl h-11 text-sm font-bold text-[#4A7C59]"
                     />
                   </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-between mb-4">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-black text-slate-900 uppercase tracking-tight italic">¿Vincular Tienda a Favoritos?</p>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-tight leading-none">Actívalo para forzar la selección de la foto antes de comprar.</p>
+                  </div>
+                  <Switch 
+                    checked={editingCustomer.gallerySettings?.shopRequiresFavorite ?? false} 
+                    onCheckedChange={(checked) => setEditingCustomer({
+                      ...editingCustomer, 
+                      gallerySettings: { ...editingCustomer.gallerySettings, shopRequiresFavorite: checked }
+                    })}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
@@ -1502,15 +1516,31 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                 className="rounded-2xl h-12 bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-medium"
               />
             </div>
-            <div className="sm:col-span-2 p-5 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-between mt-2">
-              <div className="space-y-1">
-                <p className="text-sm font-black text-slate-900 leading-none">Habilitar Pago en Efectivo</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Permite que este cliente pague al recoger.</p>
+            <div className="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-black text-slate-900 leading-none">Pago en Efectivo</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Permite pagar al recoger.</p>
+                </div>
+                <Switch 
+                  checked={newCustomer.cashEnabled} 
+                  onCheckedChange={(checked) => setNewCustomer({...newCustomer, cashEnabled: checked})}
+                />
               </div>
-              <Switch 
-                checked={newCustomer.cashEnabled} 
-                onCheckedChange={(checked) => setNewCustomer({...newCustomer, cashEnabled: checked})}
-              />
+
+              <div className="p-5 rounded-3xl bg-orange-50/50 border border-orange-100 flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-black text-slate-900 leading-none italic">Forzar Selección</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Vincula la tienda a favoritos.</p>
+                </div>
+                <Switch 
+                  checked={newCustomer.gallerySettings?.shopRequiresFavorite ?? false} 
+                  onCheckedChange={(checked) => setNewCustomer({
+                    ...newCustomer, 
+                    gallerySettings: { ...newCustomer.gallerySettings, shopRequiresFavorite: checked }
+                  })}
+                />
+              </div>
             </div>
           </div>
 
