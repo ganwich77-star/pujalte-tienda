@@ -1038,13 +1038,16 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
 
       {/* Modal de Edición */}
       <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && setEditingCustomer(null)}>
-        <DialogContent className="w-[93vw] sm:max-w-[510px] max-h-[90vh] overflow-y-auto rounded-[2rem] p-5 sm:p-6">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-black">Editar Cliente</DialogTitle>
-            <DialogDescription className="text-xs">
+        <DialogContent className="w-[93vw] sm:max-w-[550px] min-h-[90vh] h-[90vh] overflow-hidden rounded-[2.5rem] p-0 flex flex-col shadow-2xl border-none">
+          <div className="p-6 sm:p-8 flex flex-col h-full">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-2xl font-black tracking-tight text-slate-800">Editar Cliente</DialogTitle>
+            <DialogDescription className="text-sm font-medium text-slate-400">
               Modifica los datos de contacto y permisos.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
 
           {editingCustomer && (
               <Tabs defaultValue={customerIdToEdit ? "galeria" : "datos"} className="w-full">
@@ -1593,8 +1596,9 @@ Cualquier duda, ¡escríbeme! 📲
               </div>
             </Tabs>
           )}
+          </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between items-center w-full">
+          <DialogFooter className="mt-8 pt-6 border-t border-slate-100 flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between items-center w-full bg-white">
             <div className="flex gap-2 w-full sm:w-auto">
               <Button 
                 variant="destructive" 
@@ -1602,13 +1606,13 @@ Cualquier duda, ¡escríbeme! 📲
                   setDeletingCustomer(editingCustomer)
                   setEditingCustomer(null)
                 }}
-                className="rounded-xl sm:rounded-2xl text-xs sm:text-sm h-10 sm:h-12 w-full sm:w-auto bg-red-50 text-red-600 hover:bg-red-100 border-red-100 border"
+                className="rounded-2xl text-sm font-black h-12 w-full sm:w-auto bg-red-50 text-red-600 hover:bg-red-100 border-red-100 border transition-all active:scale-95"
               >
                 <Trash2 className="h-4 w-4 mr-2" /> Eliminar
               </Button>
             </div>
             <div className="flex gap-2 w-full sm:w-auto">
-              <Button variant="ghost" onClick={() => setEditingCustomer(null)} className="rounded-xl sm:rounded-2xl text-xs sm:text-sm h-10 sm:h-12 w-full sm:w-auto mt-0">Cancelar</Button>
+              <Button variant="ghost" onClick={() => setEditingCustomer(null)} className="rounded-2xl text-sm font-bold h-12 w-full sm:w-auto mt-0 hover:bg-slate-50 transition-all">Cancelar</Button>
               <Button 
                   onClick={async () => {
                     if (!editingCustomer.name || !editingCustomer.email) {
@@ -1620,8 +1624,11 @@ Cualquier duda, ¡escríbeme! 📲
                     try {
                       const { doc: firestoreDoc, deleteDoc: firestoreDelete, setDoc: firestoreSet, serverTimestamp } = await import('firebase/firestore')
                       
-                      const oldKey = (editingCustomer.id || editingCustomer.originalId || editingCustomer.originalDni || editingCustomer.originalEmail || editingCustomer.originalPhone).trim().toUpperCase()
-                      const newKey = (editingCustomer.dni || editingCustomer.email || editingCustomer.phone).trim().toUpperCase()
+                      const oldIdString = (editingCustomer.id || editingCustomer.originalId || editingCustomer.originalDni || editingCustomer.originalEmail || editingCustomer.originalPhone || '').toString();
+                      const oldKey = oldIdString.trim().toUpperCase()
+                      
+                      const newIdString = (editingCustomer.dni || editingCustomer.email || editingCustomer.phone || '').toString();
+                      const newKey = newIdString.trim().toUpperCase()
   
                       const updatedData = {
                         name: editingCustomer.name,
@@ -1634,7 +1641,6 @@ Cualquier duda, ¡escríbeme! 📲
                         updatedAt: serverTimestamp()
                       }
   
-                      // Si la clave ha cambiado (ej: cambió el DNI), debemos borrar el documento viejo y crear uno nuevo
                       if (oldKey !== newKey) {
                         await firestoreDelete(firestoreDoc(db, COLLECTIONS.CLIENTS, oldKey))
                         await firestoreSet(firestoreDoc(db, COLLECTIONS.CLIENTS, newKey), {
@@ -1642,7 +1648,6 @@ Cualquier duda, ¡escríbeme! 📲
                           createdAt: editingCustomer.createdAt || serverTimestamp()
                         })
                       } else {
-                        // Si la clave es la misma, solo actualizamos
                         const { updateDoc: firestoreUpdate } = await import('firebase/firestore')
                         await firestoreUpdate(firestoreDoc(db, COLLECTIONS.CLIENTS, oldKey), updatedData)
                       }
@@ -1657,12 +1662,13 @@ Cualquier duda, ¡escríbeme! 📲
                     }
                   }}
                   disabled={updating}
-                  className="bg-[#4A7C59] hover:bg-[#3D6649] rounded-xl sm:rounded-2xl px-8 text-xs sm:text-sm h-10 sm:h-12 w-full sm:w-auto"
+                  className="bg-[#4A7C59] hover:bg-[#3D6649] rounded-2xl px-10 text-sm font-black h-12 w-full sm:w-auto shadow-lg shadow-green-100 transition-all active:scale-95"
               >
                 {updating ? 'Guardando...' : 'Guardar Cambios'}
               </Button>
             </div>
           </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
