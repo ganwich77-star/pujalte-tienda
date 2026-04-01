@@ -414,7 +414,16 @@ export function ShopHeader({
     </header>
     
     {/* LOGIN MODAL (USANDO DIALOG PARA EVITAR BLOQUEO DE FOCO) */}
-    <Dialog open={isLoginModalOpen} onOpenChange={setIsLoginModalOpen}>
+    <Dialog 
+      open={isLoginModalOpen} 
+      onOpenChange={(open) => {
+        setIsLoginModalOpen(open)
+        if (!open) {
+          setHasClosedThisSession(true)
+          setIsFirstVisit(false)
+        }
+      }}
+    >
       <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-[360px]">
         <motion.div 
           initial={{ scale: 0.95, opacity: 0, y: 0 }}
