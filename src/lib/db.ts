@@ -1,12 +1,17 @@
 import { PrismaClient } from "@prisma/client";
 import mysql from "mysql2/promise";
 
-// 1. Prisma Client para Configuración Global (Neon/Postgres)
+// 1. Prisma Client para Configuración Global (Hostinger MySQL)
 const prismaClientSingleton = () => {
+  // En producción, forzamos la URL de Hostinger para evitar conflictos con Vercel
+  const connectionUrl = (process.env.NODE_ENV === "production" || !process.env.DATABASE_URL?.startsWith("mysql://"))
+    ? "mysql://u239382299_admin_tienda:Jpm17pass71-@srv2197.hstgr.io:3306/u239382299_tienda_pujalte"
+    : process.env.DATABASE_URL;
+
   return new PrismaClient({
     datasources: {
       db: {
-        url: process.env.DATABASE_URL || "mysql://u239382299_admin_tienda:Jpm17pass71-@srv2197.hstgr.io:3306/u239382299_tienda_pujalte"
+        url: connectionUrl
       }
     }
   });
