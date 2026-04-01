@@ -102,8 +102,14 @@ export default function GalleryPage() {
           fetch('/api/products'),
           fetch('/api/config')
         ])
+        
+        if (!productsRes.ok) throw new Error('Error cargando productos');
+        if (!configRes.ok) throw new Error('Error cargando configuración');
+        
         const productsData = await productsRes.json()
         const configData = await configRes.json()
+        
+        console.log("Productos cargados:", productsData.length)
         setProducts(Array.isArray(productsData) ? productsData : [])
         setGlobalConfig(configData)
       } catch (e) {
@@ -325,9 +331,16 @@ export default function GalleryPage() {
     const term = searchTerm.toLowerCase().trim()
     const safeProducts = Array.isArray(products) ? products : []
     
-    if (!term) return safeProducts.filter(p => p?.active && p?.showPrice)
+    // Filtro inicial por estado (MySQL devuelve 0/1 para booleanos)
+    const activeProducts = safeProducts.filter(p => {
+      const isActive = p?.active === true || p?.active === 1 || p?.active === "1";
+      const isVisible = p?.showPrice === true || p?.showPrice === 1 || p?.showPrice === "1";
+      return isActive && isVisible;
+    });
 
-    return safeProducts.filter(p => {
+    if (!term) return activeProducts
+
+    return activeProducts.filter(p => {
       if (!p) return false;
       // Búsqueda en nombre de producto
       const matchesMainName = (p.name || "").toLowerCase().includes(term)
@@ -337,8 +350,7 @@ export default function GalleryPage() {
         (v?.name || "").toLowerCase().includes(term)
       )
 
-      const isVisible = p.active && p.showPrice
-      return (matchesMainName || matchesVariants) && isVisible
+      return matchesMainName || matchesVariants
     })
   }, [products, searchTerm])
 
@@ -686,16 +698,16 @@ export default function GalleryPage() {
                   {/* Watermark con Logo de Marca */}
                   {(client.gallerySettings?.watermarkEnabled !== false) && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden select-none">
-                      {globalConfig?.logoUrl ? (
+                      { (globalConfig?.logoUrl || globalConfig?.logo) ? (
                         <img 
-                          src={globalConfig.logoUrl} 
+                          src={globalConfig.logoUrl || globalConfig.logo} 
                           alt="Watermark" 
                           className="w-[60%] h-auto object-contain drop-shadow-2xl transition-opacity duration-500" 
                           style={{ opacity: (globalConfig.logoOpacity ?? 20) / 100 }}
                         />
                       ) : (
                         <p className="text-white/30 font-black text-xl uppercase tracking-[0.4em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.1)] text-center px-4">
-                          {client.gallerySettings?.watermarkText || 'PUJALTE'}
+                          {client?.gallerySettings?.watermarkText || 'PUJALTE'}
                         </p>
                       )}
                     </div>
@@ -1425,16 +1437,16 @@ export default function GalleryPage() {
                 {/* Marca de Agua en Visor */}
                 {(client.gallerySettings?.watermarkEnabled !== false) && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden select-none">
-                    {globalConfig?.logoUrl ? (
+                    { (globalConfig?.logoUrl || globalConfig?.logo) ? (
                       <img 
-                        src={globalConfig.logoUrl} 
+                        src={globalConfig.logoUrl || globalConfig.logo} 
                         alt="Watermark Visor" 
                         className="w-[40%] h-auto object-contain drop-shadow-2xl opacity-10" 
                         style={{ opacity: (globalConfig.logoOpacity ?? 20) / 100 }}
                       />
                     ) : (
                       <p className="text-white/10 font-black text-6xl sm:text-9xl uppercase tracking-[0.5em] drop-shadow-xl text-center px-4">
-                        {client.gallerySettings?.watermarkText || 'PUJALTE'}
+                        {client?.gallerySettings?.watermarkText || 'PUJALTE'}
                       </p>
                     )}
                   </div>

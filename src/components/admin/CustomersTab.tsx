@@ -104,7 +104,10 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
     dni: '',
     email: '',
     phone: '',
-    cashEnabled: false
+    cashEnabled: false,
+    gallerySettings: {
+      shopRequiresFavorite: false
+    }
   })
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   const [isUploading, setIsUploading] = useState(false)
@@ -241,7 +244,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
       */
 
       setIsAddingCustomer(false)
-      setNewCustomer({ name: '', dni: '', email: '', phone: '', cashEnabled: false })
+      setNewCustomer({ name: '', dni: '', email: '', phone: '', cashEnabled: false, gallerySettings: { shopRequiresFavorite: false } })
       await reloadFirebase()
     } catch (e) {
       toast({ title: 'Error', description: 'No se pudo añadir el cliente.', variant: 'destructive' })
@@ -1337,7 +1340,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                       const url = `${window.location.origin}/galeria/${slug}`
                       const firstName = editingCustomer.name?.split(' ')[0] || 'Cliente';
                       const message = `¡Hola ${firstName}! 👋✨\n\n¡Buenas noticias! ¡Ya tienes lista tu galería online! 🎞️📸\n\nEs el momento de revivir esos momentos mágicos. En el siguiente enlace podrás seleccionar tus fotos favoritas y convertirlas en recuerdos tangibles en nuestra tienda:\n\n👉 ${url} 🔗✨\n\nQueremos que vuestro reportaje sea una experiencia inolvidable y que la tecnología os lo ponga muy fácil. 🚀💻\n\n¿Nos ayudas a seguir creciendo? 📈🌱\n\nEn PujalteFotografia nos apasiona saber qué piensas. Si te ha gustado nuestro trabajo y el trato recibido, nos harías un favor enorme dejando una reseña en nuestro perfil. 💬🙏\n\n¿Nos regalas 5 estrellas? ⭐⭐⭐⭐⭐ Un comentario contando vuestra experiencia sería el broche de oro perfecto para nosotros. 😜🎁\n\nPuedes hacerlo directamente aquí 👇\n📍 https://g.page/r/CTswPlAvjlLXEAo/review\n\nCualquier duda, ¡escríbeme! 📲\n\n¡Mil gracias por vuestra confianza y apoyo! 🤗💖`;
-                      window.open(`https://wa.me/${editingCustomer.phone?.replace(/\s/g, '')}?text=${encodeURIComponent(message)}`, '_blank')
+                      window.open(`https://wa.me/${editingCustomer.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank')
                     }}
                   >
                     <Send className="h-3.5 w-3.5" /> Enviar Galería
