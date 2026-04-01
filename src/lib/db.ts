@@ -1,4 +1,4 @@
-import { PrismaClient } from "../generated/client";
+import { PrismaClient } from "@prisma/client";
 import mysql from "mysql2/promise";
 
 // 1. Prisma Client para Configuración Global (Neon/Postgres)

@@ -35,7 +35,8 @@ import {
   Palette,
   Eye,
   Upload,
-  X
+  X,
+  LayoutGrid
 } from 'lucide-react'
 import { useCartStore, CartItem } from '@/store/cart'
 import { useUserStore } from '@/store/user'
@@ -204,8 +205,8 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
       })
 
       if (response.ok) {
-        const order = await response.json()
-        setTrackingCode(order.trackingCode)
+        const data = await response.json()
+        setTrackingCode(data.trackingCode)
         setCheckoutStep('success')
         clearCart()
       } else {
@@ -290,7 +291,7 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
             </div>
           </div>
 
-          <div className="flex-1 overflow-hidden relative">
+          <div className="flex-1 overflow-hidden relative flex flex-col">
             <AnimatePresence mode="wait">
               {checkoutStep === 'cart' && (
                 <motion.div 
@@ -298,10 +299,10 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="flex-1 flex flex-col p-8 overflow-y-auto custom-scrollbar"
+                  className="flex-1 flex flex-col h-full overflow-hidden"
                 >
                   {items.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                       <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center mb-6">
                         <ShoppingBag className="h-10 w-10 text-slate-300" />
                       </div>
@@ -311,107 +312,102 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                     </div>
                   ) : (
                     <>
-                      <button onClick={onClose} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 hover:text-[#4A7C59] transition-colors group bg-transparent border-none p-0 outline-none shadow-none">
-                        <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Seguir Comprando
-                      </button>
-                      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                        {items.map((item) => {
-                          const noteParts = item.notes?.split(' | ') || [];
-                          // El primer elemento suele ser la variante (ej: "Madera")
-                          // Si hay foto, suele empezar por "FOTO: "
-                          // El resto son observaciones
-                          const photoPart = noteParts.find(p => p.startsWith('FOTO:'));
-                          const photoUrl = photoPart?.split('FOTO: ')[1];
-                          const variantPart = item.variantName || noteParts.find(p => !p.startsWith('FOTO:') && !p.includes(':'));
-                          const otherObservations = noteParts.filter(p => p !== photoPart && p !== variantPart && p !== item.variantName);
+                      {/* ZONA DE PRODUCTOS CON SCROLL INDEPENDIENTE */}
+                      <div className="flex-1 overflow-y-auto p-4 sm:p-8 pt-4 custom-scrollbar touch-pan-y overscroll-contain">
+                        <button onClick={onClose} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 hover:text-[#4A7C59] transition-colors group bg-transparent border-none p-0 outline-none shadow-none">
+                          <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Seguir Comprando
+                        </button>
+                        
+                        <div className="space-y-4 pb-4">
+                          {items.map((item) => {
+                            const noteParts = item.notes?.split(' | ') || [];
+                            const photoPart = noteParts.find(p => p.startsWith('FOTO:'));
+                            const photoUrl = photoPart?.split('FOTO: ')[1];
+                            const variantPart = item.variantName || noteParts.find(p => !p.startsWith('FOTO:') && !p.includes(':'));
+                            const otherObservations = noteParts.filter(p => p !== photoPart && p !== variantPart && p !== item.variantName);
 
-                          return (
-                            <div key={`${item.id}-${item.variantId}-${item.notes}`} className="group bg-white rounded-3xl p-4 border border-slate-100 hover:border-[#4A7C59]/20 transition-all duration-300 shadow-sm hover:shadow-md">
-                              <div className="flex gap-5">
-                                <div className="h-24 w-24 rounded-2xl overflow-hidden bg-slate-50 border border-slate-50 shrink-0 relative">
-                                  {item.image ? (
-                                    <img src={fixPath(item.image)} alt={item.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                  ) : (
-                                    <div className="h-full w-full flex items-center justify-center">
-                                      <ShoppingBag className="h-8 w-8 text-slate-200" />
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0 py-1 flex flex-col">
-                                  <div className="flex justify-between items-start mb-1">
-                                    <div className="flex-1">
-                                      <h4 className="font-black text-slate-900 truncate pr-4 text-base leading-tight uppercase tracking-tight">{item.name}</h4>
-                                      
-                                      {/* PRECIO JUSTO DEBAJO DEL TEXTO DEL NOMBRE */}
-                                      <p className="text-lg font-black text-[#4A7C59] leading-none mt-1">{formatCurrency(item.price)}</p>
-
-                                      {/* OPCIONES DEBAJO DEL PRECIO */}
-                                      <div className="mt-3 space-y-2">
-                                        {/* TAMAÑO / COLOR / VARIANTE */}
-                                        {variantPart && (
-                                          <div className="flex items-center gap-2">
-                                            <Badge variant="secondary" className="bg-[#4A7C59]/5 text-[#4A7C59] text-[8px] font-black uppercase px-2 py-0 border-none rounded-md flex items-center gap-1">
-                                              <Palette className="h-2.5 w-2.5" /> {variantPart}
-                                            </Badge>
-                                          </div>
-                                        )}
-
-                                        {/* OBSERVACIONES ADICIONALES */}
-                                        {otherObservations.length > 0 && (
-                                          <div className="flex flex-wrap gap-1">
-                                            {otherObservations.map((obs, idx) => (
-                                              <Badge key={idx} variant="outline" className="text-[7px] font-bold uppercase border-slate-100 text-slate-400 rounded-md">
-                                                {obs}
-                                              </Badge>
-                                            ))}
-                                          </div>
-                                        )}
-
-                                        {/* FOTO MINIATURA */}
-                                        {photoUrl && (
-                                          <div className="flex items-center gap-2">
-                                            <Badge variant="secondary" className="bg-orange-50 text-orange-600 text-[8px] font-black uppercase px-2 py-0 border-none rounded-md flex items-center gap-1">
-                                              <Camera className="h-2.5 w-2.5" /> Foto Personalizada
-                                            </Badge>
-                                            <button 
-                                              onClick={() => setZoomedItem({ id: item.id, variantId: item.variantId, notes: item.notes, photoUrl })}
-                                              className="h-8 w-8 rounded-lg overflow-hidden border-2 border-orange-100 shadow-sm relative group/img cursor-zoom-in block"
-                                            >
-                                              <img src={photoUrl} className="h-full w-full object-cover" alt="Personalización" />
-                                              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-                                                <Eye className="h-3 w-3 text-white" />
-                                              </div>
-                                            </button>
-                                          </div>
-                                        )}
+                            return (
+                              <div key={`${item.id}-${item.variantId}-${item.notes}`} className="group bg-white rounded-3xl p-4 border border-slate-100 hover:border-[#4A7C59]/20 transition-all duration-300 shadow-sm hover:shadow-md">
+                                <div className="flex gap-4 sm:gap-5">
+                                  <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl overflow-hidden bg-slate-50 border border-slate-50 shrink-0 relative">
+                                    {item.image ? (
+                                      <img src={fixPath(item.image as string)} alt={item.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                    ) : (
+                                      <div className="h-full w-full flex items-center justify-center">
+                                        <ShoppingBag className="h-8 w-8 text-slate-200" />
                                       </div>
-                                    </div>
-                                    <button onClick={() => removeItem(item.id, item.variantId, item.notes)} className="text-slate-200 hover:text-red-500 transition-colors p-1"><Trash2 className="h-4 w-4" /></button>
+                                    )}
                                   </div>
-                                  
-                                  <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
-                                    <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Cantidad</span>
-                                    <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-xl border border-slate-100/50 scale-90">
-                                      <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1), item.variantId, item.notes || '')} className="h-7 w-7 rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-slate-100 transition-all font-black">-</button>
-                                      <span className="text-sm font-black text-slate-900 w-4 text-center">{item.quantity}</span>
-                                      <button onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId, item.notes || '')} className="h-7 w-7 rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-slate-100 transition-all font-black">+</button>
+                                  <div className="flex-1 min-w-0 py-0.5 flex flex-col">
+                                    <div className="flex justify-between items-start mb-1">
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-black text-slate-900 truncate pr-2 text-sm sm:text-base leading-tight uppercase tracking-tight">{item.name}</h4>
+                                        
+                                        <p className="text-base sm:text-lg font-black text-[#4A7C59] leading-none mt-1">{formatCurrency(item.price)}</p>
+
+                                        <div className="mt-2.5 space-y-1.5">
+                                          {variantPart && (
+                                            <div className="flex items-center gap-2">
+                                              <Badge variant="secondary" className="bg-[#4A7C59]/5 text-[#4A7C59] text-[7px] sm:text-[8px] font-black uppercase px-2 py-0 border-none rounded-md flex items-center gap-1">
+                                                <Palette className="h-2.5 w-2.5" /> {variantPart}
+                                              </Badge>
+                                            </div>
+                                          )}
+
+                                          {otherObservations.length > 0 && (
+                                            <div className="flex flex-wrap gap-1">
+                                              {otherObservations.map((obs, idx) => (
+                                                <Badge key={idx} variant="outline" className="text-[7px] font-bold uppercase border-slate-100 text-slate-400 rounded-md">
+                                                  {obs}
+                                                </Badge>
+                                              ))}
+                                            </div>
+                                          )}
+
+                                          {photoUrl && (
+                                            <div className="flex items-center gap-2">
+                                              <Badge variant="secondary" className="bg-orange-50 text-orange-600 text-[7px] sm:text-[8px] font-black uppercase px-2 py-0 border-none rounded-md flex items-center gap-1 text-[7px]">
+                                                <Camera className="h-2.5 w-2.5" /> Foto Personalizada
+                                              </Badge>
+                                              <button 
+                                                onClick={() => setZoomedItem({ id: item.id, variantId: item.variantId, notes: item.notes, photoUrl })}
+                                                className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg overflow-hidden border-2 border-orange-100 shadow-sm relative group/img cursor-zoom-in block"
+                                              >
+                                                <img src={photoUrl} className="h-full w-full object-cover" alt="Personalización" />
+                                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                                  <Eye className="h-3 w-3 text-white" />
+                                                </div>
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <button onClick={() => removeItem(item.id, item.variantId, item.notes)} className="text-slate-200 hover:text-red-500 transition-colors p-1 shrink-0"><Trash2 className="h-4 w-4" /></button>
+                                    </div>
+                                    
+                                    <div className="mt-auto pt-2 border-t border-slate-50 flex items-center justify-between">
+                                      <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Cantidad</span>
+                                      <div className="flex items-center gap-3 bg-slate-50 p-0.5 rounded-lg border border-slate-100/50">
+                                        <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1), item.variantId, item.notes || '')} className="h-6 w-6 rounded-md bg-white shadow-sm flex items-center justify-center hover:bg-slate-100 transition-all font-black text-xs">-</button>
+                                        <span className="text-xs font-black text-slate-900 w-3 text-center">{item.quantity}</span>
+                                        <button onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId, item.notes || '')} className="h-6 w-6 rounded-md bg-white shadow-sm flex items-center justify-center hover:bg-slate-100 transition-all font-black text-xs">+</button>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
 
-                      <div className="mt-8 pt-8 border-t border-slate-100 shrink-0">
-                        <div className="flex flex-col gap-6 mb-8">
-                          <div className="flex justify-between items-end">
-                            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]">Total Pedido</span>
-                            <span className="text-4xl font-black text-slate-900 tracking-tighter">{formatCurrency(getTotal())}</span>
-                          </div>
+                      {/* PIE FIJO CON TOTAL Y BOTÓN */}
+                      <div className="bg-white border-t border-slate-100 p-6 sm:p-8 pt-6 pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)] shrink-0">
+                        <div className="flex justify-between items-end mb-6">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4A7C59]">Total Pedido</span>
+                            <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter">{formatCurrency(getTotal())}</span>
                         </div>
-                        <Button onClick={handleNextStep} className="w-full h-16 bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-[2rem] font-black text-base uppercase tracking-widest shadow-[0_20px_40px_-10px_rgba(74,124,89,0.3)] transition-all duration-500">Continuar <ChevronRight className="ml-2 h-5 w-5" /></Button>
+                        <Button onClick={handleNextStep} className="w-full h-14 sm:h-16 bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-[1.5rem] sm:rounded-[2rem] font-black text-sm sm:text-base uppercase tracking-widest shadow-[0_20px_40px_-10px_rgba(74,124,89,0.3)] transition-all duration-500">Continuar <ChevronRight className="ml-2 h-5 w-5" /></Button>
                       </div>
                     </>
                   )}
@@ -424,44 +420,49 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="flex-1 flex flex-col p-8 overflow-y-auto custom-scrollbar"
+                  className="flex-1 flex flex-col h-full overflow-hidden"
                 >
-                  <button onClick={() => setCheckoutStep('cart')} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#4A7C59] mb-8 hover:opacity-70 transition-opacity"><ChevronLeft className="h-4 w-4" /> Volver al Carrito</button>
-                  <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight uppercase italic">Tus Datos</h3>
-                  
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nombre</Label>
-                        <Input value={shippingData.firstName} onChange={(e) => setShippingData({...shippingData, firstName: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="Tu nombre" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Apellidos</Label>
-                        <Input value={shippingData.lastName} onChange={(e) => setShippingData({...shippingData, lastName: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="Apellidos" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">DNI/NIE</Label>
-                      <Input value={shippingData.dni} onChange={(e) => setShippingData({...shippingData, dni: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="12345678X" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email</Label>
-                      <Input value={shippingData.email} onChange={(e) => setShippingData({...shippingData, email: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="nombre@ejemplo.com" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Dirección Completa</Label>
-                      <Input value={shippingData.address} onChange={(e) => setShippingData({...shippingData, address: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="Calle, número, piso..." />
-                    </div>
+                  <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar touch-pan-y overscroll-contain">
+                    <button onClick={() => setCheckoutStep('cart')} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#4A7C59] mb-8 hover:opacity-70 transition-opacity"><ChevronLeft className="h-4 w-4" /> Volver al Carrito</button>
+                    <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight uppercase italic">Tus Datos</h3>
                     
-                    <div className="pt-8 border-t border-slate-100 space-y-4">
-                      <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <Info className="h-5 w-5 text-[#4A7C59] shrink-0 mt-0.5" />
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <p className="text-[11px] font-medium text-slate-500 leading-relaxed">Al continuar, aceptas nuestra <button onClick={() => setShowPrivacyModal(true)} className="text-[#4A7C59] font-black underline">política de privacidad</button> y las <button onClick={() => setShowReturnsModal(true)} className="text-[#4A7C59] font-black underline">condiciones de devolución</button>.</p>
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nombre</Label>
+                          <Input value={shippingData.firstName} onChange={(e) => setShippingData({...shippingData, firstName: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="Tu nombre" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Apellidos</Label>
+                          <Input value={shippingData.lastName} onChange={(e) => setShippingData({...shippingData, lastName: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="Apellidos" />
                         </div>
                       </div>
-                      <Button onClick={handleNextStep} className="w-full h-16 bg-slate-900 hover:bg-black text-white rounded-[2rem] font-black text-base uppercase tracking-widest shadow-xl transition-all duration-500">Elegir Pago <ChevronRight className="ml-2 h-5 w-5" /></Button>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">DNI/NIE</Label>
+                        <Input value={shippingData.dni} onChange={(e) => setShippingData({...shippingData, dni: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="12345678X" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email</Label>
+                        <Input value={shippingData.email} onChange={(e) => setShippingData({...shippingData, email: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="nombre@ejemplo.com" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Dirección Completa</Label>
+                        <Input value={shippingData.address} onChange={(e) => setShippingData({...shippingData, address: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="Calle, número, piso..." />
+                      </div>
+                      
+                      <div className="pt-6">
+                        <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                          <Info className="h-5 w-5 text-[#4A7C59] shrink-0 mt-0.5" />
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-medium text-slate-500 leading-relaxed">Al continuar, aceptas nuestra <button onClick={() => setShowPrivacyModal(true)} className="text-[#4A7C59] font-black underline">política de privacidad</button> y las <button onClick={() => setShowReturnsModal(true)} className="text-[#4A7C59] font-black underline">condiciones de devolución</button>.</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="shrink-0 p-6 sm:p-8 bg-white border-t border-slate-100 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)]">
+                    <Button onClick={handleNextStep} className="w-full h-14 sm:h-16 bg-slate-900 hover:bg-black text-white rounded-[1.5rem] sm:rounded-[2rem] font-black text-sm sm:text-base uppercase tracking-widest shadow-xl transition-all duration-500">Elegir Pago <ChevronRight className="ml-2 h-5 w-5" /></Button>
                   </div>
                 </motion.div>
               )}
@@ -472,64 +473,64 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="flex-1 flex flex-col p-8 overflow-y-auto custom-scrollbar"
+                  className="flex-1 flex flex-col h-full overflow-hidden"
                 >
-                  <button onClick={() => setCheckoutStep('cart')} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#4A7C59] mb-8 hover:opacity-70 transition-opacity"><ChevronLeft className="h-4 w-4" /> Volver</button>
-                  <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight uppercase italic">Finalizar Pago</h3>
+                  <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar touch-pan-y overscroll-contain">
+                    <button onClick={() => setCheckoutStep('checkout')} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#4A7C59] mb-8 hover:opacity-70 transition-opacity"><ChevronLeft className="h-4 w-4" /> Volver</button>
+                    <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight uppercase italic">Finalizar Pago</h3>
 
-                  <div className="space-y-4 flex-1">
-                    <button onClick={() => setPaymentMethod('card')} className={`w-full p-5 rounded-3xl border-2 transition-all duration-300 flex items-center justify-between group ${paymentMethod === 'card' ? 'border-[#4A7C59] bg-[#4A7C59]/5' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
-                      <div className="flex items-center gap-4">
-                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-colors ${paymentMethod === 'card' ? 'bg-[#4A7C59] text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}><CreditCard className="h-6 w-6" /></div>
-                        <div className="text-left">
-                          <p className="font-black text-slate-900 text-sm uppercase tracking-tight">Tarjeta de Crédito</p>
-                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Pago seguro instantáneo</p>
+                    <div className="space-y-4">
+                      <button onClick={() => setPaymentMethod('card')} className={`w-full p-5 rounded-3xl border-2 transition-all duration-300 flex items-center justify-between group ${paymentMethod === 'card' ? 'border-[#4A7C59] bg-[#4A7C59]/5' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-colors ${paymentMethod === 'card' ? 'bg-[#4A7C59] text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}><CreditCard className="h-6 w-6" /></div>
+                          <div className="text-left">
+                            <p className="font-black text-slate-900 text-sm uppercase tracking-tight">Tarjeta de Crédito</p>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Pago seguro instantáneo</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${paymentMethod === 'card' ? 'border-[#4A7C59] bg-[#4A7C59]' : 'border-slate-200 bg-white'}`}>{paymentMethod === 'card' && <div className="h-2 w-2 rounded-full bg-white" />}</div>
-                    </button>
+                        <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${paymentMethod === 'card' ? 'border-[#4A7C59] bg-[#4A7C59]' : 'border-slate-200 bg-white'}`}>{paymentMethod === 'card' && <div className="h-2 w-2 rounded-full bg-white" />}</div>
+                      </button>
 
-                    <button onClick={() => setPaymentMethod('bizum')} className={`w-full p-5 rounded-3xl border-2 transition-all duration-300 flex items-center justify-between group ${paymentMethod === 'bizum' ? 'border-[#00AACB] bg-[#00AACB]/5' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
-                      <div className="flex items-center gap-4">
-                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-colors ${paymentMethod === 'bizum' ? 'bg-[#00AACB] text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}><div className="font-black text-xs italic">BIZUM</div></div>
-                        <div className="text-left">
-                          <p className="font-black text-slate-900 text-sm uppercase tracking-tight">Bizum</p>
-                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Rápido y cómodo</p>
+                      <button onClick={() => setPaymentMethod('bizum')} className={`w-full p-5 rounded-3xl border-2 transition-all duration-300 flex items-center justify-between group ${paymentMethod === 'bizum' ? 'border-[#00AACB] bg-[#00AACB]/5' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-colors ${paymentMethod === 'bizum' ? 'bg-[#00AACB] text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}><div className="font-black text-xs italic">BIZUM</div></div>
+                          <div className="text-left">
+                            <p className="font-black text-slate-900 text-sm uppercase tracking-tight">Bizum</p>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Rápido y cómodo</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${paymentMethod === 'bizum' ? 'border-[#00AACB] bg-[#00AACB]' : 'border-slate-200 bg-white'}`}>{paymentMethod === 'bizum' && <div className="h-2 w-2 rounded-full bg-white" />}</div>
-                    </button>
+                        <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${paymentMethod === 'bizum' ? 'border-[#00AACB] bg-[#00AACB]' : 'border-slate-200 bg-white'}`}>{paymentMethod === 'bizum' && <div className="h-2 w-2 rounded-full bg-white" />}</div>
+                      </button>
 
-                    <button onClick={() => setPaymentMethod('cash')} className={`w-full p-5 rounded-3xl border-2 transition-all duration-300 flex items-center justify-between group ${paymentMethod === 'cash' ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
-                      <div className="flex items-center gap-4">
-                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-colors ${paymentMethod === 'cash' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}><Store className="h-6 w-6" /></div>
-                        <div className="text-left">
-                          <p className="font-black text-slate-900 text-sm uppercase tracking-tight">Solo Efectivo</p>
-                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Recoger en tienda</p>
+                      <button onClick={() => setPaymentMethod('cash')} className={`w-full p-5 rounded-3xl border-2 transition-all duration-300 flex items-center justify-between group ${paymentMethod === 'cash' ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-colors ${paymentMethod === 'cash' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}><Store className="h-6 w-6" /></div>
+                          <div className="text-left">
+                            <p className="font-black text-slate-900 text-sm uppercase tracking-tight">Solo Efectivo</p>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Recoger en tienda</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${paymentMethod === 'cash' ? 'border-orange-500 bg-orange-500' : 'border-slate-200 bg-white'}`}>{paymentMethod === 'cash' && <div className="h-2 w-2 rounded-full bg-white" />}</div>
-                    </button>
+                        <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${paymentMethod === 'cash' ? 'border-orange-500 bg-orange-500' : 'border-slate-200 bg-white'}`}>{paymentMethod === 'cash' && <div className="h-2 w-2 rounded-full bg-white" />}</div>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="mt-8 pt-8 border-t border-slate-100">
-                    <div className="flex justify-between items-end mb-8">
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#4A7C59]">Total a Pagar</span>
-                      <span className="text-4xl font-black text-slate-900 tracking-tighter">{formatCurrency(getTotal())}</span>
+                  <div className="shrink-0 p-6 sm:p-8 bg-white border-t border-slate-100 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)]">
+                    <div className="flex justify-between items-end mb-6">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4A7C59]">Total a Pagar</span>
+                      <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter">{formatCurrency(getTotal())}</span>
                     </div>
-                    <div className="flex justify-center">
                     <Button 
                       onClick={paymentMethod === 'cash' ? handleCashOrder : handleCardPayment}
                       disabled={processingPayment}
-                      className={`w-full h-16 rounded-[2rem] font-black text-base uppercase tracking-widest shadow-xl transition-all duration-500 text-white ${paymentMethod === 'card' ? 'bg-[#4A7C59] hover:bg-[#3D6649]' : paymentMethod === 'bizum' ? 'bg-[#00AACB] hover:bg-[#008BA5]' : 'bg-orange-500 hover:bg-orange-600'}`}
+                      className={`w-full h-14 sm:h-16 rounded-[1.5rem] sm:rounded-[2rem] font-black text-sm sm:text-base uppercase tracking-widest shadow-xl transition-all duration-500 text-white ${paymentMethod === 'card' ? 'bg-[#4A7C59] hover:bg-[#3D6649]' : paymentMethod === 'bizum' ? 'bg-[#00AACB] hover:bg-[#008BA5]' : 'bg-orange-500 hover:bg-orange-600'}`}
                     >
                       {processingPayment ? (
-                        <><Loader2 className="mr-3 h-6 w-6 animate-spin" /> PROCESANDO...</>
+                        <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> PROCESANDO...</>
                       ) : (
-                        <>{paymentMethod === 'cash' ? <Store className="mr-3 h-6 w-6" /> : <CreditCard className="mr-3 h-6 w-6" />} PAGAR AHORA</>
+                        <>{paymentMethod === 'cash' ? <Store className="mr-3 h-5 w-5" /> : <CreditCard className="mr-3 h-5 w-5" />} PAGAR AHORA</>
                       )}
                     </Button>
-                    </div>
                   </div>
                 </motion.div>
               )}
@@ -674,14 +675,43 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-white rounded-3xl border-none shadow-2xl">
           {zoomedItem && (
              <div className="relative">
-               <img src={zoomedItem.photoUrl} className="w-full h-auto max-h-[70vh] object-contain bg-slate-100" />
+               <img src={zoomedItem.photoUrl} className="w-full h-auto max-h-[70vh] object-contain bg-slate-100" alt="Previsualización" />
 
-               <div className="p-6 bg-white flex flex-col gap-3">
+               <div className="p-8 bg-white flex flex-col gap-3">
+                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 px-1">Opciones de personalización</h4>
+                 
                  <input type="file" id={`cart-img-upload`} className="hidden" accept="image/*" onChange={handleReplacePhoto} disabled={isUploadingPhoto} />
-                 <label htmlFor="cart-img-upload" className="cursor-pointer border-2 border-dashed border-[#4A7C59]/30 hover:border-[#4A7C59] bg-[#4A7C59]/5 flex h-14 items-center justify-center gap-2 rounded-2xl text-[#4A7C59] font-black uppercase text-xs transition-colors">
-                   {isUploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Upload className="h-4 w-4"/> Cambiar Foto</>}
+                 <label htmlFor="cart-img-upload" className="cursor-pointer border-2 border-dashed border-[#4A7C59]/30 hover:border-[#4A7C59] bg-[#4A7C59]/5 flex h-14 items-center justify-center gap-3 rounded-2xl text-[#4A7C59] font-black uppercase text-[10px] tracking-[0.1em] transition-all hover:scale-[1.02] active:scale-95 shadow-sm">
+                   {isUploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Upload className="h-4 w-4"/> Subir desde dispositivo</>}
                  </label>
-                 <Button onClick={() => setZoomedItem(null)} variant="outline" className="h-14 rounded-2xl font-black uppercase tracking-widest text-slate-500">Cerrar y Salir</Button>
+
+                 <Button 
+                   onClick={() => {
+                     setZoomedItem(null);
+                     onClose();
+                     toast.success("Elige una nueva foto de tu galería principal");
+                   }}
+                   variant="outline"
+                   className="h-14 rounded-2xl font-black uppercase tracking-[0.1em] text-[#4A7C59] border-[#4A7C59]/20 hover:bg-[#4A7C59]/5 flex items-center justify-center gap-3 border-2 transition-all hover:scale-[1.02] active:scale-95 text-[10px]"
+                 >
+                   <Camera className="h-4 w-4" /> Elegir de esta Galería
+                 </Button>
+
+                 <Button 
+                   onClick={() => {
+                     setZoomedItem(null);
+                     onClose();
+                     window.location.href = '/'; 
+                   }}
+                   variant="outline"
+                   className="h-14 rounded-2xl font-black uppercase tracking-[0.1em] text-slate-600 border-slate-100 hover:bg-slate-50 flex items-center justify-center gap-3 border-2 transition-all hover:scale-[1.02] active:scale-95 text-[10px]"
+                 >
+                   <LayoutGrid className="h-4 w-4" /> Ver todas mis sesiones
+                 </Button>
+
+                 <div className="h-px bg-slate-50 my-2" />
+
+                 <Button onClick={() => setZoomedItem(null)} variant="ghost" className="h-12 rounded-2xl font-black uppercase tracking-widest text-slate-300 hover:text-slate-500 hover:bg-slate-50 transition-all text-[9px]">Cerrar previsualización</Button>
                </div>
              </div>
           )}

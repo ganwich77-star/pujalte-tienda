@@ -1,0 +1,138 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  image       String?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@map("category")
+}
+
+model Product {
+  id              String           @id @default(cuid())
+  name            String
+  description     String?          @db.LongText
+  price           Float
+  image           String?          @db.LongText
+  stock           Int              @default(0)
+  categoryId      String?
+  active          Boolean          @default(true)
+  showPrice       Boolean          @default(true)
+  isPack          Boolean          @default(false)
+  packItems       String?          @db.LongText
+  hasVariants     Boolean          @default(false)
+  variantType     String?
+  variantBehavior String?
+  sortOrder       Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  firebaseId      String?          @unique
+  isNew           Boolean?         @default(false)
+  salePrice       Float?
+  minQuantity     Int?             @default(1)
+  stepQuantity    Int?             @default(1)
+  tierPricing     String?          @db.LongText
+  customOptions   String?          @db.LongText
+  supplierId      String?
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  supplier        Supplier?        @relation(fields: [supplierId], references: [id])
+  variants        ProductVariant[]
+
+  @@index([supplierId])
+  @@index([categoryId], map: "product_categoryId_fkey")
+  @@map("product")
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  productId  String
+  name       String
+  sku        String?
+  price      Float
+  stock      Int      @default(0)
+  attributes String?  @db.LongText
+  image      String?  @db.LongText
+  active     Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId], map: "productvariant_productId_fkey")
+  @@map("productvariant")
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  address       String?
+  notes         String?     @db.LongText
+  total         Float
+  status        String      @default("pending")
+  paymentMethod String?
+  paymentStatus String      @default("pending")
+  paymentId     String?
+  customFields  String?     @db.LongText
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         OrderItem[]
+
+  @@map("order")
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String?
+  productName String
+  variantId   String?
+  variantName String?
+  quantity    Int
+  price       Float
+  note        String?  @db.Text
+  createdAt   DateTime @default(now())
+  fileName    String?
+  fileUrl     String?  @db.LongText
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("orderitem")
+}
+
+model Supplier {
+  id          String    @id @default(cuid())
+  name        String
+  url         String?
+  contactName String?
+  phone       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@map("supplier")
+}
+
+model SystemConfig {
+  id        String   @id @default("default")
+  data      String   @db.LongText
+  updatedAt DateTime @updatedAt
+
+  @@map("systemconfig")
+}
+
+

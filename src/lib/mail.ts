@@ -248,3 +248,32 @@ export const sendWelcomeEmails = async (client: { dni: string, name: string, ema
     throw error
   }
 }
+
+export const sendSelectionEmail = async (clientName: string, clientSlug: string, summary: string) => {
+  const adminEmailHtml = `
+    <div style="font-family: sans-serif; padding: 40px; background-color: #1a1a1a; color: #ffffff; border-radius: 24px; max-width: 650px; margin: 0 auto; border: 1px solid #333;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #4A7C59; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: 1px;">📸 NUEVA SELECCIÓN</h1>
+        <p style="color: #666; text-transform: uppercase; font-size: 11px; letter-spacing: 2px; margin-top: 10px;">Cliente: ${clientName} (${clientSlug.toUpperCase()})</p>
+      </div>
+      
+      <div style="background: #222; padding: 30px; border-radius: 16px; border: 1px solid #333; margin-bottom: 30px;">
+        <h2 style="color: #4A7C59; font-size: 14px; text-transform: uppercase; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px;">Resumen del Pedido:</h2>
+        <div style="white-space: pre-wrap; font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.8; color: #ACC3B1;">
+          ${summary}
+        </div>
+      </div>
+
+      <div style="text-align: center; font-size: 10px; color: #444; border-top: 1px solid #222; padding-top: 20px;">
+        PUJALTE CREATIVE STUDIO • SISTEMA DE GESTIÓN AUTOMÁTICA
+      </div>
+    </div>
+  `
+
+  await transporter.sendMail({
+    from: '"Gestión de Galería" <hola@pujaltefotografia.es>',
+    to: 'hola@pujaltefotografia.es, apps@pujaltefotografia.es',
+    subject: `📸 SELECCIÓN: ${clientName} (${clientSlug.toUpperCase()})`,
+    html: adminEmailHtml,
+  })
+}

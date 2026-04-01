@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       data: {
         name: data.name,
         description: data.description,
-        price: parseFloat(data.price),
+        price: parseFloat(data.price) || 0,
         image: data.image,
         stock: parseInt(data.stock) || 0,
         categoryId: data.categoryId,
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         stepQuantity: parseInt(data.stepQuantity) || 1,
         tierPricing: typeof data.tierPricing === 'object' ? JSON.stringify(data.tierPricing) : data.tierPricing,
         supplierId: data.supplierId || null,
-        customOptions: data.customOptions || null,
+        customOptions: typeof data.customOptions === 'object' ? JSON.stringify(data.customOptions) : data.customOptions,
         variants: {
           create: (data.variants || []).map((v: any) => ({
             name: v.name,
@@ -96,7 +96,8 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const data = await request.json();
-    const { id, variants, category, ...fields } = data;
+    // Extraemos ID y otros campos que NO deben ir en el update principal o necesitan trato especial
+    const { id, variants, category, supplier, ...fields } = data;
 
     if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
 
@@ -106,9 +107,11 @@ export async function PUT(request: Request) {
         ...fields,
         price: fields.price !== undefined ? parseFloat(fields.price) : undefined,
         stock: fields.stock !== undefined ? parseInt(fields.stock) : undefined,
-        salePrice: fields.salePrice !== undefined ? parseFloat(fields.salePrice) : undefined,
+        salePrice: (fields.salePrice !== undefined && fields.salePrice !== null) ? parseFloat(fields.salePrice) : (fields.salePrice === null ? null : undefined),
+        minQuantity: fields.minQuantity !== undefined ? parseInt(fields.minQuantity) : undefined,
+        stepQuantity: fields.stepQuantity !== undefined ? parseInt(fields.stepQuantity) : undefined,
         tierPricing: typeof fields.tierPricing === 'object' ? JSON.stringify(fields.tierPricing) : fields.tierPricing,
-        customOptions: fields.customOptions !== undefined ? fields.customOptions : undefined,
+        customOptions: typeof fields.customOptions === 'object' ? JSON.stringify(fields.customOptions) : fields.customOptions,
         variants: variants ? {
           deleteMany: {},
           create: variants.map((v: any) => ({

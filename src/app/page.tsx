@@ -157,8 +157,6 @@ export default function Home() {
   const [productForm, setProductForm] = useState(initialProductForm)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
-  const [itemWithNote, setItemWithNote] = useState<CartItem | null>(null)
-  const [tempNote, setTempNote] = useState('')
   const { addItem, getItemCount } = useCartStore()
 
   // Landing specific logic
@@ -383,25 +381,16 @@ Mi email: ${formData.email}`
       variantBehavior: product.variantBehavior || undefined,
       notes: (product as any).notes
     }
-    setItemWithNote(cartItem)
-    setTempNote('')
-  }
 
-  const confirmAddToCart = () => {
-    if (itemWithNote) {
-      const combinedNotes = [itemWithNote.notes, tempNote].filter(Boolean).join(' | ');
-      addItem({ ...itemWithNote, notes: combinedNotes })
-      toast({ 
-        title: '¡Añadido al carrito!', 
-        description: `${itemWithNote.name} ${itemWithNote.variantName ? `— ${itemWithNote.variantName}` : ''}${tempNote ? ' (con nota)' : ''}`,
-        className: "bg-primary text-primary-foreground border-none font-bold rounded-xl shadow-lg",
-      })
-      setItemWithNote(null)
-      setTempNote('')
-      
-      // Abrir diálogo de confirmación tras un breve delay para dejar ver el toast
-      setTimeout(() => setIsPostAddDialogOpen(true), 500)
-    }
+    addItem(cartItem)
+    toast({ 
+      title: '¡Añadido al carrito!', 
+      description: `${cartItem.name} ${cartItem.variantName ? `— ${cartItem.variantName}` : ''}`,
+      className: "bg-primary text-primary-foreground border-none font-bold rounded-xl shadow-lg",
+    })
+    
+    // Abrir diálogo de confirmación tras un breve delay para dejar ver el toast
+    setTimeout(() => setIsPostAddDialogOpen(true), 500)
   }
 
   const formatPrice = (price: number) => {
@@ -680,6 +669,24 @@ Mi email: ${formData.email}`
     }
   }
 
+  const handleUpdateOrder = async (fullOrder: Order) => {
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fullOrder)
+      })
+      if (!res.ok) throw new Error('Error al actualizar el pedido')
+      const updated = await res.json()
+      setOrders(prev => prev.map(o => o.id === updated.id ? updated : o))
+      toast({ title: 'Pedido actualizado', description: 'Los datos del pedido han sido guardados' })
+      fetchStats()
+    } catch (error) {
+      console.error(error)
+      toast({ title: 'Error', description: 'No se pudo actualizar el pedido', variant: 'destructive' })
+    }
+  }
+
   const handleDeleteOrder = async (orderId: string) => {
     try {
       const res = await fetch(`/api/orders?id=${orderId}`, { method: 'DELETE' })
@@ -857,6 +864,7 @@ Mi email: ${formData.email}`
           onEditProduct={openEditProduct}
           onUpdateProductField={handleUpdateProductField}
           onUpdateStatus={handleUpdateOrderStatus}
+          onUpdateOrder={handleUpdateOrder}
           onDeleteOrder={handleDeleteOrder}
           onFileUpload={handleFileUpload}
           onDownloadTemplate={downloadTemplate}
@@ -1626,30 +1634,6 @@ Mi email: ${formData.email}`
         <>
           {/* Eliminado LegalDialogs duplicado */}
           
-          <Dialog open={!!itemWithNote} onOpenChange={(open) => !open && setItemWithNote(null)}>
-            <DialogContent className="sm:max-w-md rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5 text-primary" />
-                  Observaciones para el producto
-                </DialogTitle>
-                <div className="text-sm text-muted-foreground pt-2">
-                  <p className="font-bold text-black">{itemWithNote?.name}</p>
-                </div>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <Textarea 
-                  placeholder="Escribe aquí cualquier detalle que necesitemos saber..." 
-                  value={tempNote}
-                  onChange={(e) => setTempNote(e.target.value)}
-                  className="min-h-[100px] rounded-xl"
-                />
-              </div>
-              <DialogFooter>
-                <Button onClick={confirmAddToCart} className="rounded-xl w-full">Añadir al Carrito</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
 
           <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
             <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-3xl">

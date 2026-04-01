@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function fixPath(path: string | null | undefined) {
-  if (!path) return ''
+  if (!path) return null
   if (path.startsWith('http') || path.startsWith('data:')) return path
   
   // Normalizamos para que siempre empiece por /

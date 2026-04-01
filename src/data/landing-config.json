@@ -1,7 +1,7 @@
 {
   "nombre": "Fotodetalles y Recordatorios",
   "logo": "/logo_ia.png",
-  "slogan": "POWERED BY PUJALTE CREATIVE STUDIO",
+  "slogan": "La tecnología al servicio de los recuerdos",
   "subtitulo": "Más que fotografía, tus mejores recuerdos",
   "heroFoto": "/uploads/1774305864936-cropped-image.jpg",
   "heroPosition": "100% center",
@@ -136,20 +136,39 @@
   "storeUrl": "http://localhost:3001",
   "seo": {
     "titulo": "Fotodetalles y Recordatorios - Tu tienda de premium",
-    "descripcion": "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. POWERED BY PUJALTE CREATIVE STUDIO.",
+    "descripcion": "Tu tienda premium de fotografía y productos personalizados. Cuadros, posters, láminas y más. La tecnología al servicio de los recuerdos.",
     "keywords": "fotografía, cuadros, posters, láminas, impresiones, regalos personalizados, fotógrafo murcia"
   },
   "promos": [
     {
-      "id": "welcome-promo",
-      "titulo": "¡BIENVENIDOS A FOTODETALLES!",
-      "subtitulo": "TUS MEJORES RECUERDOS MERECEN SER ETERNOS",
-      "descripcion": "Descubre nuestra selección de productos premium diseñados para conservar tus momentos más especiales. Calidad profesional en cada detalle.",
-      "botonTexto": "VER CATÁLOGO PREMIUM",
-      "enlace": "shop",
-      "imagen": "/uploads/1774305864936-cropped-image.jpg",
-      "fechaExpiracion": "2026-12-31",
-      "activo": true
+      "id": "1774520914995",
+      "title": "Comuniones 2027",
+      "subtitle": "Tu reportaje de Comunión empieza aquí",
+      "badge": "Agenda Abierta",
+      "buttonText": "Más Información",
+      "url": "https://firebasestorage.googleapis.com/v0/b/asistente-digital-comuniones.firebasestorage.app/o/comuniones2026%2Fuploads%2F1774522242741-comunion_1.mp4?alt=media&token=8ec741bc-2fc3-488f-a130-9a106894aebe",
+      "type": "video",
+      "action": "contact",
+      "color": "from-amber-400 to-orange-500",
+      "contentPosition": "bottom-right",
+      "activa": true,
+      "zoom": false
+    },
+    {
+      "id": "1774524956731",
+      "title": "Bodas 26-27",
+      "subtitle": "Solo realizamos un número limitado de bodas al año. ¡Asegura la tuya!",
+      "badge": "Agenda Abierta",
+      "buttonText": "Más Información",
+      "url": "https://firebasestorage.googleapis.com/v0/b/asistente-digital-comuniones.firebasestorage.app/o/comuniones2026%2Fuploads%2F1774524983221-1774523582774-631a3b2a-4d43-43c8-b600-351a9f6f9685.mp4?alt=media&token=b74bfc58-5220-4424-8f84-c88a53771ebc",
+      "type": "video",
+      "action": "contact",
+      "color": "from-amber-400 to-orange-500",
+      "contentPosition": "bottom-right",
+      "activa": true,
+      "zoom": true,
+      "zoomScale": 1.46,
+      "zoomY": 11
     }
   ]
 }

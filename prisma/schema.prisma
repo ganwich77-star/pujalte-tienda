@@ -1,11 +1,10 @@
 generator client {
   provider      = "prisma-client-js"
-  output        = "../src/generated/client"
   binaryTargets = ["native", "debian-openssl-1.1.x", "rhel-openssl-1.0.x"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -25,15 +24,15 @@ model Category {
 model Product {
   id              String           @id @default(cuid())
   name            String
-  description     String?
+  description     String?          @db.LongText
   price           Float
-  image           String?
+  image           String?          @db.LongText
   stock           Int              @default(0)
   categoryId      String?
   active          Boolean          @default(true)
   showPrice       Boolean          @default(true)
   isPack          Boolean          @default(false)
-  packItems       String?
+  packItems       String?          @db.LongText
   hasVariants     Boolean          @default(false)
   variantType     String?
   variantBehavior String?
@@ -45,15 +44,15 @@ model Product {
   salePrice       Float?
   minQuantity     Int?             @default(1)
   stepQuantity    Int?             @default(1)
-  tierPricing     String?
+  tierPricing     String?          @db.LongText
+  customOptions   String?          @db.LongText
   supplierId      String?
-  customOptions   String?
   category        Category?        @relation(fields: [categoryId], references: [id])
   supplier        Supplier?        @relation(fields: [supplierId], references: [id])
   variants        ProductVariant[]
 
-  @@index([categoryId])
   @@index([supplierId])
+  @@index([categoryId], map: "product_categoryId_fkey")
   @@map("product")
 }
 
@@ -64,15 +63,15 @@ model ProductVariant {
   sku        String?
   price      Float
   stock      Int      @default(0)
-  attributes String?
-  image      String?
+  attributes String?  @db.LongText
+  image      String?  @db.LongText
   active     Boolean  @default(true)
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@index([productId])
+  @@index([productId], map: "productvariant_productId_fkey")
   @@map("productvariant")
 }
 
@@ -82,13 +81,13 @@ model Order {
   customerPhone String
   customerEmail String?
   address       String?
-  notes         String?
+  notes         String?     @db.LongText
   total         Float
   status        String      @default("pending")
   paymentMethod String?
   paymentStatus String      @default("pending")
   paymentId     String?
-  customFields  String?
+  customFields  String?     @db.LongText
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
@@ -105,10 +104,10 @@ model OrderItem {
   variantName String?
   quantity    Int
   price       Float
-  note        String?
+  note        String?  @db.Text
   createdAt   DateTime @default(now())
   fileName    String?
-  fileUrl     String?
+  fileUrl     String?  @db.LongText
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
@@ -130,8 +129,23 @@ model Supplier {
 
 model SystemConfig {
   id        String   @id @default("default")
-  data      Json
+  data      String   @db.LongText
   updatedAt DateTime @updatedAt
 
   @@map("systemconfig")
+}
+
+model Client {
+  id              String   @id
+  name            String
+  dni             String?
+  email           String?
+  phone           String?
+  status          String   @default("active")
+  cashEnabled     Boolean  @default(true)
+  gallerySettings String?  @db.LongText
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("client")
 }

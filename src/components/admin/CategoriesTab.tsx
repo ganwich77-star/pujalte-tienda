@@ -117,7 +117,7 @@ function SortableCategory({ category, viewMode, handleOpen, handleDelete }: Sort
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="w-[95vw] sm:max-w-md rounded-[2rem] sm:rounded-[2.5rem] border-none p-6 sm:p-8 gap-6 shadow-2xl">
+                  <AlertDialogContent className="w-[95vw] sm:max-w-[450px] rounded-[2rem] sm:rounded-[2.5rem] border-none p-6 sm:p-8 gap-6 shadow-2xl">
                     <AlertDialogHeader className="gap-3">
                       <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-red-50 flex items-center justify-center mb-2">
                         <Trash2 className="h-6 w-6 sm:h-7 sm:w-7 text-red-500" />
@@ -173,7 +173,7 @@ function SortableCategory({ category, viewMode, handleOpen, handleDelete }: Sort
                   <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="w-[95vw] sm:max-w-md rounded-[2.5rem] border-none p-6 sm:p-8 gap-6 shadow-2xl">
+              <AlertDialogContent className="w-[95vw] sm:max-w-[450px] rounded-[2.5rem] border-none p-6 sm:p-8 gap-6 shadow-2xl">
                 <AlertDialogHeader className="gap-3">
                   <div className="h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center mb-2">
                     <Trash2 className="h-7 w-7 text-red-500" />
@@ -464,7 +464,7 @@ export function CategoriesTab({ categories, products = [], onRefresh }: Categori
       </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-[440px] p-0 overflow-hidden border-none shadow-2xl rounded-[2rem] sm:rounded-3xl bg-white/95 backdrop-blur-xl">
+        <DialogContent className="w-[95vw] sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl rounded-[2rem] sm:rounded-3xl bg-white/95 backdrop-blur-xl">
           <div className="bg-[#4A7C59] p-6 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
             <DialogHeader className="relative z-10">

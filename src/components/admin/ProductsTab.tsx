@@ -211,7 +211,9 @@ function SortableProductRow({
             className="font-bold text-sm uppercase tracking-tight bg-transparent border-none focus:ring-0 p-0 w-full outline-none placeholder:text-slate-300 truncate"
             placeholder="NOMBRE..."
           />
-          <span className="text-[9px] text-slate-400 font-bold tracking-wider uppercase">REF: {product.id.slice(-6).toUpperCase()}</span>
+          <span className="text-[9px] text-slate-400 font-bold tracking-wider uppercase">
+            REF: {String(product.id || '').slice(-6).toUpperCase() || 'S/N'}
+          </span>
         </div>
       </TableCell>
       <TableCell className="w-40 px-2 lg:px-4 text-center">
@@ -390,7 +392,7 @@ export function ProductsTab({
   suppliers = []
 }: ProductsTabProps) {
   const [cropImage, setCropImage] = useState<string | null>(null)
-  const [activePromoTab, setActivePromoTab] = useState<'quantities' | 'tiers' | 'variants'>('variants')
+  const [activePromoTab, setActivePromoTab] = useState<'quantities' | 'tiers' | 'variants' | 'custom_options'>('variants')
   const [isPromoOpen, setIsPromoOpen] = useState(true)
   const [croppingProduct, setCroppingProduct] = useState<Product | null>(null)
   const [cropForForm, setCropForForm] = useState(false)
@@ -424,8 +426,8 @@ export function ProductsTab({
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
       filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(term) ||
-        p.id.toLowerCase().includes(term)
+        (p.name || '').toLowerCase().includes(term) ||
+        String(p.id || '').toLowerCase().includes(term)
       )
     }
 
@@ -761,10 +763,12 @@ export function ProductsTab({
                   <h3 className="font-bold text-xs uppercase tracking-tight text-slate-800 truncate">{product.name}</h3>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                   <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none">REF: {product.id.slice(-4).toUpperCase()}</span>
+                   <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none">
+                     REF: {String(product.id || '').slice(-4).toUpperCase() || '####'}
+                   </span>
                    <span className="text-slate-200">•</span>
                    <span className="text-[10px] font-black text-[#4A7C59]">
-                    {(product.salePrice || product.price).toLocaleString('es-ES', { minimumFractionDigits: 2 })}€
+                    {(Number(product.salePrice) || Number(product.price) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}€
                    </span>
                 </div>
               </div>
@@ -813,8 +817,8 @@ export function ProductsTab({
       <Input type="file" ref={formImageInputRef} className="hidden" accept="image/*" onChange={handleFormImageFileChange} />
 
       {/* Crop Modal */}
-      <Dialog open={!!cropImage} onOpenChange={(open) => !open && setCropImage(null)}>
-        <DialogContent className="max-w-xl w-[90vw] max-h-[85vh] border-none bg-black rounded-3xl p-0 overflow-hidden shadow-2xl">
+      <Dialog open={!!cropImage} onOpenChange={(isOpen) => !isOpen && setCropImage(null)}>
+        <DialogContent className="sm:max-w-[600px] w-[90vw] max-h-[85vh] border-none bg-black rounded-3xl p-0 overflow-hidden shadow-2xl">
           <div className="flex flex-col h-full">
             <div className="px-6 py-4 flex items-center justify-between border-b border-white/10 bg-black/40 backdrop-blur-md z-10">
               <div className="flex items-center gap-4">
@@ -879,11 +883,11 @@ export function ProductsTab({
       </Dialog>
 
       {/* Product Edit Modal XL - DISEÑO PREMIUM COMPACTO */}
-      <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
-        if (!open) resetProductForm()
-        setIsProductDialogOpen(open)
+      <Dialog open={isProductDialogOpen} onOpenChange={(isOpen) => {
+        if (!isOpen) resetProductForm()
+        setIsProductDialogOpen(isOpen)
       }}>
-        <DialogContent className="max-w-xl w-[95vw] max-h-[95vh] lg:max-h-[88vh] overflow-hidden border-none bg-white rounded-[2rem] p-0 flex flex-col mx-auto shadow-2xl">
+        <DialogContent className="sm:max-w-[700px] w-[95vw] max-h-[95vh] lg:max-h-[88vh] overflow-hidden border-none bg-white rounded-[2rem] p-0 flex flex-col mx-auto shadow-2xl">
             {/* HEADER COMPACTO */}
             <DialogHeader className="px-6 py-3 bg-[#1a1f2c] flex-shrink-0 z-10 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
@@ -1090,99 +1094,68 @@ export function ProductsTab({
                       <div className="p-1.5 space-y-1 bg-slate-50/40 border-b border-slate-50">
                         <div className="grid grid-cols-4 gap-1">
                           <button
-                            onClick={() => {
-                              setActivePromoTab('variants');
-                              setIsPromoOpen(true);
-                            }}
+                            onClick={() => setActivePromoTab('variants')}
                             className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
-                              activePromoTab === 'variants' && isPromoOpen
+                                activePromoTab === 'variants'
                                 ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
                                 : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
                             }`}
                           >
-                            <Settings2 className={`h-3 w-3 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
+                            <Settings2 className={`h-3 w-3 ${activePromoTab === 'variants' ? 'text-white' : 'text-slate-400'}`} />
                             <div className="flex flex-col items-center leading-none">
                               <span className="text-[7.5px] font-black uppercase tracking-wider">VARIANTES</span>
-                              <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'variants' && isPromoOpen ? 'text-white/60' : 'text-slate-400'}`}>Opciones</span>
+                              <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'variants' ? 'text-white/60' : 'text-slate-400'}`}>Opciones</span>
                             </div>
                           </button>
 
                           <button
-                            onClick={() => {
-                              setActivePromoTab('custom_options' as any);
-                              setIsPromoOpen(true);
-                            }}
-                            className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
-                              activePromoTab === ('custom_options' as any) && isPromoOpen
-                                ? 'bg-orange-600 text-white shadow-md shadow-orange-100'
-                                : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                            }`}
-                          >
-                            <Palette className={`h-3 w-3 ${activePromoTab === ('custom_options' as any) && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                            <div className="flex flex-col items-center leading-none">
-                              <span className="text-[7.5px] font-black uppercase tracking-wider">PERSONALIZA</span>
-                              <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === ('custom_options' as any) && isPromoOpen ? 'text-orange-100' : 'text-slate-400'}`}>Formas</span>
-                            </div>
-                          </button>
+                             onClick={() => setActivePromoTab('custom_options' as any)}
+                             className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
+                               activePromoTab === 'custom_options'
+                                 ? 'bg-orange-600 text-white shadow-md shadow-orange-100'
+                                 : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
+                             }`}
+                           >
+                             <Palette className={`h-3 w-3 ${activePromoTab === 'custom_options' ? 'text-white' : 'text-slate-400'}`} />
+                             <div className="flex flex-col items-center leading-none">
+                               <span className="text-[7.5px] font-black uppercase tracking-wider">PERSONALIZA</span>
+                               <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'custom_options' ? 'text-orange-100' : 'text-slate-400'}`}>Formas</span>
+                             </div>
+                           </button>
 
-                          <button
-                            onClick={() => {
-                              setActivePromoTab('quantities');
-                              setIsPromoOpen(true);
-                            }}
-                            className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
-                              activePromoTab === 'quantities' && isPromoOpen
-                                ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-                                : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                            }`}
-                          >
-                            <Package className={`h-3 w-3 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                            <div className="flex flex-col items-center leading-none">
-                              <span className="text-[7.5px] font-black uppercase tracking-wider">CANTIDADES</span>
-                            <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'quantities' && isPromoOpen ? 'text-blue-100' : 'text-slate-400'}`}>Operativa</span>
-                          </div>
-                        </button>
+                           <button
+                             onClick={() => setActivePromoTab('quantities')}
+                             className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
+                               activePromoTab === 'quantities'
+                                 ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
+                                 : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
+                             }`}
+                           >
+                             <Package className={`h-3 w-3 ${activePromoTab === 'quantities' ? 'text-white' : 'text-slate-400'}`} />
+                             <div className="flex flex-col items-center leading-none">
+                               <span className="text-[7.5px] font-black uppercase tracking-wider">CANTIDADES</span>
+                               <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'quantities' ? 'text-blue-100' : 'text-slate-400'}`}>Operativa</span>
+                             </div>
+                           </button>
 
-                        <button
-                          onClick={() => {
-                            setActivePromoTab('tiers');
-                            setIsPromoOpen(true);
-                          }}
-                          className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
-                            activePromoTab === 'tiers' && isPromoOpen
-                              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100'
-                              : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
-                          }`}
-                        >
-                          <ArrowUpDown className={`h-3 w-3 ${activePromoTab === 'tiers' && isPromoOpen ? 'text-white' : 'text-slate-400'}`} />
-                          <div className="flex flex-col items-center leading-none">
-                            <span className="text-[7.5px] font-black uppercase tracking-wider">ESCALADO</span>
-                            <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'tiers' && isPromoOpen ? 'text-emerald-100' : 'text-slate-400'}`}>Ofertas</span>
-                          </div>
-                        </button>
+                           <button
+                             onClick={() => setActivePromoTab('tiers')}
+                             className={`flex flex-col items-center justify-center gap-0.5 h-12 rounded-[0.8rem] transition-all duration-300 select-none ${
+                               activePromoTab === 'tiers'
+                                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100'
+                                 : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
+                             }`}
+                           >
+                             <ArrowUpDown className={`h-3 w-3 ${activePromoTab === 'tiers' ? 'text-white' : 'text-slate-400'}`} />
+                             <div className="flex flex-col items-center leading-none">
+                               <span className="text-[7.5px] font-black uppercase tracking-wider">ESCALADO</span>
+                               <span className={`text-[5.5px] font-bold uppercase tracking-tighter opacity-70 ${activePromoTab === 'tiers' ? 'text-emerald-100' : 'text-slate-400'}`}>Ofertas</span>
+                             </div>
+                           </button>
+                        </div>
                       </div>
 
-                      <button
-                        onClick={() => setIsPromoOpen(!isPromoOpen)}
-                        className={`h-7 w-full rounded-[0.6rem] flex items-center justify-center transition-all ${
-                          isPromoOpen
-                            ? 'bg-slate-100/50 text-slate-400'
-                            : 'bg-white text-slate-200 hover:bg-slate-50 hover:text-slate-400 border border-slate-100/50'
-                        }`}
-                      >
-                        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-500 ease-out ${isPromoOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                    </div>
-
-                    <AnimatePresence initial={false}>
-                      {isPromoOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                          className="bg-white overflow-hidden"
-                        >
+                      <div className="bg-white min-h-[350px]">
                           {activePromoTab === 'quantities' && (
                             <div className="p-5 space-y-6">
                               <div className="grid grid-cols-2 gap-3">
@@ -1191,7 +1164,7 @@ export function ProductsTab({
                                   <div className="relative group">
                                     <Input
                                       type="number"
-                                      value={productForm.minQuantity}
+                                      value={productForm.minQuantity || 1}
                                       onChange={(e) => setProductForm({...productForm, minQuantity: Number(e.target.value)})}
                                       className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       placeholder="0"
@@ -1206,7 +1179,7 @@ export function ProductsTab({
                                   <div className="relative group">
                                     <Input
                                       type="number"
-                                      value={productForm.stepQuantity}
+                                      value={productForm.stepQuantity || 1}
                                       onChange={(e) => setProductForm({...productForm, stepQuantity: Number(e.target.value)})}
                                       className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       placeholder="0"
@@ -1232,7 +1205,7 @@ export function ProductsTab({
                                   </div>
                                   <div className="flex items-center justify-between p-4 bg-blue-600 rounded-2xl shadow-xl shadow-blue-100/50 border border-blue-400/20">
                                      <div className="flex flex-col">
-                                       <span className="text-[8px] font-black text-blue-50 uppercase tracking-widest">SI PIDE EL MÍNIMO ({productForm.minQuantity} UDS.):</span>
+                                       <span className="text-[8px] font-black text-blue-50 uppercase tracking-widest">SI PIDE EL MÍNIMO ({productForm.minQuantity || 1} UDS.):</span>
                                        <span className="text-[9px] font-medium text-blue-200/80 italic leading-none">Precio final por pack</span>
                                      </div>
                                      <span className="text-base font-black text-white tracking-tighter">
@@ -1240,9 +1213,9 @@ export function ProductsTab({
                                          const tiers = Array.isArray(productForm.tierPricing) ? productForm.tierPricing : [];
                                          const applicableTier = [...tiers]
                                            .sort((a, b) => b.minQty - a.minQty)
-                                           .find(t => productForm.minQuantity >= t.minQty);
+                                           .find(t => (productForm.minQuantity || 1) >= t.minQty);
                                          const pricePerUnit = applicableTier ? applicableTier.price : (productForm.price || 0);
-                                         return (pricePerUnit * productForm.minQuantity).toLocaleString('es-ES', { minimumFractionDigits: 2 });
+                                         return (pricePerUnit * (productForm.minQuantity || 1)).toLocaleString('es-ES', { minimumFractionDigits: 2 });
                                        })()} €
                                      </span>
                                   </div>
@@ -1354,7 +1327,7 @@ export function ProductsTab({
                               </div>
 
                               {productForm.hasVariants ? (
-                                <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                                <div className="space-y-4">
                                   <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
                                       <label className="text-[7px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tipo de Propiedad</label>
@@ -1419,7 +1392,7 @@ export function ProductsTab({
                                   >
                                     <Plus className="h-4 w-4 transition-transform group-hover/addv:rotate-90" /> Añadir Opción Técnica
                                   </Button>
-                                </motion.div>
+                                </div>
                               ) : (
                                 <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl p-10 bg-slate-50/20">
                                    <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center mb-3 shadow-sm">
@@ -1437,7 +1410,7 @@ export function ProductsTab({
                             </div>
                           )}
 
-                          {activePromoTab === ('custom_options' as any) && (
+                          {activePromoTab === 'custom_options' && (
                             <div className="flex flex-col h-[450px]">
                               {/* CABECERA COMPACTA STICKY */}
                               <div className="p-4 flex items-center justify-between border-b border-slate-50 bg-white/80 backdrop-blur-md sticky top-0 z-10 rounded-t-3xl">
@@ -1454,9 +1427,13 @@ export function ProductsTab({
                               <ScrollArea className="flex-1 px-4 py-2 bg-slate-50/20">
                                 <div className="space-y-2 py-2">
                                   {(() => {
-                                    let options: { title: string, values: string[], required: boolean }[] = [];
+                                    let options: any[] = [];
                                     try {
-                                      options = productForm.customOptions ? JSON.parse(productForm.customOptions) : [];
+                                      if (productForm.customOptions) {
+                                        options = typeof productForm.customOptions === 'string' 
+                                          ? JSON.parse(productForm.customOptions) 
+                                          : productForm.customOptions;
+                                      }
                                     } catch (e) { options = []; }
                                     
                                     if (options.length === 0) {
@@ -1499,7 +1476,6 @@ export function ProductsTab({
                                             </div>
                                             
                                             <div className="px-1">
-                                              {/* Estado local para permitir escribir comas sin que el filtrado las borre al instante */}
                                               <Input 
                                                 value={opt.valuesRaw !== undefined ? opt.valuesRaw : (opt.values?.join(', ') || '')} 
                                                 onChange={(e) => {
@@ -1538,11 +1514,10 @@ export function ProductsTab({
                                 </div>
                               </ScrollArea>
 
-                              {/* ACCIÓN FIJA EN EL PIE */}
                               <div className="p-4 bg-white border-t border-slate-100 rounded-b-3xl">
                                 <Button 
                                   onClick={() => {
-                                    let options: { title: string, values: string[], required: boolean }[] = [];
+                                    let options: any[] = [];
                                     try {
                                       options = productForm.customOptions ? JSON.parse(productForm.customOptions) : [];
                                     } catch (e) { options = []; }
@@ -1557,10 +1532,8 @@ export function ProductsTab({
                               </div>
                             </div>
                           )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                      </div>
+                    </div>
                 </section>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -1613,7 +1586,7 @@ export function ProductsTab({
 
       {/* DIÁLOGO DE CONFIRMACIÓN DE BORRADO DINÁMICO (INDIVIDUAL O MASIVO) */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="rounded-[2.5rem] p-12 border-none shadow-2xl bg-white max-w-lg">
+        <AlertDialogContent className="rounded-[2.5rem] p-12 border-none shadow-2xl bg-white sm:max-w-[450px]">
           <AlertDialogHeader className="space-y-6">
             <div className="mx-auto h-20 w-20 rounded-3xl bg-red-50 text-red-500 flex items-center justify-center shadow-inner">
               <Trash2 className="h-10 w-10 animate-pulse" />

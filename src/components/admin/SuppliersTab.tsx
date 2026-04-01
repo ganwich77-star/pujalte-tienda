@@ -346,7 +346,7 @@ export function SuppliersTab() {
 
       {/* DIÁLOGO CREAR/EDITAR */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] border-none bg-white rounded-[40px] shadow-2xl p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[600px] border-none bg-white rounded-[40px] shadow-2xl p-0 overflow-hidden">
           <div className="p-10 space-y-8">
             <DialogHeader className="space-y-4">
               <div className="flex items-center gap-4">

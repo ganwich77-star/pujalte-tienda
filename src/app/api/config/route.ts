@@ -62,14 +62,16 @@ export async function POST(request: NextRequest) {
     try {
       // Intentamos actualizar
       const count = await prisma.$executeRawUnsafe(
-        `UPDATE systemconfig SET data = $1::jsonb, "updatedAt" = NOW() WHERE id = 'default'`,
-        jsonString
+        'UPDATE systemconfig SET data = ?, updatedAt = NOW() WHERE id = ?',
+        jsonString,
+        'default'
       )
 
       if (count === 0) {
         // Si no existe, creamos
         await prisma.$executeRawUnsafe(
-          `INSERT INTO systemconfig (id, data, "updatedAt") VALUES ('default', $1::jsonb, NOW())`,
+          'INSERT INTO systemconfig (id, data, updatedAt) VALUES (?, ?, NOW())',
+          'default',
           jsonString
         )
       }

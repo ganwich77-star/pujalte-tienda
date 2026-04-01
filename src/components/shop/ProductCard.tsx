@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon, X, Palette, Loader2, Camera, Upload, Trash2, ChevronRight, Users } from 'lucide-react'
+import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon, X, Palette, Loader2, Camera, Upload, Trash2, ChevronRight, Users, ImagePlus, Briefcase, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -16,6 +16,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { db, COLLECTIONS } from '@/lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { useUserStore } from '@/store/user'
+import { toast } from '@/hooks/use-toast'
 
 interface ProductCardProps {
   product: Product
@@ -25,6 +29,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, config, formatPrice, handleAddToCart }: ProductCardProps) {
+  const { user, isLoggedIn } = useUserStore()
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, string>>({})
   const [added, setAdded] = useState(false)
@@ -36,6 +41,28 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
   const stepQty = product.stepQuantity || 1
   
   const [quantity, setQuantity] = useState(minQty)
+
+  // Estados para la galería
+  const [showGallerySelector, setShowGallerySelector] = useState(false)
+  const [userPhotos, setUserPhotos] = useState<any[]>([])
+  const [isLoadingPhotos, setIsLoadingPhotos] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<string>('TODAS')
+  
+  // Estado para la previsualización premium
+  const [showPreview, setShowPreview] = useState(false)
+
+  const categories = useMemo(() => {
+    const cats = new Set<string>(['TODAS'])
+    userPhotos.forEach(p => {
+      if (p.category) cats.add(p.category.toUpperCase())
+    })
+    return Array.from(cats)
+  }, [userPhotos])
+
+  const filteredPhotos = useMemo(() => {
+    if (activeCategory === 'TODAS') return userPhotos
+    return userPhotos.filter(p => p.category?.toUpperCase() === activeCategory)
+  }, [userPhotos, activeCategory])
 
   const tiers = useMemo(() => {
     try {
@@ -69,10 +96,8 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
     : originalBasePrice) * quantity
 
   const onAdd = () => {
-    // Combinamos la variante con la nota de personalización y la foto
     let finalNote = personalizationNote
 
-    // Añadimos las opciones dinámicas seleccionadas
     Object.entries(selectedCustomOptions).forEach(([key, val]) => {
       finalNote = finalNote ? `${finalNote} | ${key}: ${val}` : `${key}: ${val}`;
     });
@@ -84,7 +109,6 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
       finalNote = finalNote ? `${finalNote} | FOTO: ${uploadedUrl}` : `FOTO: ${uploadedUrl}`
     }
 
-    // Pasamos el producto, variante, cantidad Y las notas que incluyen todo
     const productWithNotes = { ...product, notes: finalNote }
     handleAddToCart(productWithNotes as any, selectedVariant || undefined, quantity)
     
@@ -118,17 +142,61 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
       }
     } catch (err) {
       console.error("Error uploading file:", err)
+      toast({ title: "Error", description: "No se pudo subir la foto.", variant: "destructive" })
     } finally {
       setIsUploading(false)
     }
   }
+
+  const fetchUserGalleries = async () => {
+    if (!isLoggedIn || !user?.dni) {
+      toast({ title: "Atención", description: "Identifícate primero para acceder a tus reportajes.", variant: "destructive" })
+      return
+    }
+
+    setIsLoadingPhotos(true)
+    setShowGallerySelector(true)
+
+    try {
+      const docRef = doc(db, COLLECTIONS.CLIENTS, user.dni.toUpperCase().trim())
+      const docSnap = await getDoc(docRef)
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data()
+        const photos = data?.gallerySettings?.photos || []
+        setUserPhotos(photos)
+        if (photos.length === 0) {
+          toast({ title: "Sin fotos", description: "Tu galería todavía no tiene fotos publicadas." })
+        }
+      } else {
+        toast({ title: "Galería no encontrada", description: "No hemos localizado ningún reportaje con tu DNI.", variant: "destructive" })
+        setShowGallerySelector(false)
+      }
+    } catch (err) {
+      console.error("Error loading galleries:", err)
+      toast({ title: "Error", description: "No se pudieron cargar tus fotos.", variant: "destructive" })
+    } finally {
+      setIsLoadingPhotos(false)
+    }
+  }
+
+  const WatermarkOverlay = ({ opacity = 0.2 }: { opacity?: number }) => (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden select-none">
+       <p 
+         className="text-white font-black text-2xl sm:text-4xl uppercase tracking-[0.4em] drop-shadow-2xl text-center px-4 -rotate-12"
+         style={{ opacity }}
+       >
+         PUJALTE FOTOGRAFÍA
+       </p>
+    </div>
+  )
 
   const sortedTiers = tiers.length > 0 ? [...tiers].sort((a, b) => a.minQty - b.minQty) : [];
   const nextTier = sortedTiers.find((t: any) => t.minQty > quantity);
   const currentTier = tiers.length > 0 ? [...tiers].sort((a, b) => b.minQty - a.minQty).find((t: any) => quantity >= t.minQty) : undefined;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) setShowGallerySelector(false); }}>
       <DialogTrigger asChild>
         <motion.div whileHover={{ y: -8 }} className="group cursor-pointer flex flex-col gap-3">
           <div className="relative aspect-square w-full bg-white rounded-[2.5rem] overflow-hidden shadow-[0_15px_40px_-15px_rgba(0,0,0,0.08)] group-hover:shadow-[0_25px_50px_-12px_rgba(74,124,89,0.2)] transition-all duration-700 border border-white/50">
@@ -165,9 +233,6 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                 </div>
               )}
             </div>
-            <div className="absolute top-3 right-3 p-1.5 bg-white/80 backdrop-blur-md rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
-               <Info className="h-4 w-4 text-slate-800" />
-            </div>
           </div>
           <div className="px-2 text-center mt-1">
              <h3 className="text-[10px] sm:text-[13px] font-bold text-slate-800 leading-tight truncate px-1 uppercase tracking-tight">{product.name}</h3>
@@ -183,32 +248,35 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
         </motion.div>
       </DialogTrigger>
 
-      {/* Modal ampliado para ver la foto a gran tamaño */}
       <DialogContent showCloseButton={false} className="w-[95vw] max-h-[82dvh] sm:max-h-[90dvh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all">
         <div className="relative flex-1 flex flex-col overflow-hidden">
-            <div className="relative aspect-square w-full overflow-hidden bg-slate-50 min-h-[250px] sm:min-h-0">
-              <img src={fixPath(product.image || '')} alt={product.name} className="w-full h-full object-cover transition-all duration-500" />
-              
-              {/* Botón de cierre en la esquina superior derecha */}
-              <button 
-                onClick={() => setOpen(false)}
-                className="fixed top-6 right-6 z-[250] h-11 w-11 rounded-full bg-black/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/50 transition-all border border-white/10 shadow-2xl group"
-              >
-                <X className="h-5 w-5 transition-transform group-hover:rotate-90" />
-              </button>
-
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
-              <div className="absolute bottom-4 left-5 right-5">
-                 <DialogTitle className="text-xl sm:text-2xl font-black text-white leading-none tracking-tight uppercase italic underline decoration-blue-500 decoration-3 underline-offset-4">
+            {/* HEADER CON TÍTULO ELEGANTE AL TOP */}
+            <div className="h-14 sm:h-16 flex items-center justify-center bg-white border-b border-slate-50 relative shrink-0">
+                <DialogTitle className="text-xl sm:text-2xl font-light text-slate-800 tracking-tight" style={{ fontFamily: 'serif' }}>
                     {product.name}
-                 </DialogTitle>
-              </div>
+                </DialogTitle>
+                <button 
+                  onClick={() => setOpen(false)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-all border border-slate-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
             </div>
 
-            <div className="p-4 sm:p-7 flex-1 flex flex-col gap-3 sm:gap-6 overflow-y-auto custom-scrollbar">
+            <div className="p-0 flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+                {/* IMAGEN DEL PRODUCTO - COMPLETA Y SIN RECORTAR */}
+                <div className="relative w-full bg-white overflow-hidden border-b border-slate-50/50 flex-shrink-0 min-h-[250px] sm:min-h-[350px] flex items-center justify-center p-6 sm:p-8">
+                  <img src={fixPath(product.image || '')} alt={product.name} className="max-w-full max-h-[300px] sm:max-h-[400px] object-contain transition-all duration-700 hover:scale-105" />
+                  <div className="absolute top-4 left-4 flex flex-col gap-1 z-10 pointer-events-none opacity-50">
+                    {product.isFeatured && <Badge className="bg-slate-900 border-none text-[7px] uppercase font-black px-2 py-0.5">Destacado</Badge>}
+                    {product.isNew && <Badge className="bg-amber-400 border-none text-[7px] uppercase font-black px-2 py-0.5">Novedad</Badge>}
+                  </div>
+                </div>
+
+                <div className="p-4 sm:p-7 flex flex-col gap-4 sm:gap-6">
                 {product.description && (
-                  <div className="bg-slate-50 p-3 sm:p-5 rounded-[1.2rem] sm:rounded-[2rem] border border-slate-100 flex-shrink-0">
-                    <p className="text-[9px] sm:text-[11px] leading-tight text-slate-500 font-bold uppercase text-center italic tracking-tight whitespace-pre-line">
+                  <div className="bg-slate-50 p-3 sm:p-4 rounded-[1.2rem] sm:rounded-[2rem] border border-slate-100 flex-shrink-0">
+                    <p className="text-[9px] sm:text-[10px] leading-tight text-slate-500 font-bold uppercase text-center italic tracking-tight whitespace-pre-line">
                        {product.description}
                     </p>
                   </div>
@@ -244,7 +312,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                   </div>
                 )}
 
-                {/* OPCIONES DE PERSONALIZACIÓN DINÁMICAS (EJ: FORMAS PEANA) */}
+                {/* OPCIONES DE PERSONALIZACIÓN DINÁMICAS */}
                 {(() => {
                   try {
                     const options = product.customOptions ? JSON.parse(product.customOptions) : [];
@@ -262,7 +330,6 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                             <Select 
                               onValueChange={(val) => {
                                 setSelectedCustomOptions(prev => ({ ...prev, [opt.title]: val }));
-                                console.log(`[OPT] ${opt.title} selected:`, val);
                               }}
                             >
                               <SelectTrigger className="w-full h-11 sm:h-12 rounded-xl border border-slate-100 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest px-4 shadow-sm hover:border-orange-200 transition-colors">
@@ -283,65 +350,160 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                   } catch (e) { return null; }
                 })()}
 
-                {/* OPCIONES DE PERSONALIZACIÓN (TEXTO / FOTOS) */}
-                <div className="flex flex-col gap-4 mt-2 bg-slate-50/50 p-4 rounded-3xl border border-slate-100/50">
+                {/* SECCIÓN DE FOTOS - COMPACTADA */}
+                <div className="flex flex-col gap-3 mt-1 bg-[#4A7C59]/[0.03] p-4 sm:p-5 rounded-[2rem] border border-[#4A7C59]/10 shadow-[inner_0_2px_4px_rgba(0,0,0,0.02)]">
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
-                        <Camera className="h-4 w-4 text-[#4A7C59]" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">Personaliza con tu foto</span>
+                        <div className="h-5 w-5 rounded-md bg-[#4A7C59]/10 flex items-center justify-center">
+                           <Camera className="h-3 w-3 text-[#4A7C59]" />
+                        </div>
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4A7C59]/80">Tu Foto</span>
                       </div>
                       {uploadedUrl && (
-                        <button onClick={() => setUploadedUrl(null)} className="text-[9px] font-black text-red-500 uppercase flex items-center gap-1">
-                          <Trash2 className="h-3 w-3" /> Quitar
+                        <button onClick={() => setUploadedUrl(null)} className="text-[8px] font-black text-red-500/60 uppercase flex items-center gap-1 hover:text-red-500 transition-colors">
+                          <Trash2 className="h-2.5 w-2.5" /> Borrar
                         </button>
                       )}
                     </div>
                     
                     {!uploadedUrl ? (
-                      <div className="relative">
-                        <input 
-                          type="file" 
-                          id={`photo-${product.id}`}
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                          disabled={isUploading}
-                        />
-                        <label 
-                          htmlFor={`photo-${product.id}`}
-                          className={cn(
-                            "flex flex-col items-center justify-center w-full py-10 border-2 border-dashed rounded-[2rem] transition-all cursor-pointer",
-                            isUploading ? "bg-slate-50 border-slate-200" : "bg-[#4A7C59]/5 border-[#4A7C59]/20 hover:bg-[#4A7C59]/10 hover:border-[#4A7C59]/40"
-                          )}
-                        >
-                          {isUploading ? (
-                            <>
-                              <Loader2 className="h-8 w-8 text-[#4A7C59] animate-spin mb-2" />
-                              <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Subiendo...</span>
-                            </>
-                          ) : (
-                            <>
-                              <div className="h-14 w-14 rounded-[1.2rem] bg-[#4A7C59]/10 flex items-center justify-center mb-3">
-                                <Upload className="h-6 w-6 text-[#4A7C59]" />
+                      <div className="space-y-2">
+                         {/* Botonera de selección de origen ultra-compacta */}
+                         <div className="flex gap-2">
+                           <button 
+                             type="button"
+                             onClick={() => document.getElementById(`photo-${product.id}`)?.click()}
+                             className="flex flex-1 items-center gap-3 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-[#4A7C59]/30 hover:bg-[#4A7C59]/[0.02] transition-all group shadow-sm active:scale-95"
+                           >
+                              <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#4A7C59]/10 group-hover:text-[#4A7C59] transition-colors shrink-0">
+                                 <Upload className="h-4 w-4" />
                               </div>
-                              <span className="text-[10px] font-black uppercase text-[#4A7C59] tracking-widest">Añadir Imagen</span>
-                              <p className="text-[8px] font-bold text-slate-400 mt-1">Sube el momento para tu {product.name}</p>
-                            </>
-                          )}
-                        </label>
+                              <span className="text-[9px] font-black uppercase tracking-tight text-slate-500 group-hover:text-slate-700">Subir Archivo</span>
+                           </button>
+
+                           <button 
+                             type="button"
+                             onClick={fetchUserGalleries}
+                             className="flex flex-1 items-center gap-3 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-[#4A7C59]/30 hover:bg-[#4A7C59]/[0.02] transition-all group shadow-sm active:scale-95"
+                           >
+                              <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#4A7C59]/10 group-hover:text-[#4A7C59] transition-colors shrink-0">
+                                 <Briefcase className="h-4 w-4" />
+                              </div>
+                              <span className="text-[9px] font-black uppercase tracking-tight text-slate-500 group-hover:text-slate-700">Mis Galerías</span>
+                           </button>
+                         </div>
+
+                         <input 
+                           type="file" 
+                           id={`photo-${product.id}`}
+                           className="hidden" 
+                           accept="image/*"
+                           onChange={handleFileUpload}
+                           disabled={isUploading}
+                         />
+
+                         {isUploading && (
+                           <div className="flex items-center justify-center gap-2 py-4">
+                              <Loader2 className="h-4 w-4 text-[#4A7C59] animate-spin" />
+                              <span className="text-[9px] font-black uppercase text-[#4A7C59] animate-pulse">Subiendo...</span>
+                           </div>
+                         )}
                       </div>
                     ) : (
-                      <div className="relative aspect-video w-full rounded-[2rem] overflow-hidden border-2 border-[#4A7C59]/20 bg-white flex items-center justify-center shadow-inner">
-                        <img src={uploadedUrl} alt="Vista previa" className="h-full w-full object-contain p-2" />
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                          <Check className="h-10 w-10 text-white drop-shadow-lg" strokeWidth={4} />
+                      <div className="relative group">
+                        <div className="relative aspect-video w-full rounded-[1.5rem] overflow-hidden border-2 border-[#4A7C59]/20 bg-white flex items-center justify-center shadow-inner group-hover:brightness-95 transition-all">
+                          <img src={uploadedUrl} alt="Vista previa" className="h-full w-full object-contain p-2" />
+                          <WatermarkOverlay opacity={0.15} />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                             <Check className="h-10 w-10 text-white" strokeWidth={4} />
+                          </div>
                         </div>
+                        <Button 
+                          type="button"
+                          variant="secondary"
+                          onClick={() => setShowPreview(true)}
+                          className="absolute -bottom-2 right-4 h-8 px-4 rounded-full bg-white shadow-xl text-[9px] font-black uppercase tracking-widest border border-slate-100 hover:bg-[#4A7C59] hover:text-white transition-all z-10"
+                        >
+                          Ampliar Foto
+                        </Button>
                       </div>
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  {/* MINI SELECTOR DE GALERÍA INCRUSTADO */}
+                  <AnimatePresence>
+                    {showGallerySelector && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm mt-2 relative z-[60]"
+                      >
+                         <div className="p-3 border-b border-slate-50 flex items-center justify-between">
+                            <span className="text-[9px] font-black uppercase text-[#4A7C59]">Mis Reportajes</span>
+                            <button type="button" onClick={() => setShowGallerySelector(false)} className="h-5 w-5 rounded-full text-slate-300 hover:text-slate-900 transition-colors">
+                               <X className="h-3 w-3" />
+                            </button>
+                         </div>
+
+                         {/* Filtro de Categorías */}
+                         {!isLoadingPhotos && categories.length > 2 && (
+                           <div className="flex gap-1.5 p-2 bg-slate-50/50 overflow-x-auto no-scrollbar border-b border-slate-50">
+                             {categories.map(cat => (
+                               <button
+                                 key={cat}
+                                 type="button"
+                                 onClick={() => setActiveCategory(cat)}
+                                 className={cn(
+                                   "whitespace-nowrap px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-tighter transition-all",
+                                   activeCategory === cat 
+                                     ? "bg-[#4A7C59] text-white shadow-sm" 
+                                     : "bg-white text-slate-400 hover:text-slate-600 border border-slate-100"
+                                 )}
+                               >
+                                 {cat}
+                               </button>
+                             ))}
+                           </div>
+                         )}
+
+                         <div className="p-3 max-h-[300px] overflow-y-auto custom-scrollbar">
+                            {isLoadingPhotos ? (
+                              <div className="py-10 flex flex-col items-center justify-center gap-2">
+                                 <Loader2 className="h-6 w-6 text-[#4A7C59] animate-spin" />
+                                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Consultando tus fotos...</p>
+                              </div>
+                            ) : filteredPhotos.length > 0 ? (
+                              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                 {filteredPhotos.map((photo, i) => (
+                                   <motion.button
+                                     key={i}
+                                     type="button"
+                                     whileTap={{ scale: 0.95 }}
+                                     onClick={() => {
+                                       setUploadedUrl(photo.url);
+                                       setShowGallerySelector(false);
+                                       setShowPreview(true);
+                                     }}
+                                     className="relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-[#4A7C59] transition-all bg-slate-50 active:scale-95"
+                                   >
+                                      <img src={photo.url} className="w-full h-full object-cover" alt="Tu foto" />
+                                      <WatermarkOverlay opacity={0.1} />
+                                   </motion.button>
+                                 ))}
+                              </div>
+                            ) : (
+                              <div className="py-6 text-center">
+                                 <p className="text-[9px] font-bold text-slate-400">¡Vaya! No hay fotos en esta categoría.</p>
+                              </div>
+                            )}
+                         </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="space-y-2 mt-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] ml-1 flex items-center gap-2">
                       <Sparkles className="h-3 w-3" /> Observaciones o Nombres
                     </Label>
@@ -349,12 +511,10 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                       value={personalizationNote}
                       onChange={(e) => setPersonalizationNote(e.target.value)}
                       placeholder="Ej: Para el abuelo, Fechas, Nombres..."
-                      className="h-12 rounded-xl bg-white border-slate-100 focus-visible:ring-[#4A7C59]/20 text-[11px] font-medium shadow-sm"
+                      className="h-12 rounded-xl bg-white border-none shadow-sm focus-visible:ring-[#4A7C59]/10 text-[11px] font-medium"
                     />
                   </div>
                 </div>
-
-
 
                 {tiers && tiers.length > 0 && (
                   <div className="flex-shrink-0">
@@ -362,15 +522,15 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                       {nextTier ? (
                         <motion.div 
                           key="next" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                          className="bg-blue-50 border border-blue-100 p-2.5 sm:p-3 rounded-xl flex items-center gap-3 active:scale-[0.98] transition-all"
+                          className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center gap-3 active:scale-[0.98] transition-all cursor-pointer"
                           onClick={() => setQuantity(nextTier.minQty)}
                         >
                           <div className="h-7 w-7 min-w-7 rounded-lg bg-blue-600 flex items-center justify-center shadow-md">
                             <TrendingDown className="h-3.5 w-3.5 text-white" />
                           </div>
                           <div className="flex-1 overflow-hidden">
-                            <span className="text-[7px] font-black text-blue-600 uppercase tracking-widest leading-none block truncate">PRÓXIMO DESCUENTO</span>
-                            <p className="text-[9px] font-bold text-slate-600 mt-0.5 truncate">Añade <span className="text-blue-600 font-black">{nextTier.minQty - quantity} más</span> y baja a <span className="text-blue-600 font-black">{formatPrice(nextTier.price)}</span>/ud</p>
+                            <span className="text-[7px] font-black text-blue-600 uppercase tracking-widest leading-none block">PRÓXIMO DESCUENTO</span>
+                            <p className="text-[9px] font-bold text-slate-600 mt-0.5 truncate text-left">Añade <span className="text-blue-600 font-black">{nextTier.minQty - quantity} más</span> y baja a <span className="text-blue-600 font-black">{formatPrice(nextTier.price)}</span>/ud</p>
                           </div>
                           <ArrowRight className="h-3 w-3 text-blue-300" />
                         </motion.div>
@@ -383,22 +543,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                     </AnimatePresence>
                   </div>
                 )}
-
-                {/* Opción especial para packs (Añadir fotos del grupo) */}
-                {product.isPack && (
-                  <div className="mt-4 px-1 mb-4">
-                    <Button 
-                      variant="outline"
-                      className="w-full h-14 rounded-2xl border-2 border-[#4A7C59]/20 text-[#4A7C59] font-black uppercase text-[10px] sm:text-[11px] tracking-widest flex items-center justify-center gap-3 hover:bg-[#4A7C59] hover:text-white transition-all shadow-sm group"
-                    >
-                      <div className="h-8 w-8 rounded-xl bg-[#4A7C59]/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                        <Users className="h-4 w-4" />
-                      </div>
-                      <span className="flex-1 text-left">Añadir Fotos del Grupo</span>
-                      <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-white transition-colors" />
-                    </Button>
-                  </div>
-                )}
+              </div>
             </div>
 
             <div className="mt-auto p-4 sm:p-6 bg-white border-t border-slate-100 flex flex-col gap-3 z-20">
@@ -437,7 +582,67 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                 </Button>
             </div>
         </div>
+
+        {/* MODAL DE PREVISUALIZACIÓN PREMIUM (DISEÑO DEL USER) */}
+        <AnimatePresence>
+          {showPreview && uploadedUrl && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
+            >
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                className="bg-white w-full max-w-[450px] rounded-[2.5rem] overflow-hidden shadow-2xl relative flex flex-col shadow-black/30"
+              >
+                {/* Botón X superior */}
+                <button 
+                  onClick={() => setShowPreview(false)}
+                  className="absolute top-4 right-4 z-10 h-8 w-8 rounded-full bg-black/10 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/30 transition-all border border-white/10"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+
+                {/* Imagen Preview */}
+                <div className="relative w-full aspect-[4/5] bg-slate-50 flex items-center justify-center overflow-hidden">
+                  <img 
+                    src={uploadedUrl} 
+                    alt="Vista Previa Premium" 
+                    className="w-full h-full object-contain"
+                  />
+                  <WatermarkOverlay opacity={0.3} />
+                </div>
+
+                {/* Footer del Modal Premium */}
+                <div className="p-8 flex flex-col gap-4 bg-white border-t border-slate-50">
+                   <button 
+                      onClick={() => {
+                        setShowPreview(false);
+                        setUploadedUrl(null);
+                        setShowGallerySelector(true);
+                      }}
+                      className="w-full h-14 rounded-2xl border-2 border-dashed border-[#4A7C59]/30 text-[#4A7C59] font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 hover:bg-[#4A7C59]/5 transition-all"
+                   >
+                     <ImageIcon className="h-4 w-4" />
+                     CAMBIAR FOTO
+                   </button>
+
+                   <button 
+                      onClick={() => setShowPreview(false)}
+                      className="w-full h-14 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 hover:bg-slate-50 active:scale-[0.98] transition-all shadow-sm"
+                   >
+                     CERRAR Y SALIR
+                   </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </DialogContent>
     </Dialog>
   )
 }
+
