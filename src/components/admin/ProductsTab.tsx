@@ -392,7 +392,8 @@ export function ProductsTab({
   suppliers = []
 }: ProductsTabProps) {
   const [cropImage, setCropImage] = useState<string | null>(null)
-  const [activePromoTab, setActivePromoTab] = useState<'quantities' | 'tiers' | 'variants' | 'custom_options'>('variants')
+  const [activePromoTab, setActivePromoTab] = useState<'variants' | 'quantities' | 'tiers' | 'custom_options'>('variants')
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [isPromoOpen, setIsPromoOpen] = useState(true)
   const [croppingProduct, setCroppingProduct] = useState<Product | null>(null)
   const [cropForForm, setCropForForm] = useState(false)
@@ -522,20 +523,41 @@ export function ProductsTab({
 
   const handleApplyCrop = async () => {
     if (!cropImage || !croppedAreaPixels) return
+    setIsUploadingImage(true)
     try {
-      const croppedImage = await getCroppedImg(cropImage, croppedAreaPixels)
+      const croppedImageBase64 = await getCroppedImg(cropImage, croppedAreaPixels)
+      
+      // Convertir base64 a Blob para subirlo como archivo
+      const response = await fetch(croppedImageBase64)
+      const blob = await response.blob()
+      
+      const formData = new FormData()
+      formData.append('file', blob, 'product-image.jpg')
+      
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!uploadRes.ok) throw new Error('Error al subir imagen')
+      
+      const uploadData = await uploadRes.json()
+      const imageUrl = uploadData.url
+
       if (cropForForm) {
-        setProductForm({ ...productForm, image: croppedImage })
+        setProductForm({ ...productForm, image: imageUrl })
         setCropForForm(false)
       } else if (croppingProduct) {
-        onUpdateProductField(croppingProduct.id, 'image', croppedImage)
+        onUpdateProductField(croppingProduct.id, 'image', imageUrl)
       }
       setCropImage(null)
       setCroppingProduct(null)
-      toast({ title: 'Éxito', description: 'Imagen procesada correctamente' })
+      toast({ title: 'Éxito', description: 'Imagen subida correctamente' })
     } catch (e) {
       console.error(e)
-      toast({ title: 'Error', description: 'Fallo al procesar imagen', variant: 'destructive' })
+      toast({ title: 'Error', description: 'Fallo al subir la imagen', variant: 'destructive' })
+    } finally {
+      setIsUploadingImage(false)
     }
   }
 
@@ -872,9 +894,11 @@ export function ProductsTab({
                 </Button>
                 <Button
                   onClick={handleApplyCrop}
+                  disabled={isUploadingImage}
                   className="flex-[2] h-11 rounded-xl font-bold uppercase tracking-wider text-[10px] bg-white text-black hover:bg-slate-100 shadow-lg"
                 >
-                  Confirmar Fotografía
+                  {isUploadingImage ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                  {isUploadingImage ? 'Subiendo...' : 'Confirmar Fotografía'}
                 </Button>
               </div>
             </div>
