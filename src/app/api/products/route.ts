@@ -79,6 +79,7 @@ export async function POST(request: Request) {
         variantType: fields.variantType,
         variantBehavior: fields.variantBehavior,
         isNew: fields.isNew ?? false,
+        isFeatured: fields.isFeatured ?? false,
         salePrice: fields.salePrice ? parseFloat(fields.salePrice) : null,
         minQuantity: parseInt(fields.minQuantity) || 1,
         stepQuantity: parseInt(fields.stepQuantity) || 1,

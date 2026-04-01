@@ -31,9 +31,10 @@ export interface Product {
   minQuantity?: number
   stepQuantity?: number
   tierPricing?: { minQty: number; price: number }[] | string | null
-  supplierId?: string | null
-  supplier?: { id: string; name: string } | null
-  customOptions?: string | null
+  supplierId?: string | null;
+  supplier?: { id: string; name: string } | null;
+  customOptions?: string | null;
+  fotosIncluidas?: number;
 }
 
 export interface Category {
@@ -62,6 +63,7 @@ export interface OrderItem {
   quantity: number
   price: number
   note?: string | null
+  fotosIncluidas?: number
 }
 
 export interface Order {

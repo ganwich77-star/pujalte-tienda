@@ -1159,6 +1159,25 @@ export function ProductsTab({
                           {activePromoTab === 'quantities' && (
                             <div className="p-5 space-y-6">
                               <div className="grid grid-cols-2 gap-3">
+                                {/* CAMPO CRÍTICO: FOTOS INCLUIDAS */}
+                                <div className="space-y-1.5 col-span-2">
+                                  <Label className="text-[7.5px] font-black text-[#4A7C59] uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                                    <ImageIcon className="h-3 w-3" /> FOTOS INCLUIDAS POR PRODUCTO
+                                  </Label>
+                                  <div className="relative group">
+                                    <Input
+                                      type="number"
+                                      value={productForm.fotosIncluidas ?? 1}
+                                      onChange={(e) => setProductForm({...productForm, fotosIncluidas: Math.max(0, Number(e.target.value))})}
+                                      className="rounded-2xl h-14 text-lg font-black bg-emerald-50/30 border-emerald-100/50 text-center px-1 focus:bg-white focus:ring-8 focus:ring-emerald-500/5 transition-all shadow-inner [appearance:textfield] text-[#4A7C59]"
+                                      placeholder="1"
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-600 bg-white px-3 py-1 rounded-lg border border-emerald-100 shadow-sm uppercase tracking-widest">
+                                      FOTOS
+                                    </div>
+                                  </div>
+                                </div>
+
                                 <div className="space-y-1.5">
                                   <Label className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest ml-1">Mínimo Inicial</Label>
                                   <div className="relative group">
@@ -1166,12 +1185,9 @@ export function ProductsTab({
                                       type="number"
                                       value={productForm.minQuantity || 1}
                                       onChange={(e) => setProductForm({...productForm, minQuantity: Number(e.target.value)})}
-                                      className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield]"
                                       placeholder="0"
                                     />
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-lg bg-blue-50 text-blue-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                      <Plus className="h-2.5 w-2.5" />
-                                    </div>
                                   </div>
                                 </div>
                                 <div className="space-y-1.5">
@@ -1181,12 +1197,9 @@ export function ProductsTab({
                                       type="number"
                                       value={productForm.stepQuantity || 1}
                                       onChange={(e) => setProductForm({...productForm, stepQuantity: Number(e.target.value)})}
-                                      className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      className="rounded-2xl h-12 text-sm font-black bg-slate-50 border-transparent text-center px-1 focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all shadow-inner [appearance:textfield]"
                                       placeholder="0"
                                     />
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-lg bg-blue-50 text-blue-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                      <Package className="h-2.5 w-2.5" />
-                                    </div>
                                   </div>
                                 </div>
                               </div>

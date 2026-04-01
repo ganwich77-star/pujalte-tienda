@@ -780,7 +780,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                     <Button 
                       variant="ghost" 
                       className="h-11 w-11 rounded-xl bg-[#4A7C59]/5 text-[#4A7C59] border border-[#4A7C59]/10 shadow-sm"
-                      onClick={() => window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}`, '_blank')}
+                      onClick={() => window.open(`https://api.whatsapp.com/send?phone=${customer.phone.replace(/\D/g, '')}`, '_blank')}
                     >
                       <MessageSquare className="h-4.5 w-4.5" />
                     </Button>
@@ -953,7 +953,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                               size="icon" 
                               className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white border border-slate-100 shadow-sm transition-all"
                               onClick={() => {
-                                  window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}`, '_blank')
+                                  window.open(`https://api.whatsapp.com/send?phone=${customer.phone.replace(/\D/g, '')}`, '_blank')
                               }}
                             >
                               <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -1336,11 +1336,40 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                   <Button 
                     className="flex-1 bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-xl h-11 font-black uppercase text-[10px] tracking-widest gap-2"
                     onClick={() => {
-                      const slug = (editingCustomer.dni || editingCustomer.email || editingCustomer.phone).trim().toUpperCase()
-                      const url = `${window.location.origin}/galeria/${slug}`
-                      const firstName = editingCustomer.name?.split(' ')[0] || 'Cliente';
-                      const message = `¡Hola ${firstName}! 👋✨\n\n¡Buenas noticias! ¡Ya tienes lista tu galería online! 🎞️📸\n\nEs el momento de revivir esos momentos mágicos. En el siguiente enlace podrás seleccionar tus fotos favoritas y convertirlas en recuerdos tangibles en nuestra tienda:\n\n👉 ${url} 🔗✨\n\nQueremos que vuestro reportaje sea una experiencia inolvidable y que la tecnología os lo ponga muy fácil. 🚀💻\n\n¿Nos ayudas a seguir creciendo? 📈🌱\n\nEn PujalteFotografia nos apasiona saber qué piensas. Si te ha gustado nuestro trabajo y el trato recibido, nos harías un favor enorme dejando una reseña en nuestro perfil. 💬🙏\n\n¿Nos regalas 5 estrellas? ⭐⭐⭐⭐⭐ Un comentario contando vuestra experiencia sería el broche de oro perfecto para nosotros. 😜🎁\n\nPuedes hacerlo directamente aquí 👇\n📍 https://g.page/r/CTswPlAvjlLXEAo/review\n\nCualquier duda, ¡escríbeme! 📲\n\n¡Mil gracias por vuestra confianza y apoyo! 🤗💖`;
-                      window.open(`https://wa.me/${editingCustomer.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank')
+                      try {
+                        const slug = (editingCustomer.dni || editingCustomer.email || editingCustomer.phone || '').trim().toUpperCase()
+                        const url = `${window.location.origin}/galeria/${slug}`
+                        const firstName = editingCustomer.name?.split(' ')[0] || 'Cliente';
+                        
+                        const message = `👋 ✨ *¡Hola ${firstName}!*
+
+*¡Buenas noticias!* ¡ya tienes lista tu galería online! 🎞️📷
+
+Es el momento de revivir esos momentos mágicos. En el siguiente enlace podrás seleccionar tus fotos favoritas y convertirlas en recuerdos tangibles en nuestra tienda:
+
+👉 ${url} ✨
+
+Queremos que vuestro reportaje sea una experiencia inolvidable y que la tecnología os lo ponga muy fácil. 🚀💻
+
+¿Nos ayudas a seguir creciendo? 🌱✨
+
+En *PujalteFotografia* nos apasiona saber qué piensas. Si te ha gustado nuestro trabajo y el trato recibido, nos harías un favor enorme dejando una reseña en nuestro perfil. 💬🙏
+
+*¿Nos regalas 5 estrellas?* ⭐⭐⭐⭐⭐ Un comentario contando vuestra experiencia sería el broche de oro perfecto para nosotros. 😜🎁
+
+Puedes hacerlo directamente aquí 👇
+📍 https://g.page/r/CTswPlAvjlLXEAo/review
+
+Cualquier duda, ¡escríbeme! 📲
+
+¡Mil gracias por vuestra confianza y apoyo! 🤗💖`;
+
+                        const phone = editingCustomer.phone?.replace(/\D/g, '') || '';
+                        window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank')
+                      } catch (e) {
+                        console.error('Error al codificar mensaje:', e);
+                        toast({ title: 'Error', description: 'No se pudo generar el enlace de WhatsApp.', variant: 'destructive' });
+                      }
                     }}
                   >
                     <Send className="h-3.5 w-3.5" /> Enviar Galería

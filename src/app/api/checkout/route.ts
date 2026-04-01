@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, COLLECTIONS } from '@/lib/firebase'
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  doc, 
-  serverTimestamp,
-  setDoc,
-  getDoc
-} from "firebase/firestore";
-import { generatePaycometData } from '@/lib/payments/server'
-import { sendOrderEmails, sendWelcomeEmails } from '@/lib/mail'
-
+import { db } from '@/lib/db'
+import { sendOrderEmails } from '@/lib/mail'
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,55 +17,55 @@ export async function POST(request: NextRequest) {
       gateway = 'paycomet'
     } = body
 
-    // 1. Calculate total
+    // 1. Calcular total
     const total = items.reduce((sum: number, item: any) => sum + (parseFloat(String(item.price)) * item.quantity), 0)
 
-    // 2. Create the order in Firestore as "pending"
-    const ordersRef = collection(db, COLLECTIONS.ORDERS);
-    // Generar número de seguimiento único
+    // 2. Generar número de seguimiento
     const trackingNumber = `PUJ-26-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const newOrder = {
-      trackingNumber,
-      customerName: customerName || "",
-      customerPhone: customerPhone || "",
-      customerEmail: customerEmail || "",
-      address: address || "",
-      notes: notes || "",
-      total,
-      paymentMethod: paymentMethod || 'card',
-      paymentStatus: 'pending',
-      status: 'pending',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      items: items.map((item: any) => ({
-        productId: item.productId || null,
-        productName: item.productName || "",
-        variantId: item.variantId || null,
-        variantName: item.variantName || null,
-        quantity: item.quantity || 1,
-        price: parseFloat(String(item.price)) || 0,
-        note: item.note || "",
-        fileUrl: item.fileUrl || null,
-        fileName: item.fileName || null
-      }))
-    };
+    // 3. Crear el pedido en MySQL mediante Prisma
+    const order = await db.order.create({
+      data: {
+        customerName: customerName || "Cliente sin nombre",
+        customerPhone: customerPhone || "",
+        customerEmail: customerEmail || "",
+        address: address || "",
+        total: total,
+        status: 'pending',
+        paymentMethod: paymentMethod || 'card',
+        paymentStatus: 'pending',
+        paymentId: trackingNumber,
+        notes: notes || "",
+        customFields: JSON.stringify(customFields || {}),
+        items: {
+          create: items.map((item: any) => ({
+            productId: item.productId || item.id,
+            productName: item.productName || item.name || 'Producto sin nombre',
+            variantId: item.variantId || null,
+            variantName: item.variantName || null,
+            quantity: parseInt(String(item.quantity)) || 1,
+            price: parseFloat(String(item.price)) || 0,
+            note: item.note || item.notes || "",
+            fileUrl: item.fileUrl || null,
+            fileName: item.fileName || null
+          }))
+        }
+      },
+      include: {
+        items: true
+      }
+    });
 
-    const docRef = await addDoc(ordersRef, newOrder);
-    const orderId = docRef.id;
+    const orderId = order.id;
 
-    // 3. Generate payment data for the selected gateway
-    // We use a clean order reference for the gateway (max 12 chars for Redsys compatibility)
+    // 4. Preparar datos para Paycomet
     const paymentOrderRef = orderId.slice(-8).toUpperCase() + Math.floor(Math.random() * 1000).toString().padStart(4, '0')
-    
-    // Base URLs
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pujaltefotografia.es'
-    const okUrl = `${baseUrl}/order-success`
-    const koUrl = `${baseUrl}/order-failed`
 
     if (gateway === 'paycomet') {
       try {
         const amountInCents = Math.round(total * 100).toString();
+        // Bizum = 11, Card = 1
         const paycometMethod = paymentMethod === 'bizum' ? [11] : [1];
         
         const paycometResponse = await fetch("https://rest.paycomet.com/v1/form", {
@@ -110,55 +99,14 @@ export async function POST(request: NextRequest) {
           throw new Error(paycometData.error?.message || "Error al obtener URL de Paycomet");
         }
 
-        // Update the order with the payment reference in Firestore
-        await updateDoc(docRef, {
-          paymentId: paymentOrderRef,
-          updatedAt: serverTimestamp()
+        // Actualizar el pedido con la referencia de pago real en MySQL
+        await db.order.update({
+          where: { id: orderId },
+          data: { paymentId: paymentOrderRef }
         });
 
-        // PERSISTIR CLIENTE EN FIREBASE si hay DNI (Colección Unificada)
-        const cf = (customFields || {}) as Record<string, any>
-        const dni = (cf.dni || '').trim().toUpperCase()
-        if (dni) {
-          try {
-            const clientRef = doc(db, COLLECTIONS.CLIENTS, dni)
-            const clientSnap = await getDoc(clientRef);
-            
-            const isNewRegistration = !clientSnap.exists();
-
-            const clientData = {
-              dni,
-              name: customerName || '',
-              email: customerEmail || '',
-              phone: customerPhone || '',
-              updatedAt: serverTimestamp(),
-              status: 'active'
-            }
-
-            if (isNewRegistration) {
-              await setDoc(clientRef, {
-                ...clientData,
-                createdAt: serverTimestamp(),
-                cashEnabled: false
-              })
-              
-              // ENVIAR BIENVENIDA (Admin recibe enlace de activación manual)
-              sendWelcomeEmails({
-                dni,
-                name: customerName || '',
-                email: customerEmail || '',
-                phone: customerPhone || ''
-              }).catch(e => console.error('[CHECKOUT] Error enviando bienvenida:', e))
-            } else {
-              await updateDoc(clientRef, clientData)
-            }
-          } catch (e) { console.error('[CHECKOUT] Error guardando cliente:', e) }
-        }
-
-
-        // 4. Send order confirmations (don't await - fast response)
-        const orderForEmail = { id: orderId, ...newOrder };
-        sendOrderEmails(orderForEmail).catch(err => console.error("Error enviando email en checkout:", err));
+        // 5. Enviar confirmación (opcional en este paso, pero lo mantenemos)
+        sendOrderEmails({ ...order, trackingNumber }).catch(err => console.error("Error enviando email en checkout:", err));
 
         return NextResponse.json({
           success: true,
@@ -172,11 +120,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Default error if gateway not supported
     return NextResponse.json({ error: 'Pasarela no soportada' }, { status: 400 })
 
   } catch (error: any) {
-    console.error('Checkout error in Firebase:', error)
-    return NextResponse.json({ error: 'Error al procesar el checkout en Firebase' }, { status: 500 })
+    console.error('Checkout error:', error)
+    return NextResponse.json({ error: 'Error al procesar el checkout' }, { status: 500 })
   }
 }

@@ -41,6 +41,7 @@ model Product {
   updatedAt       DateTime         @updatedAt
   firebaseId      String?          @unique
   isNew           Boolean?         @default(false)
+  isFeatured      Boolean?         @default(false)
   salePrice       Float?
   minQuantity     Int?             @default(1)
   stepQuantity    Int?             @default(1)

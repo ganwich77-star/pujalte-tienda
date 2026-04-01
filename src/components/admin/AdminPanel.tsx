@@ -245,7 +245,7 @@ export function AdminPanel(props: AdminPanelProps) {
             {onViewStore && (
               <button 
                 onClick={onViewStore}
-                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:text-[#4A7C59] transition-all group/back sm:mt-4"
+                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[#4A7C59] hover:opacity-80 transition-all group/back sm:mt-4"
               >
                 <ChevronLeft className="h-3 w-3 transform group-hover/back:-translate-x-1 transition-transform" />
                 <span className="hidden sm:inline">Volver a la Tienda</span>
@@ -380,10 +380,10 @@ export function AdminPanel(props: AdminPanelProps) {
             {onViewStore && (
               <Button
                 variant="ghost"
-                className="justify-start gap-3 sm:gap-4 rounded-xl sm:rounded-2xl text-slate-400 hover:text-[#4A7C59] hover:bg-[#4A7C59]/5 transition-all h-9 sm:h-12 px-3 sm:px-5 font-black border border-transparent hover:border-[#4A7C59]/10 whitespace-nowrap"
+                className="justify-start gap-3 sm:gap-4 rounded-xl sm:rounded-2xl text-[#4A7C59] hover:bg-[#4A7C59]/5 transition-all h-9 sm:h-12 px-3 sm:px-5 font-black border border-transparent hover:border-[#4A7C59]/10 whitespace-nowrap"
                 onClick={onViewStore}
               >
-                <div className="p-1.5 sm:p-2 rounded-lg bg-slate-50 group-hover:bg-[#4A7C59]/10 transition-colors">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-[#4A7C59]/10 group-hover:bg-[#4A7C59]/20 transition-colors">
                   <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
                 </div>
                 <span className="text-[9px] sm:text-xs uppercase tracking-widest">Tienda</span>

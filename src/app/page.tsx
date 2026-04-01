@@ -176,11 +176,29 @@ export default function Home() {
       ...item, 
       fromDb: false 
     }));
+
+    // Inyectamos productos de la base de datos que sean DESTACADOS o NOVEDAD
+    const featuredAndNewProducts = (products || [])
+      .filter((p: any) => (p.isFeatured || p.isNew) && p.active)
+      .map((p: any) => ({
+        ...p,
+        id: `db-${p.id}`,
+        src: p.image || '',
+        alt: p.name || '',
+        categoria: 'destacados', // Forzamos una categoría virtual o usamos la suya
+        fromDb: true
+      }));
+
+    const finalItems = [...featuredAndNewProducts, ...items];
     
-    // Filtramos por categoría activa de la landing
-    if (activeLandingCategory === 'todos') return items;
-    return items.filter((img: any) => img.categoria === activeLandingCategory);
-  }, [activeLandingCategory, config, landingData])
+    if (activeLandingCategory === 'todos') return finalItems;
+    
+    // Si la categoría es 'destacados' (una virtual que podríamos añadir a los tabs) o si coincide con la del producto
+    return finalItems.filter((img: any) => 
+      img.categoria === activeLandingCategory || 
+      (activeLandingCategory === 'destacados' && (img.isFeatured || img.isNew))
+    );
+  }, [activeLandingCategory, config, landingData, products])
 
   const iconMap: Record<string, any> = {
     heart: Heart,
@@ -345,6 +363,32 @@ Mi email: ${formData.email}`
         fetchCategories(),
         fetchConfig()
       ])
+
+      // Manejar resultados de pago (Paycomet/Bizum redirect)
+      const params = new URLSearchParams(window.location.search)
+      const paymentStatus = params.get('payment')
+      const tracking = params.get('tracking')
+      
+      if (paymentStatus === 'success') {
+        toast({
+          title: '¡PAGO COMPLETADO!',
+          description: `Tu pedido con código ${tracking || ''} se ha procesado correctamente.`,
+          className: "bg-[#4A7C59] text-white border-none font-black rounded-2xl shadow-xl p-6",
+        })
+        // Limpiamos el carrito tras el éxito
+        useCartStore.getState().clearCart()
+        // Limpiamos la URL
+        window.history.replaceState({}, '', '/')
+      } else if (paymentStatus === 'error') {
+        toast({
+          title: 'ERROR EN EL PAGO',
+          description: 'No se ha podido completar la transacción. Por favor, inténtalo de nuevo.',
+          variant: 'destructive',
+          className: "bg-red-50 text-red-600 border-red-100 font-bold rounded-2xl"
+        })
+        // Limpiamos la URL
+        window.history.replaceState({}, '', '/')
+      }
     }
     init()
   }, [])
@@ -446,6 +490,7 @@ Mi email: ${formData.email}`
         variantType: dataInput.hasVariants ? dataInput.variantType : null,
         variantBehavior: dataInput.variantBehavior || 'add',
         isNew: !!(dataInput as any).isNew,
+        isFeatured: !!(dataInput as any).isFeatured,
         salePrice: (dataInput as any).salePrice ? parseSafePrice((dataInput as any).salePrice) : null,
         minQuantity: parseInt(String(dataInput.minQuantity)) || 1,
         stepQuantity: parseInt(String(dataInput.stepQuantity)) || 1,
@@ -1295,16 +1340,19 @@ Mi email: ${formData.email}`
                     viewport={{ once: true }}
                     className="flex flex-wrap gap-2"
                   >
-                    {landingCategories.map((cat: string) => (
+                    {['todos', 'destacados', ...landingCategories.filter(c => c !== 'todos')].map((cat: string) => (
                       <button
                         key={cat}
                         onClick={() => setActiveLandingCategory(cat)}
-                        className={`px-6 py-2 rounded-full text-xs font-bold tracking-widest uppercase transition-all duration-300 border ${
+                        className={`px-6 py-2 rounded-full text-xs font-bold tracking-widest uppercase transition-all duration-300 border flex items-center gap-2 ${
                           activeLandingCategory === cat 
-                            ? 'bg-[#4A7C59] text-white border-[#4A7C59] shadow-lg shadow-[#4A7C59]/20' 
+                            ? (cat === 'destacados' ? 'bg-amber-400 text-black border-amber-400 shadow-lg' : 'bg-[#4A7C59] text-white border-[#4A7C59] shadow-lg shadow-[#4A7C59]/20')
                             : 'bg-white text-gray-400 border-gray-100 hover:border-[#4A7C59]/30 hover:text-[#4A7C59]'
                         }`}
                       >
+                        {cat === 'destacados' && (
+                          <Star className={`h-3 w-3 ${activeLandingCategory === 'destacados' ? 'fill-black' : ''}`} />
+                        )}
                         {cat === 'todos' ? 'Todos' : cat}
                       </button>
                     ))}
@@ -1363,7 +1411,20 @@ Mi email: ${formData.email}`
                                   alt={img.alt} 
                                   className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125" 
                                 />
-                                {img.isNew && (
+                                {img.isFeatured && (
+                                  <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                                    <div className="bg-slate-900 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg border border-white/20 uppercase tracking-wider flex items-center gap-1.5">
+                                      <Star className="h-3 w-3 fill-white" />
+                                      Destacado
+                                    </div>
+                                    {img.isNew && (
+                                      <div className="bg-amber-400 text-black text-[10px] font-black px-3 py-1 rounded-full shadow-lg border border-white/20 animate-pulse uppercase tracking-wider">
+                                        Nuevo
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                {!img.isFeatured && img.isNew && (
                                   <div className="absolute top-4 left-4 z-10">
                                     <div className="bg-amber-400 text-black text-[10px] font-black px-3 py-1 rounded-full shadow-lg border border-white/20 animate-pulse uppercase tracking-wider">
                                       Nuevo

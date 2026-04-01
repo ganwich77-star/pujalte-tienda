@@ -202,7 +202,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
           <div className="relative aspect-square w-full bg-white rounded-[2.5rem] overflow-hidden shadow-[0_15px_40px_-15px_rgba(0,0,0,0.08)] group-hover:shadow-[0_25px_50px_-12px_rgba(74,124,89,0.2)] transition-all duration-700 border border-white/50">
             {config.showImages && product.image ? (
               <img 
-                src={fixPath(product.image)} 
+                src={fixPath(product.image || '')} 
                 alt={product.name} 
                 loading="lazy" 
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 rounded-[2.5rem]" 
@@ -214,19 +214,19 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-              {product.isFeatured && (
+              {!!product.isFeatured && (
                 <div className="bg-slate-900 text-white text-[7px] sm:text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg shadow-slate-900/20 uppercase tracking-widest">
                   <Star className="h-2 w-2 sm:h-3 sm:w-3 fill-white" />
                   <span>Destacado</span>
                 </div>
               )}
-              {product.isNew && (
+              {!!product.isNew && (
                 <div className="bg-amber-400 text-white text-[7px] sm:text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg shadow-amber-400/20 uppercase tracking-widest">
                   <Sparkles className="h-2 w-2 sm:h-3 sm:w-3" />
                   <span>Novedad</span>
                 </div>
               )}
-              {(product.salePrice || tiers.length > 0) && (
+              {!!(product.salePrice || (tiers && tiers.length > 0)) && (
                 <div className="bg-emerald-500 text-white text-[7px] sm:text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg shadow-emerald-500/20 uppercase tracking-widest">
                   <Tag className="h-2 w-2 sm:h-3 sm:w-3" />
                   <span>Oferta</span>
@@ -268,8 +268,8 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                 <div className="relative w-full bg-white overflow-hidden border-b border-slate-50/50 flex-shrink-0 min-h-[250px] sm:min-h-[350px] flex items-center justify-center p-6 sm:p-8">
                   <img src={fixPath(product.image || '')} alt={product.name} className="max-w-full max-h-[300px] sm:max-h-[400px] object-contain transition-all duration-700 hover:scale-105" />
                   <div className="absolute top-4 left-4 flex flex-col gap-1 z-10 pointer-events-none opacity-50">
-                    {product.isFeatured && <Badge className="bg-slate-900 border-none text-[7px] uppercase font-black px-2 py-0.5">Destacado</Badge>}
-                    {product.isNew && <Badge className="bg-amber-400 border-none text-[7px] uppercase font-black px-2 py-0.5">Novedad</Badge>}
+                    {!!product.isFeatured && <Badge className="bg-slate-900 border-none text-[7px] uppercase font-black px-2 py-0.5">Destacado</Badge>}
+                    {!!product.isNew && <Badge className="bg-amber-400 border-none text-[7px] uppercase font-black px-2 py-0.5">Novedad</Badge>}
                   </div>
                 </div>
 
@@ -282,7 +282,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                   </div>
                 )}
 
-               {product.hasVariants && product.variants.length > 0 && (
+               {!!product.hasVariants && !!product.variants.length && (
                   <div className="flex-shrink-0 -mt-1 sm:-mt-2">
                     <div className="flex items-center gap-2 px-1 mb-1.5 pt-2">
                       <Settings2 className="h-3 w-3 text-slate-400" />

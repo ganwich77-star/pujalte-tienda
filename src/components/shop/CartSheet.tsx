@@ -181,39 +181,49 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
   }
 
   const handleCardPayment = async () => {
+    if (items.length === 0 || processingPayment) return;
+    
     setProcessingPayment(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
     
     try {
       const orderData = {
+        customerName: `${shippingData.firstName} ${shippingData.lastName}`,
+        customerPhone: shippingData.phone || "",
+        customerEmail: shippingData.email,
+        address: shippingData.address,
+        notes: "",
         items: items.map(item => ({
           productId: item.id,
+          productName: item.name,
           quantity: item.quantity,
           price: item.price,
+          variantId: item.variantId,
+          variantName: item.variantName,
           notes: item.notes
         })),
-        customer: shippingData,
-        total: getTotal(),
-        paymentMethod: paymentMethod,
-        status: 'PAID'
+        paymentMethod: paymentMethod, // 'card' o 'bizum'
+        customFields: {
+          dni: shippingData.dni
+        }
       }
 
-      const response = await fetch('/api/orders', {
+      const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setTrackingCode(data.trackingCode)
-        setCheckoutStep('success')
-        clearCart()
+      const result = await response.json()
+      
+      if (result.success && result.paymentUrl) {
+        // Redirigir a Paycomet (Banco Sabadell)
+        window.location.href = result.paymentUrl
       } else {
-        toast.error("Error al procesar el pedido")
+        throw new Error(result.error || 'Error al procesar el pago')
       }
-    } catch (error) {
-      toast.error("Error de conexión")
+    } catch (error: any) {
+      console.error('Error en proceso de pago:', error)
+      toast.error(error.message || "Error al conectar con la pasarela de pagos")
     } finally {
       setProcessingPayment(false)
     }
@@ -441,9 +451,15 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">DNI/NIE</Label>
                         <Input value={shippingData.dni} onChange={(e) => setShippingData({...shippingData, dni: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="12345678X" />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email</Label>
-                        <Input value={shippingData.email} onChange={(e) => setShippingData({...shippingData, email: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="nombre@ejemplo.com" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email</Label>
+                          <Input value={shippingData.email} onChange={(e) => setShippingData({...shippingData, email: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="nombre@ejemplo.com" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Teléfono</Label>
+                          <Input value={shippingData.phone} onChange={(e) => setShippingData({...shippingData, phone: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="Ej: 600 000 000" />
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Dirección Completa</Label>

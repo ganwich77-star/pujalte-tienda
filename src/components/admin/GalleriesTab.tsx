@@ -272,11 +272,40 @@ export function GalleriesTab({ onEditCustomerGallery }: GalleriesTabProps) {
                              </button>
                              <button 
                                 onClick={() => {
-                                    const slug = (customer.dni || customer.email || customer.phone || '').trim().toUpperCase()
-                                    const url = `${window.location.origin}/galeria/${slug}`
-                                    const firstName = customer.name?.split(' ')[0] || 'Cliente';
-                                    const message = `¡Hola ${firstName}! 👋✨\n\n¡Buenas noticias! ¡Ya tienes lista tu galería online! 🎞️📸\n\nEs el momento de revivir esos momentos mágicos. En el siguiente enlace podrás seleccionar tus fotos favoritas y convertirlas en recuerdos tangibles en nuestra tienda:\n\n👉 ${url} 🔗✨\n\nQueremos que vuestro reportaje sea una experiencia inolvidable y que la tecnología os lo ponga muy fácil. 🚀💻\n\n¿Nos ayudas a seguir creciendo? 📈🌱\n\nEn PujalteFotografia nos apasiona saber qué piensas. Si te ha gustado nuestro trabajo y el trato recibido, nos harías un favor enorme dejando una reseña en nuestro perfil. 💬🙏\n\n¿Nos regalas 5 estrellas? ⭐⭐⭐⭐⭐ Un comentario contando vuestra experiencia sería el broche de oro perfecto para nosotros. 😜🎁\n\nPuedes hacerlo directamente aquí 👇\n📍 https://g.page/r/CTswPlAvjlLXEAo/review\n\nCualquier duda, ¡escríbeme! 📲\n\n¡Mil gracias por vuestra confianza y apoyo! 🤗💖`;
-                                    window.open(`https://wa.me/${customer.phone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(message)}`, '_blank')
+                                    try {
+                                       const slug = (customer.dni || customer.email || customer.phone || '').trim().toUpperCase()
+                                       const url = `${window.location.origin}/galeria/${slug}`
+                                       const firstName = customer.name?.split(' ')[0] || 'Cliente';
+                                       
+                                       const message = `👋 ✨ *¡Hola ${firstName}!*
+
+*¡Buenas noticias!* ¡ya tienes lista tu galería online! 🎞️📷
+
+Es el momento de revivir esos momentos mágicos. En el siguiente enlace podrás seleccionar tus fotos favoritas y convertirlas en recuerdos tangibles en nuestra tienda:
+
+👉 ${url} ✨
+
+Queremos que vuestro reportaje sea una experiencia inolvidable y que la tecnología os lo ponga muy fácil. 🚀💻
+
+¿Nos ayudas a seguir creciendo? 🌱✨
+
+En *PujalteFotografia* nos apasiona saber qué piensas. Si te ha gustado nuestro trabajo y el trato recibido, nos harías un favor enorme dejando una reseña en nuestro perfil. 💬🙏
+
+*¿Nos regalas 5 estrellas?* ⭐⭐⭐⭐⭐ Un comentario contando vuestra experiencia sería el broche de oro perfecto para nosotros. 😜🎁
+
+Puedes hacerlo directamente aquí 👇
+📍 https://g.page/r/CTswPlAvjlLXEAo/review
+
+Cualquier duda, ¡escríbeme! 📲
+
+¡Mil gracias por vuestra confianza y apoyo! 🤗💖`;
+
+                                       const phone = customer.phone?.replace(/\D/g, '') || '';
+                                       window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank')
+                                    } catch (e) {
+                                       console.error('Error al codificar mensaje:', e);
+                                       toast({ title: 'Error', description: 'No se pudo generar el enlace de WhatsApp.', variant: 'destructive' });
+                                    }
                                 }}
                                 className="w-11 h-11 rounded-full bg-emerald-50 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all shadow-sm border border-emerald-100 flex items-center justify-center group/btn"
                                 title="Enviar por WhatsApp"

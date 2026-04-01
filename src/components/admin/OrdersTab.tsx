@@ -571,98 +571,111 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                                 <DialogHeader>
                                   <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Detalle del Pedido #{order.id.slice(-8).toUpperCase()}</DialogTitle>
                                 </DialogHeader>
-                              <div className="space-y-4 sm:space-y-6 py-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-slate-50 border border-slate-100 shadow-inner">
-                                  <div><p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Cliente</p><p className="font-extrabold text-xs sm:text-sm text-slate-800">{order.customerName}</p></div>
-                                  <div><p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Teléfono</p><p className="font-extrabold text-xs sm:text-sm text-slate-800">{order.customerPhone}</p></div>
-                                  <div className="sm:col-span-2"><p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Email</p><p className="font-extrabold text-xs sm:text-sm text-slate-800">{order.customerEmail || '-'}</p></div>
-                                  <div className="sm:col-span-2"><p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Dirección de Entrega</p><p className="font-extrabold text-xs sm:text-sm text-slate-800 leading-relaxed">{order.address || '-'}</p></div>
-                                </div>
-                                
-                                <div className="space-y-4">
-                                  <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Desglose de Productos</p>
-                                  <div className="space-y-3">
-                                    {order.items.map((item, i) => (
-                                      <div key={i} className="p-4 rounded-2xl border border-slate-100 bg-white shadow-sm flex flex-col gap-2">
-                                        <div className="flex justify-between text-sm">
-                                          <span className="font-black text-slate-800">{item.productName}{item.variantName ? ` (${item.variantName})` : ''} <span className="text-[#4A7C59]">x{item.quantity}</span></span>
-                                          <span className="font-black text-slate-900 tabular-nums">{formatPrice(item.price * item.quantity)}</span>
+                                <div className="space-y-4 sm:space-y-6 py-4">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-slate-50 border border-slate-100 shadow-inner">
+                                    <div><p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Cliente</p><p className="font-extrabold text-xs sm:text-sm text-slate-800">{order.customerName}</p></div>
+                                    <div><p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Teléfono</p><p className="font-extrabold text-xs sm:text-sm text-slate-800">{order.customerPhone}</p></div>
+                                    <div className="sm:col-span-2"><p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Email</p><p className="font-extrabold text-xs sm:text-sm text-slate-800">{order.customerEmail || '-'}</p></div>
+                                    <div className="sm:col-span-2"><p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Dirección de Entrega</p><p className="font-extrabold text-xs sm:text-sm text-slate-800 leading-relaxed">{order.address || '-'}</p></div>
+                                  </div>
+                                  
+                                  <div className="space-y-4">
+                                    <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Desglose de Productos</p>
+                                    <div className="space-y-3">
+                                      {order.items.map((item, i) => (
+                                        <div key={i} className="p-4 rounded-2xl border border-slate-100 bg-white shadow-sm flex flex-col gap-2">
+                                          <div className="flex justify-between items-start text-sm">
+                                            <div className="flex flex-col gap-1">
+                                              <span className="font-black text-slate-800">{item.productName}{item.variantName ? ` (${item.variantName})` : ''} <span className="text-[#4A7C59]">x{item.quantity}</span></span>
+                                              {item.fotosIncluidas !== undefined && (
+                                                <div className="flex items-center gap-2">
+                                                  <span className="bg-emerald-50 text-emerald-600 text-[9px] font-black px-2 py-0.5 rounded-lg border border-emerald-100 flex items-center gap-1 uppercase tracking-widest leading-none">
+                                                    {item.fotosIncluidas} {item.fotosIncluidas === 1 ? 'Foto Incluida' : 'Fotos Incluidas'}
+                                                  </span>
+                                                  {item.quantity > 1 && (
+                                                    <span className="bg-slate-900 text-white text-[9px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1 uppercase tracking-widest leading-none shadow-lg shadow-slate-200">
+                                                      {item.fotosIncluidas * item.quantity} Fotos Total del Pack
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                            <span className="font-black text-slate-900 tabular-nums shrink-0">{formatPrice(item.price * item.quantity)}</span>
+                                          </div>
+                                          {item.note && (
+                                            <p className="text-[11px] text-[#4A7C59] bg-[#4A7C59]/5 p-3 rounded-xl italic border-l-4 border-[#4A7C59] font-medium leading-relaxed">
+                                              &quot;{item.note}&quot;
+                                            </p>
+                                          )}
                                         </div>
-                                        {item.note && (
-                                          <p className="text-[11px] text-[#4A7C59] bg-[#4A7C59]/5 p-3 rounded-xl italic border-l-4 border-[#4A7C59] font-medium leading-relaxed">
-                                            &quot;{item.note}&quot;
-                                          </p>
-                                        )}
-                                      </div>
-                                    ))}
+                                      ))}
+                                    </div>
                                   </div>
                                   <div className="flex justify-between items-center bg-slate-900 text-white p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] shadow-xl shadow-slate-200">
                                     <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] opacity-60">Total</span>
                                     <span className="text-2xl sm:text-3xl font-black tracking-tighter">{formatPrice(order.total)}</span>
                                   </div>
-                                </div>
-                                
-                                {order.customFields && Object.keys(order.customFields).filter(k => !['name', 'phone', 'email', 'address', 'notes'].includes(k)).length > 0 && (
-                                  <div className="space-y-2 sm:space-y-3">
-                                    <p className="text-[10px] sm:text-[11px] font-black uppercase text-slate-400 tracking-widest">Adicional</p>
-                                    <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-slate-100/50 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-dashed border-slate-200">
-                                      {Object.entries(order.customFields).map(([key, value]) => {
-                                        if (['name', 'phone', 'email', 'address', 'notes'].includes(key)) return null;
-                                        return (
-                                          <div key={key}>
-                                            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{key}</p>
-                                            <p className="text-[10px] sm:text-xs font-bold text-slate-700">{value || '-'}</p>
-                                          </div>
-                                        )
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
 
-                                {order.notes && (
-                                  <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-amber-50 border border-amber-100">
-                                    <p className="text-[9px] sm:text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Notas del cliente</p>
-                                    <p className="text-[10px] sm:text-xs font-bold text-amber-800 leading-relaxed italic">"{order.notes}"</p>
-                                  </div>
-                                )}
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                          
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-7 w-7 rounded-lg bg-rose-50 text-rose-500 border border-rose-100 hover:bg-rose-500 hover:text-white transition-all shadow-sm group"
+                                  {order.customFields && Object.keys(order.customFields).filter(k => !['name', 'phone', 'email', 'address', 'notes'].includes(k)).length > 0 && (
+                                    <div className="space-y-2 sm:space-y-3">
+                                      <p className="text-[10px] sm:text-[11px] font-black uppercase text-slate-400 tracking-widest">Adicional</p>
+                                      <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-slate-100/50 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-dashed border-slate-200">
+                                        {Object.entries(order.customFields).map(([key, value]) => {
+                                          if (['name', 'phone', 'email', 'address', 'notes'].includes(key)) return null;
+                                          return (
+                                            <div key={key}>
+                                              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{key}</p>
+                                              <p className="text-[10px] sm:text-xs font-bold text-slate-700">{value || '-'}</p>
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {order.notes && (
+                                    <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-amber-50 border border-amber-100">
+                                      <p className="text-[9px] sm:text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Notas del cliente</p>
+                                      <p className="text-[10px] sm:text-xs font-bold text-amber-800 leading-relaxed italic">"{order.notes}"</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7 rounded-lg bg-rose-50 text-rose-500 border border-rose-100 hover:bg-rose-500 hover:text-white transition-all shadow-sm group"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="w-[95vw] sm:max-w-md rounded-[2rem] sm:rounded-[2.5rem] border-none p-6 sm:p-8 gap-6 shadow-2xl">
+                              <AlertDialogHeader className="gap-3">
+                                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-rose-50 flex items-center justify-center mb-1">
+                                  <Trash2 className="h-6 w-6 sm:h-7 sm:w-7 text-rose-500" />
+                                </div>
+                                <AlertDialogTitle className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">¿Eliminar pedido?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed text-sm">
+                                  Esta acción es irreversible. Se eliminará el registro completo.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-4 mt-2">
+                                <AlertDialogCancel className="h-10 sm:h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 text-sm w-full sm:w-auto mt-0">Mantener</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => onDeleteOrder(order.id)}
+                                  className="h-10 sm:h-12 px-6 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow-lg shadow-rose-200 border-none text-sm w-full sm:w-auto"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="w-[95vw] sm:max-w-md rounded-[2rem] sm:rounded-[2.5rem] border-none p-6 sm:p-8 gap-6 shadow-2xl">
-                                <AlertDialogHeader className="gap-3">
-                                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-rose-50 flex items-center justify-center mb-1">
-                                    <Trash2 className="h-6 w-6 sm:h-7 sm:w-7 text-rose-500" />
-                                  </div>
-                                  <AlertDialogTitle className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">¿Eliminar pedido?</AlertDialogTitle>
-                                  <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed text-sm">
-                                    Esta acción es irreversible. Se eliminará el registro completo.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-4 mt-2">
-                                  <AlertDialogCancel className="h-10 sm:h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 text-sm w-full sm:w-auto mt-0">Mantener</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => onDeleteOrder(order.id)}
-                                    className="h-10 sm:h-12 px-6 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow-lg shadow-rose-200 border-none text-sm w-full sm:w-auto"
-                                  >
-                                    Eliminar ahora
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                  Eliminar ahora
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
-                      </div>
-                    </TableCell>
+                      </TableCell>
                     </TableRow>
                   )
                 })}
@@ -748,7 +761,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Nombre Completo</Label>
                     <Input 
                       value={editingOrder.customerName} 
-                      onChange={(e) => setEditingOrder({...editingOrder, customerName: e.target.value})}
+                      onChange={(e) => setEditingOrder(prev => prev ? {...prev, customerName: e.target.value} : null)}
                       className="h-12 rounded-2xl border-slate-100 focus:border-[#4A7C59] focus:ring-[#4A7C59]/10 font-bold"
                     />
                   </div>
@@ -756,7 +769,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Teléfono</Label>
                     <Input 
                       value={editingOrder.customerPhone || ''} 
-                      onChange={(e) => setEditingOrder({...editingOrder, customerPhone: e.target.value})}
+                      onChange={(e) => setEditingOrder(prev => prev ? {...prev, customerPhone: e.target.value} : null)}
                       className="h-12 rounded-2xl border-slate-100 focus:border-[#4A7C59] focus:ring-[#4A7C59]/10 font-bold"
                     />
                   </div>
@@ -764,7 +777,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Email / DNI</Label>
                     <Input 
                       value={editingOrder.customerEmail || ''} 
-                      onChange={(e) => setEditingOrder({...editingOrder, customerEmail: e.target.value})}
+                      onChange={(e) => setEditingOrder(prev => prev ? {...prev, customerEmail: e.target.value} : null)}
                       className="h-12 rounded-2xl border-slate-100 focus:border-[#4A7C59] focus:ring-[#4A7C59]/10 font-bold"
                     />
                   </div>
@@ -772,16 +785,16 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Dirección de Entrega</Label>
                     <Textarea 
                       value={editingOrder.address || ''} 
-                      onChange={(e) => setEditingOrder({...editingOrder, address: e.target.value})}
-                      className="min-h-[100px] rounded-2xl border-slate-100 focus:border-[#4A7C59] focus:ring-[#4A7C59]/10 font-medium resize-none"
+                      onChange={(e) => setEditingOrder(prev => prev ? {...prev, address: e.target.value} : null)}
+                      className="min-h-[100px] rounded-2xl border-slate-100 focus:border-[#4A7C59] focus:ring-[#4A7C59]/10 font-bold resize-none"
                     />
                   </div>
                   <div className="sm:col-span-2 space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Notas Internas / Observaciones</Label>
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Notas Administrativas</Label>
                     <Textarea 
                       value={editingOrder.notes || ''} 
-                      onChange={(e) => setEditingOrder({...editingOrder, notes: e.target.value})}
-                      className="min-h-[80px] rounded-2xl border-slate-100 focus:border-[#4A7C59] focus:ring-[#4A7C59]/10 font-medium resize-none bg-slate-50/50"
+                      onChange={(e) => setEditingOrder(prev => prev ? {...prev, notes: e.target.value} : null)}
+                      className="min-h-[80px] rounded-2xl border-slate-100 focus:border-[#4A7C59] focus:ring-[#4A7C59]/10 font-bold resize-none"
                     />
                   </div>
                 </div>

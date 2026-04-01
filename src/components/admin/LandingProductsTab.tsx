@@ -5,7 +5,7 @@ import {
   Search, Plus, Filter, MoreVertical, Pencil, Trash2, 
   Eye, EyeOff, Sparkles, SlidersHorizontal, Package,
   Tag, Download, Upload, AlertCircle, ShoppingBag, PlusCircle,
-  ImageIcon, BarChart3, Layers2
+  ImageIcon, BarChart3, Layers2, Star
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -284,6 +284,12 @@ export default function ProductsTab({
                 </th>
                 <th 
                   className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[100px] cursor-pointer hover:text-slate-900 transition-colors group"
+                  onClick={() => handleSort('isFeatured')}
+                >
+                  Destacado
+                </th>
+                <th 
+                  className="px-4 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-[100px] cursor-pointer hover:text-slate-900 transition-colors group"
                   onClick={() => handleSort('isNew')}
                 >
                   Novedad
@@ -320,11 +326,18 @@ export default function ProductsTab({
                               </div>
                             )}
                           </div>
-                          {product.isNew && (
-                            <div className="absolute -top-2 -left-2 bg-amber-400 text-black p-1.5 rounded-xl shadow-lg animate-bounce border-2 border-white">
-                              <Sparkles className="h-3.5 w-3.5" />
-                            </div>
-                          )}
+                          <div className="absolute -top-2 -left-2 flex flex-col gap-1">
+                            {product.isFeatured && (
+                              <div className="bg-slate-900 text-white p-1.5 rounded-xl shadow-lg border-2 border-white">
+                                <Star className="h-3.5 w-3.5 fill-white" />
+                              </div>
+                            )}
+                            {product.isNew && (
+                              <div className={`bg-amber-400 text-black p-1.5 rounded-xl shadow-lg border-2 border-white ${!product.isFeatured ? 'animate-bounce' : ''}`}>
+                                <Sparkles className="h-3.5 w-3.5" />
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="max-w-[300px]">
                           <h4 className="text-base font-black text-slate-800 uppercase tracking-tight line-clamp-1">{product.alt}</h4>
@@ -369,6 +382,14 @@ export default function ProductsTab({
                         className={`h-10 w-10 rounded-xl flex items-center justify-center mx-auto transition-all ${product.mostrarPrecio !== false ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100/50' : 'bg-slate-50 text-slate-200'}`}
                       >
                         <Tag className="h-4 w-4" />
+                      </button>
+                    </td>
+                    <td className="px-4 py-5 text-center">
+                      <button 
+                        onClick={() => handleToggleField(product.id, 'isFeatured')}
+                        className={`h-10 w-10 rounded-xl flex items-center justify-center mx-auto transition-all ${product.isFeatured ? 'bg-slate-900 text-white shadow-lg shadow-slate-100/50 rotate-12' : 'bg-slate-50 text-slate-200 hover:bg-slate-100'}`}
+                      >
+                        <Star className={`h-4 w-4 ${product.isFeatured ? 'fill-white' : ''}`} />
                       </button>
                     </td>
                     <td className="px-4 py-5 text-center">
