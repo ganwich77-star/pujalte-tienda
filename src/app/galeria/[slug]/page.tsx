@@ -25,10 +25,11 @@ import {
   ChevronRight,
   Plus,
   Volume2,
-  VolumeX
+  VolumeX,
+  EyeOff
 } from 'lucide-react'
 import { db, COLLECTIONS } from '@/lib/firebase'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, serverTimestamp, query, collection, where, getDocs } from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -50,6 +51,8 @@ export default function GalleryPage() {
   
   const [client, setClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [digitalFilesCount, setDigitalFilesCount] = useState(0)
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [comments, setComments] = useState<Record<string, string>>({})
@@ -70,8 +73,14 @@ export default function GalleryPage() {
   const [showSummary, setShowSummary] = useState(false)
   const [summaryText, setSummaryText] = useState('')
   const [heroIndex, setHeroIndex] = useState(0)
-  const { addItem, removeItem, updateQuantity, items: cartItems } = useCartStore()
+  const { addItem, removeItem, updateQuantity, updateItem, items: cartItems } = useCartStore()
   const [zoomedProduct, setZoomedProduct] = useState<any | null>(null)
+  
+  // Estados para Descarte de Fotos
+  const [rejectedPhotos, setRejectedPhotos] = useState<Set<string>>(new Set())
+  const [showRejected, setShowRejected] = useState(false)
+  const [photoToReject, setPhotoToReject] = useState<any>(null)
+  const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false)
   
   // Estados para Música de Fondo
   const [isPlaying, setIsPlaying] = useState(true)
@@ -79,9 +88,21 @@ export default function GalleryPage() {
   const [userInteracted, setUserInteracted] = useState(false)
 
   const photos = client?.gallerySettings?.photos || []
-  const displayedPhotos = (showOnlyFavorites 
-    ? photos.filter((p: any) => favorites.has(p.id)) 
-    : photos) || []
+  
+  const displayedPhotos = useMemo(() => {
+    let filtered = photos;
+    if (showRejected) {
+      // Solo mostramos las descartadas para recuperar
+      filtered = photos.filter((p: any) => rejectedPhotos.has(p.id));
+    } else {
+      // Filtramos las descartadas de la vista normal
+      filtered = photos.filter((p: any) => !rejectedPhotos.has(p.id));
+      if (showOnlyFavorites) {
+        filtered = filtered.filter((p: any) => favorites.has(p.id));
+      }
+    }
+    return filtered || [];
+  }, [photos, rejectedPhotos, showRejected, showOnlyFavorites, favorites]);
   
   // Cargar productos de la tienda y configuración global al iniciar
   useEffect(() => {
@@ -124,19 +145,41 @@ export default function GalleryPage() {
   useEffect(() => {
     const fetchClient = async () => {
       try {
+        let clientData: any = null;
+
+        // 1. Intentamos buscar por ID directo (DNI) - Retrocompatibilidad
         const docRef = doc(db, COLLECTIONS.CLIENTS, slug.toUpperCase())
         const docSnap = await getDoc(docRef)
+
         if (docSnap.exists()) {
-          const data = docSnap.data()
-          setClient(data)
-          // Cargar favoritos y comentarios si existen en su última sesión o en DB
-          if (data.selections) {
-            setFavorites(new Set(data.selections.favorites || []))
-            setComments(data.selections.comments || {})
+          clientData = docSnap.data();
+        } else {
+          // 2. Si no existe como ID, buscamos por el campo 'slug'
+          const q = query(collection(db, COLLECTIONS.CLIENTS), where("slug", "==", slug.toLowerCase()))
+          const querySnapshot = await getDocs(q)
+          
+          if (!querySnapshot.empty) {
+            clientData = querySnapshot.docs[0].data();
           }
         }
-      } catch (e) {
-        console.error("Error loading gallery:", e)
+
+        if (clientData) {
+          setClient(clientData);
+          // Cargar favoritos y comentarios si existen
+          if (clientData.selections) {
+            setFavorites(new Set(clientData.selections.favorites || []));
+            setComments(clientData.selections.comments || {});
+          }
+          // Recuperar descartadas
+          if (clientData.gallerySettings?.rejectedPhotos) {
+            setRejectedPhotos(new Set(clientData.gallerySettings.rejectedPhotos));
+          }
+        } else {
+          setError('La galería no existe o ha expirado.');
+        }
+      } catch (err) {
+        console.error('Error fetching client:', err)
+        setError('Error al cargar la galería.')
       } finally {
         setLoading(false)
       }
@@ -162,56 +205,53 @@ export default function GalleryPage() {
     return () => clearInterval(interval);
   }, [photos]);
   
-  // Gestión de música de fondo mejorada
+  // Estado global de interacción para el audio
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  // 1. Capturamos la interacción del usuario desde el segundo CERO
+  useEffect(() => {
+    const handleGlobalInteraction = () => {
+      setHasInteracted(true);
+      // Una vez capturado, quitamos los listeners para ahorrar recursos
+      window.removeEventListener('click', handleGlobalInteraction);
+      window.removeEventListener('touchstart', handleGlobalInteraction);
+      window.removeEventListener('scroll', handleGlobalInteraction);
+      window.removeEventListener('keydown', handleGlobalInteraction);
+    };
+
+    window.addEventListener('click', handleGlobalInteraction);
+    window.addEventListener('touchstart', handleGlobalInteraction);
+    window.addEventListener('scroll', handleGlobalInteraction);
+    window.addEventListener('keydown', handleGlobalInteraction);
+
+    return () => {
+      window.removeEventListener('click', handleGlobalInteraction);
+      window.removeEventListener('touchstart', handleGlobalInteraction);
+      window.removeEventListener('scroll', handleGlobalInteraction);
+      window.removeEventListener('keydown', handleGlobalInteraction);
+    };
+  }, []);
+
+  // 2. Gestión de música de fondo Pro - Sincronizada con interacción
   useEffect(() => {
     const audio = audioRef.current;
     if (client?.gallerySettings?.bgMusic?.url && audio) {
-        // Configuraciones iniciales
-        audio.volume = 0.6;
+        audio.volume = 0.5;
         audio.loop = true;
-        
-        // Función para intentar reproducir
-        const playMusic = async () => {
-            if (audio && isPlaying) {
-                try {
-                    await audio.play();
-                    setUserInteracted(true);
-                    // Si logramos reproducir, quitamos los escuchadores para no repetir carga
-                    removeInteractionListeners();
-                } catch (err) {
-                    // El navegador bloqueó el autoplay, esperamos interacción
-                    console.log("Esperando interacción del usuario para sonido...");
-                }
-            }
-        };
 
-        const removeInteractionListeners = () => {
-            window.removeEventListener('click', playMusic);
-            window.removeEventListener('touchstart', playMusic);
-            window.removeEventListener('scroll', playMusic);
-            window.removeEventListener('keydown', playMusic);
-        };
-
-        // Si cambia la URL, cargamos el nuevo audio
         if (audio.src !== client.gallerySettings.bgMusic.url) {
             audio.src = client.gallerySettings.bgMusic.url;
             audio.load();
         }
 
-        // Intentar sonar de inmediato (fallará si no hay interacción previa)
-        playMusic();
-
-        // Escuchar interacciones para desbloquear audio
-        window.addEventListener('click', playMusic, { once: true });
-        window.addEventListener('touchstart', playMusic, { once: true });
-        window.addEventListener('scroll', playMusic, { once: true });
-        window.addEventListener('keydown', playMusic, { once: true });
-
-        return () => {
-            removeInteractionListeners();
-        };
+        // Si ya interactuó o cuando interactúe, intentamos reproducir
+        if ((hasInteracted || isPreview) && isPlaying) {
+          audio.play().then(() => {
+            setUserInteracted(true);
+          }).catch(e => console.log("Error al reproducir audio:", e));
+        }
     }
-  }, [client, isPlaying]);
+  }, [client, hasInteracted, isPlaying, isPreview]);
 
   const toggleMusic = () => {
       if (audioRef.current) {
@@ -234,8 +274,56 @@ export default function GalleryPage() {
     setFavorites(newFavs)
     toast({ 
       title: newFavs.has(id) ? 'Añadida a favoritos' : 'Eliminada de favoritos',
-      duration: 1500
     })
+  }
+  
+  const handleRejectAction = async (photo: any) => {
+    if (showRejected) {
+      // Si estamos en modo rechazadas, el botón sirve para RESTAURAR
+      const newRejected = new Set(rejectedPhotos);
+      newRejected.delete(photo.id);
+      setRejectedPhotos(newRejected);
+      
+      try {
+        const docRef = doc(db, COLLECTIONS.CLIENTS, slug.toUpperCase());
+        await updateDoc(docRef, {
+          'gallerySettings.rejectedPhotos': Array.from(newRejected)
+        });
+        toast({ title: "Foto restaurada", description: "La foto vuelve a estar disponible en tu galería." });
+      } catch (e) { console.error(e); }
+      return;
+    }
+
+    // Modo normal: Preparar para descartar
+    setPhotoToReject(photo);
+    setIsRejectConfirmOpen(true);
+  }
+
+  const confirmReject = async () => {
+    if (!photoToReject) return;
+    
+    const newRejected = new Set(rejectedPhotos);
+    newRejected.add(photoToReject.id);
+    setRejectedPhotos(newRejected);
+    
+    // Si era favorita, la quitamos
+    if (favorites.has(photoToReject.id)) {
+      const newFavs = new Set(favorites);
+      newFavs.delete(photoToReject.id);
+      setFavorites(newFavs);
+    }
+    
+    try {
+      const docRef = doc(db, COLLECTIONS.CLIENTS, slug.toUpperCase());
+      await updateDoc(docRef, {
+        'gallerySettings.rejectedPhotos': Array.from(newRejected),
+        'gallerySettings.lastSelection': Array.from(favorites)
+      });
+      toast({ title: "Foto movida", description: "Se ha guardado en tu zona de descartes." });
+    } catch (e) { console.error(e); }
+    
+    setIsRejectConfirmOpen(false);
+    setPhotoToReject(null);
   }
 
   const handleSaveSelection = async () => {
@@ -302,6 +390,7 @@ export default function GalleryPage() {
     setPhotoToBuy(photo)
     setSearchTerm('')
     setSelectedCustomOptions({})
+    setZoomedProduct(null) // Limpiamos cualquier zoom previo de producto
     
     if (productToSelect) {
       setSelectedProduct(productToSelect)
@@ -329,30 +418,66 @@ export default function GalleryPage() {
 
   const filteredProducts = useMemo(() => {
     const term = searchTerm.toLowerCase().trim()
-    const safeProducts = Array.isArray(products) ? products : []
-    
-    // Filtro inicial por estado (MySQL devuelve 0/1 para booleanos)
-    const activeProducts = safeProducts.filter(p => {
+    let activeProducts = (Array.isArray(products) ? products : []).filter(p => {
       const isActive = p?.active === true || p?.active === 1 || p?.active === "1";
       const isVisible = p?.showPrice === true || p?.showPrice === 1 || p?.showPrice === "1";
       return isActive && isVisible;
     });
 
+    // Inyectar Producto Digital si está activo
+    const digitalSettings = client?.gallerySettings?.digitalFiles;
+    if (digitalSettings?.enabled) {
+      const included = digitalSettings.packIncluded || 0;
+      const isExtra = digitalFilesCount >= included;
+      const currentPrice = isExtra ? (digitalSettings.extraPrice || digitalSettings.price || 0) : 0;
+
+      const digitalProduct = {
+        id: 'digital-file-product',
+        name: 'Archivo Digital (Máxima Calidad)',
+        price: currentPrice,
+        image: 'https://cdn-icons-png.flaticon.com/512/8242/8242984.png',
+        description: 'Fotografía editada a máxima resolución sin marcas de agua. Envío directo a tu email.',
+        active: true,
+        showPrice: true,
+        isDigital: true
+      };
+
+      if (!term || digitalProduct.name.toLowerCase().includes(term)) {
+        activeProducts = [digitalProduct, ...activeProducts];
+      }
+    }
+
     if (!term) return activeProducts
 
     return activeProducts.filter(p => {
       if (!p) return false;
-      // Búsqueda en nombre de producto
       const matchesMainName = (p.name || "").toLowerCase().includes(term)
-      
-      // Búsqueda en nombres de variantes (opciones/tamaños)
       const matchesVariants = Array.isArray(p.variants) && p.variants.some((v: any) => 
         (v?.name || "").toLowerCase().includes(term)
       )
-
       return matchesMainName || matchesVariants
     })
-  }, [products, searchTerm])
+  }, [products, searchTerm, client?.gallerySettings?.digitalFiles, digitalFilesCount])
+
+  // Sincronizar contador de archivos digitales y sus precios
+  useEffect(() => {
+    const digitals = cartItems.filter(item => item.productId === 'digital-file-product');
+    setDigitalFilesCount(digitals.length);
+
+    const digitalSettings = client?.gallerySettings?.digitalFiles;
+    if (digitalSettings?.enabled) {
+      const included = digitalSettings.packIncluded || 0;
+      const extraPrice = digitalSettings.extraPrice || digitalSettings.price || 0;
+
+      // Recalcular precios de cada item digital en el carrito para que los primeros N sean 0€
+      digitals.forEach((item, index) => {
+        const correctPrice = index < included ? 0 : extraPrice;
+        if (item.price !== correctPrice) {
+          updateItem(item.id, item.variantId, item.notes, { price: correctPrice, basePrice: correctPrice });
+        }
+      });
+    }
+  }, [cartItems, client?.gallerySettings?.digitalFiles]);
 
   const HighlightText = ({ text, highlight }: { text: string; highlight: string }) => {
     if (!text) return null;
@@ -421,18 +546,17 @@ export default function GalleryPage() {
       addItem({
         id: product.id,
         name: product.name,
-        basePrice: product.price,
+        basePrice: product.id === 'digital-file-product' ? product.price : product.price,
         price: finalPrice,
         quantity: 1,
         image: photoToBuy.url,
-        notes: finalNotes,
         productId: product.id,
         variantId: variant?.id,
         variantName: variant?.name,
         variantPrice: variant?.price,
-        tierPricing: product.tierPricing,
+        notes: finalNotes,
         variantBehavior: product.variantBehavior,
-        salePrice: product.salePrice
+        isDigital: product.isDigital
       });
 
       toast({
@@ -455,11 +579,13 @@ export default function GalleryPage() {
     )
   }
 
-  if (!client) {
+  if (!client || error) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
         <Lock className="h-12 w-12 text-slate-300 mb-4" />
-        <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Galería no encontrada</h1>
+        <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">
+          {error || 'Galería no encontrada'}
+        </h1>
         <p className="text-slate-500 mt-2">El enlace parece no ser correcto o la galería ha expirado.</p>
         <Button onClick={() => window.location.href = '/'} className="mt-6 bg-[#4A7C59] rounded-full px-8">Volver al inicio</Button>
       </div>
@@ -541,12 +667,12 @@ export default function GalleryPage() {
           </div>
 
           <div className="flex items-center gap-3">
-             <div className="flex bg-slate-100 p-1 rounded-full mr-2">
+             <div className="flex bg-slate-100 p-1 rounded-full mr-1">
                 <button 
                   onClick={() => setViewMode('grid')}
                   className={cn(
                     "p-2 rounded-full transition-all",
-                    viewMode === 'grid' ? "bg-white shadow-sm text-[#4A7C59]" : "text-slate-400 hover:text-slate-600"
+                    viewMode === 'grid' ? "bg-white text-[#4A7C59] shadow-sm" : "text-slate-400 hover:text-slate-600"
                   )}
                 >
                   <LayoutGrid className="h-4 w-4" />
@@ -555,12 +681,30 @@ export default function GalleryPage() {
                   onClick={() => setViewMode('list')}
                   className={cn(
                     "p-2 rounded-full transition-all",
-                    viewMode === 'list' ? "bg-white shadow-sm text-[#4A7C59]" : "text-slate-400 hover:text-slate-600"
+                    viewMode === 'list' ? "bg-white text-[#4A7C59] shadow-sm" : "text-slate-400 hover:text-slate-600"
                   )}
                 >
                   <List className="h-4 w-4" />
                 </button>
              </div>
+
+             {/* Botón de Papelera / Recuperación (Más pequeño y Ámbar) */}
+             <button
+               onClick={() => setShowRejected(!showRejected)}
+               className={cn(
+                 "flex items-center gap-2 px-4 h-10 rounded-full transition-all font-black text-[9px] uppercase tracking-widest border",
+                 showRejected 
+                   ? "bg-slate-900 border-slate-900 text-white" 
+                   : rejectedPhotos.size > 0
+                     ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/20"
+                     : "bg-white border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900"
+               )}
+             >
+               {showRejected ? <ChevronLeft className="h-3 w-3" /> : <Trash2 className="h-3 w-3" />}
+               {showRejected ? "Volver" : `Descartadas (${rejectedPhotos.size})`}
+             </button>
+
+             <div className="h-8 w-[1px] bg-slate-200 mx-1" />
 
              {showOnlyFavorites ? (
                <>
@@ -664,36 +808,66 @@ export default function GalleryPage() {
                     </p>
                   </div>
 
-                  {/* Overlay de la foto */}
-                  <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                    <div className="flex items-center justify-between">
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); toggleFavorite(photo.id); }}
-                          className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-all",
-                            favorites.has(photo.id) ? "bg-[#4A7C59] text-white" : "bg-white/20 text-white hover:bg-white/40"
-                          )}
-                        >
-                          <Heart className={cn("h-4.5 w-4.5", favorites.has(photo.id) && "fill-current")} />
-                        </button>
-                        <button 
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            handleOpenShop(photo); 
-                          }}
-                          className={cn(
-                            "w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-600 backdrop-blur-md text-white flex items-center justify-center transition-all",
-                          )}
-                        >
-                          <ShoppingBag className="h-4.5 w-4.5" />
-                        </button>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-x-0 bottom-0 p-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 ease-out">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex gap-2">
+                            {/* Favoritos */}
+                            {!showRejected && (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); toggleFavorite(photo.id); }}
+                                title={favorites.has(photo.id) ? "Quitar de favoritas" : "Marcar como favorita"}
+                                className={cn(
+                                  "w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/20",
+                                  favorites.has(photo.id) ? "bg-[#4A7C59] text-white border-[#4A7C59]" : "bg-white/20 text-white hover:bg-white/40"
+                                )}
+                              >
+                                <Heart className={cn("h-4 w-4", favorites.has(photo.id) && "fill-current")} />
+                              </button>
+                            )}
+                            
+                            {/* Ocultar / Recuperar */}
+                            <button 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                handleRejectAction(photo);
+                              }}
+                              title={showRejected ? "Recuperar para la galería" : "Ocultar / Descartar foto"}
+                              className={cn(
+                                "w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/20",
+                                showRejected 
+                                  ? "bg-[#4A7C59] text-white border-[#4A7C59]" 
+                                  : "bg-red-500 text-white hover:bg-red-600 border-red-500/50"
+                              )}
+                            >
+                              {showRejected ? <Plus className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                            </button>
+
+                            {/* Comprar / Elegir Producto */}
+                            {!showRejected && (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleOpenShop(photo); }}
+                                title="Elegir producto / Comprar"
+                                className="w-9 h-9 rounded-full bg-blue-500/80 hover:bg-blue-600 backdrop-blur-md text-white flex items-center justify-center transition-all border border-white/10"
+                              >
+                                <ShoppingBag className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+
+                          <button 
+                            className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-md text-white flex items-center justify-center transition-all border border-white/20"
+                            title="Ampliar foto"
+                            onClick={() => {
+                              setViewerIndex(displayedPhotos.indexOf(photo));
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                      <button className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-md text-white flex items-center justify-center transition-all">
-                        <Eye className="h-4.5 w-4.5" />
-                      </button>
                     </div>
-                  </div>
 
                   {/* Watermark con Logo de Marca */}
                   {(client.gallerySettings?.watermarkEnabled !== false) && (
@@ -790,12 +964,25 @@ export default function GalleryPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button 
-                            onClick={() => handleOpenShop(photo)}
-                            className="bg-orange-50 hover:bg-orange-500 text-orange-500 hover:text-white h-10 w-10 rounded-xl transition-all flex items-center justify-center border border-orange-100"
-                          >
-                            <ShoppingBag className="h-4 w-4" />
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button 
+                              onClick={() => handleOpenShop(photo)}
+                              className="bg-orange-50 hover:bg-orange-500 text-orange-500 hover:text-white h-10 w-10 rounded-xl transition-all flex items-center justify-center border border-orange-100"
+                            >
+                              <ShoppingBag className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleRejectAction(photo)}
+                              className={cn(
+                                "h-10 w-10 rounded-xl transition-all flex items-center justify-center border",
+                                showRejected 
+                                  ? "bg-[#4A7C59]/10 text-[#4A7C59] border-[#4A7C59]/20 hover:bg-[#4A7C59] hover:text-white" 
+                                  : "bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border-red-100"
+                              )}
+                            >
+                              {showRejected ? <Plus className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -1111,12 +1298,19 @@ export default function GalleryPage() {
                             </div>
                             <div className="flex-1">
                             <div>
-                              <p className="font-black text-slate-900 text-sm uppercase tracking-tight">
+                              <p className="font-black text-slate-900 text-sm uppercase tracking-tight flex items-center gap-2">
                                 <HighlightText text={product.name} highlight={searchTerm} />
+                                {product.isDigital && <Badge className="bg-blue-600 hover:bg-blue-700 text-[8px] h-4 uppercase">Alta Calidad</Badge>}
                               </p>
                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                 {(Array.isArray(product.variants) && product.variants.length > 0) ? `Desde ${Math.min(...product.variants.filter((v:any) => typeof v.price === 'number').map((v:any) => v.price))}€` : `${product.price}€`}
+                                {product.isDigital && product.price === 0 && <span className="ml-2 text-blue-600 font-black italic">¡INCLUIDO EN PACK!</span>}
                               </p>
+                              {product.description && (
+                                <p className="text-[9px] text-slate-500 font-medium italic leading-tight mt-1 opacity-80">
+                                  {product.description}
+                                </p>
+                              )}
                               {searchTerm && product.variants?.some((v: any) => v.name.toLowerCase().includes(searchTerm.toLowerCase())) && (
                                 <p className="text-[9px] font-bold text-[#4A7C59] uppercase mt-1 flex items-center gap-1">
                                   <Check className="h-3 w-3" /> Incluye: <HighlightText text={product.variants.find((v: any) => v.name.toLowerCase().includes(searchTerm.toLowerCase())).name} highlight={searchTerm} />
@@ -1543,6 +1737,38 @@ export default function GalleryPage() {
             </button>
           </>
       )}
+      {/* DIALOGO DE CONFIRMACIÓN DE DESCARTE */}
+      <Dialog open={isRejectConfirmOpen} onOpenChange={setIsRejectConfirmOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
+          <div className="bg-slate-900 p-8 text-center relative">
+            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
+              <Trash2 className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="text-xl font-black text-white uppercase tracking-tight">¿Ocultar esta foto?</h2>
+            <p className="text-slate-400 text-sm mt-2">La foto dejará de verse en la galería principal para que puedas centrarte en tus favoritas.</p>
+          </div>
+          <div className="p-8 bg-white text-center">
+            <p className="text-slate-500 text-sm mb-8 font-medium">
+              No te preocupes, <span className="font-bold text-slate-900 underline decoration-[#4A7C59] decoration-2">está a salvo</span>. Podrás verla y recuperarla en cualquier momento desde el botón de "Descartadas".
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsRejectConfirmOpen(false)}
+                className="rounded-full h-12 font-black uppercase text-[10px] tracking-widest border-slate-200"
+              >
+                Mantener
+              </Button>
+              <Button 
+                onClick={confirmReject}
+                className="bg-slate-900 hover:bg-slate-800 text-white rounded-full h-12 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-slate-200"
+              >
+                Confirmar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

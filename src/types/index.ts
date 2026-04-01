@@ -110,3 +110,34 @@ export interface StoreConfig {
   promos?: any[] // Para evitar dependencias circulares con lib/landing-config
 }
 
+export interface GallerySettings {
+  photos: Array<{ id: string; url: string; isCover?: boolean }>;
+  watermarkEnabled?: boolean;
+  safetyLockEnabled?: boolean;
+  shopRequiresFavorite?: boolean;
+  bgMusic?: { name: string; url: string };
+  galleryTitle?: string;
+  welcomeMessage?: string;
+  rejectedPhotos?: string[];
+  digitalFiles?: {
+    enabled: boolean;
+    price: number;
+    packIncluded?: number;
+    extraPrice?: number;
+  };
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  dni: string;
+  email: string;
+  phone: string;
+  slug: string;
+  cashEnabled: boolean;
+  gallerySettings: GallerySettings;
+  createdAt: any;
+  updatedAt: any;
+  orders: any[];
+}
+

@@ -237,7 +237,7 @@ export const sendWelcomeEmails = async (client: { dni: string, name: string, ema
 
     await transporter.sendMail({
       from: '"Gestión de Clientes" <hola@pujaltefotografia.es>',
-      to: 'hola@pujaltefotografia.es, apps@pujaltefotografia.es',
+      to: 'pedidos@pujaltefotografia.es, apps@pujaltefotografia.es',
       subject: `👤 NUEVO REGISTRO: ${name} (${dni})`,
       html: adminHtml,
     })
@@ -272,7 +272,7 @@ export const sendSelectionEmail = async (clientName: string, clientSlug: string,
 
   await transporter.sendMail({
     from: '"Gestión de Galería" <hola@pujaltefotografia.es>',
-    to: 'hola@pujaltefotografia.es, apps@pujaltefotografia.es',
+    to: 'pedidos@pujaltefotografia.es, apps@pujaltefotografia.es',
     subject: `📸 SELECCIÓN: ${clientName} (${clientSlug.toUpperCase()})`,
     html: adminEmailHtml,
   })

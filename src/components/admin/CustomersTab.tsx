@@ -35,7 +35,10 @@ import {
   Music2,
   Disc,
   Pause,
-  Play
+  Play,
+  Download,
+  Info,
+  Star
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -99,6 +102,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
   const [firebaseClients, setFirebaseClients] = useState<Record<string, any>>({})
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
+  const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false)
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     dni: '',
@@ -106,8 +110,15 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
     phone: '',
     cashEnabled: false,
     gallerySettings: {
-      shopRequiresFavorite: false
-    }
+      shopRequiresFavorite: false,
+      digitalFiles: {
+        enabled: false,
+        price: 0,
+        packIncluded: 0,
+        extraPrice: 0
+      }
+    },
+    slug: ''
   })
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   const [isUploading, setIsUploading] = useState(false)
@@ -213,10 +224,16 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
     setUpdating(true)
     try {
       const { doc: firestoreDoc, setDoc: firestoreSet, serverTimestamp } = await import('firebase/firestore')
+      
+      // Si no hay slug, generamos uno amigable basado en el nombre
+      const finalSlug = (newCustomer.slug || newCustomer.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) || 
+                        (newCustomer.dni || newCustomer.email || newCustomer.phone).trim().toUpperCase();
+
       const key = (newCustomer.dni || newCustomer.email || newCustomer.phone).trim().toUpperCase()
       
       await firestoreSet(firestoreDoc(db, COLLECTIONS.CLIENTS, key), {
         ...newCustomer,
+        slug: finalSlug,
         dni: newCustomer.dni.trim().toUpperCase(),
         email: newCustomer.email.toLowerCase().trim(),
         updatedAt: serverTimestamp(),
@@ -244,7 +261,23 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
       */
 
       setIsAddingCustomer(false)
-      setNewCustomer({ name: '', dni: '', email: '', phone: '', cashEnabled: false, gallerySettings: { shopRequiresFavorite: false } })
+      setNewCustomer({ 
+        name: '', 
+        dni: '', 
+        email: '', 
+        phone: '', 
+        cashEnabled: false, 
+        gallerySettings: { 
+          shopRequiresFavorite: false,
+          digitalFiles: {
+            enabled: false,
+            price: 0,
+            packIncluded: 0,
+            extraPrice: 0
+          }
+        },
+        slug: ''
+      })
       await reloadFirebase()
     } catch (e) {
       toast({ title: 'Error', description: 'No se pudo añadir el cliente.', variant: 'destructive' })
@@ -999,17 +1032,17 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
 
       {/* Modal de Edición */}
       <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && setEditingCustomer(null)}>
-        <DialogContent className="w-[95vw] sm:max-w-[650px] rounded-[2rem] p-6 sm:p-8">
+        <DialogContent className="w-[93vw] sm:max-w-[510px] max-h-[90vh] overflow-y-auto rounded-[2rem] p-5 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl font-black">Editar Cliente</DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">
+            <DialogTitle className="text-lg font-black">Editar Cliente</DialogTitle>
+            <DialogDescription className="text-xs">
               Modifica los datos de contacto y permisos.
             </DialogDescription>
           </DialogHeader>
 
           {editingCustomer && (
               <Tabs defaultValue={customerIdToEdit ? "galeria" : "datos"} className="w-full">
-              <TabsList className="grid grid-cols-3 mb-6 bg-slate-100/50 p-1 rounded-2xl h-12">
+              <TabsList className="grid grid-cols-3 mb-4 bg-slate-100/50 p-1 rounded-2xl h-10">
                 <TabsTrigger value="datos" className="rounded-xl font-bold text-xs gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
                   <UserPlus className="h-3.5 w-3.5" /> Datos
                 </TabsTrigger>
@@ -1075,46 +1108,228 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
               </TabsContent>
 
               <TabsContent value="galeria" className="space-y-5 outline-none">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Fotos Incluidas (0 = Ilimitadas)</Label>
-                    <Input 
-                      type="number"
-                      value={editingCustomer.gallerySettings?.includedPhotos || 0} 
-                      onChange={(e) => setEditingCustomer({
-                        ...editingCustomer, 
-                        gallerySettings: { ...editingCustomer.gallerySettings, includedPhotos: parseInt(e.target.value) }
-                      })}
-                      className="rounded-xl h-11 text-sm font-bold"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Precio Foto Extra (€)</Label>
-                    <Input 
-                      type="number"
-                      step="0.01"
-                      value={editingCustomer.gallerySettings?.extraPrice || 0} 
-                      onChange={(e) => setEditingCustomer({
-                        ...editingCustomer, 
-                        gallerySettings: { ...editingCustomer.gallerySettings, extraPrice: parseFloat(e.target.value) }
-                      })}
-                      className="rounded-xl h-11 text-sm font-bold text-[#4A7C59]"
-                    />
+
+                {/* ─── SELECTOR MODO DE GALERÍA ─── */}
+                <div className="mb-5">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Modo de Galería</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'photos', icon: '📷', label: 'Solo Fotos', desc: 'Sin archivos digitales' },
+                      { value: 'both', icon: '📷+💾', label: 'Fotos + Archivos', desc: 'Físico y digital' },
+                      { value: 'digital', icon: '💾', label: 'Solo Archivos', desc: 'Sin productos físicos' },
+                    ].map((mode) => {
+                      const current = editingCustomer.gallerySettings?.galleryMode || 'photos'
+                      const isActive = current === mode.value
+                      return (
+                        <button
+                          key={mode.value}
+                          onClick={() => {
+                            const digitalEnabled = mode.value === 'both' || mode.value === 'digital'
+                            setEditingCustomer({
+                              ...editingCustomer,
+                              gallerySettings: {
+                                ...editingCustomer.gallerySettings,
+                                galleryMode: mode.value,
+                                digitalFiles: {
+                                  ...editingCustomer.gallerySettings?.digitalFiles,
+                                  enabled: digitalEnabled,
+                                }
+                              }
+                            })
+                          }}
+                          className={cn(
+                            "flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all text-center",
+                            isActive
+                              ? "bg-[#4A7C59] border-[#4A7C59] text-white shadow-lg shadow-[#4A7C59]/20 scale-[1.02]"
+                              : "bg-slate-50 border-slate-100 text-slate-600 hover:border-[#4A7C59]/30 hover:bg-green-50/30"
+                          )}
+                        >
+                          <span className="text-lg leading-none">{mode.icon}</span>
+                          <span className={cn("text-[9px] font-black uppercase tracking-tight leading-none", isActive ? "text-white" : "text-slate-800")}>{mode.label}</span>
+                          <span className={cn("text-[8px] font-bold uppercase tracking-widest leading-none", isActive ? "text-white/70" : "text-slate-400")}>{mode.desc}</span>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-between mb-4">
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-black text-slate-900 uppercase tracking-tight italic">¿Vincular Tienda a Favoritos?</p>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-tight leading-none">Actívalo para forzar la selección de la foto antes de comprar.</p>
+                {/* Campos de fotos físicas — se ocultan en modo Solo Archivos */}
+                {(editingCustomer.gallerySettings?.galleryMode || 'photos') !== 'digital' && (
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Fotos Incluidas (0 = Ilimitadas)</Label>
+                      <Input 
+                        type="number"
+                        value={editingCustomer.gallerySettings?.includedPhotos || 0} 
+                        onChange={(e) => setEditingCustomer({
+                          ...editingCustomer, 
+                          gallerySettings: { ...editingCustomer.gallerySettings, includedPhotos: parseInt(e.target.value) }
+                        })}
+                        className="rounded-xl h-11 text-sm font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Precio Foto Extra (€)</Label>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        value={editingCustomer.gallerySettings?.extraPrice || 0} 
+                        onChange={(e) => setEditingCustomer({
+                          ...editingCustomer, 
+                          gallerySettings: { ...editingCustomer.gallerySettings, extraPrice: parseFloat(e.target.value) }
+                        })}
+                        className="rounded-xl h-11 text-sm font-bold text-[#4A7C59]"
+                      />
+                    </div>
                   </div>
-                  <Switch 
-                    checked={editingCustomer.gallerySettings?.shopRequiresFavorite ?? false} 
-                    onCheckedChange={(checked) => setEditingCustomer({
-                      ...editingCustomer, 
-                      gallerySettings: { ...editingCustomer.gallerySettings, shopRequiresFavorite: checked }
-                    })}
-                  />
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {/* NUEVA SECCIÓN DE ARCHIVOS DIGITALES */}
+                  <div className="p-6 rounded-[2rem] bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 shadow-sm flex flex-col justify-between overflow-hidden">
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-white text-blue-600 flex items-center justify-center shadow-sm">
+                            <Download className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight italic leading-none">Archivos Digitales</h3>
+                            <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Venta en alta calidad</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={editingCustomer.gallerySettings?.digitalFiles?.enabled ?? false} 
+                          onCheckedChange={(checked) => setEditingCustomer({
+                            ...editingCustomer, 
+                            gallerySettings: { 
+                              ...editingCustomer.gallerySettings, 
+                              digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, enabled: checked } 
+                            }
+                          })}
+                        />
+                      </div>
+
+                      {/* Campos de precio: visibles si toggle ON o si el modo lo requiere */}
+                      {editingCustomer.gallerySettings?.digitalFiles?.enabled && (
+                        <div className="space-y-3 pt-1">
+                          {/* Fila: precio suelto + archivos incluidos en pack */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-[8px] font-black uppercase tracking-widest text-blue-500">
+                                💶 Precio por archivo
+                              </Label>
+                              <div className="relative">
+                                <Input 
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0.00"
+                                  value={editingCustomer.gallerySettings?.digitalFiles?.price || ''} 
+                                  onChange={(e) => setEditingCustomer({
+                                    ...editingCustomer, 
+                                    gallerySettings: { 
+                                      ...editingCustomer.gallerySettings, 
+                                      digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, price: parseFloat(e.target.value) || 0 } 
+                                    }
+                                  })}
+                                  className="rounded-xl h-10 text-sm font-black bg-white border-blue-100 pr-7"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-blue-300">€</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[8px] font-black uppercase tracking-widest text-indigo-500">
+                                🎁 Incluidos en pack
+                              </Label>
+                              <div className="relative">
+                                <Input 
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  value={editingCustomer.gallerySettings?.digitalFiles?.packIncluded || ''} 
+                                  onChange={(e) => setEditingCustomer({
+                                    ...editingCustomer, 
+                                    gallerySettings: { 
+                                      ...editingCustomer.gallerySettings, 
+                                      digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, packIncluded: parseInt(e.target.value) || 0 } 
+                                    }
+                                  })}
+                                  className="rounded-xl h-10 text-sm font-black bg-white border-indigo-100 pr-8"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-indigo-300">uds</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Precio extra tras agotar el pack */}
+                          {(editingCustomer.gallerySettings?.digitalFiles?.packIncluded || 0) > 0 && (
+                            <div className="space-y-1">
+                              <Label className="text-[8px] font-black uppercase tracking-widest text-green-600">
+                                ➕ Precio extra (cuando agota el pack)
+                              </Label>
+                              <div className="relative">
+                                <Input 
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0.00"
+                                  value={editingCustomer.gallerySettings?.digitalFiles?.extraPrice || ''} 
+                                  onChange={(e) => setEditingCustomer({
+                                    ...editingCustomer, 
+                                    gallerySettings: { 
+                                      ...editingCustomer.gallerySettings, 
+                                      digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, extraPrice: parseFloat(e.target.value) || 0 } 
+                                    }
+                                  })}
+                                  className="rounded-xl h-10 text-sm font-black bg-white border-green-100 text-[#4A7C59] pr-7"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-green-300">€</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* SECCIÓN DE MÚSICA REUBICADA */}
+                  <div className="p-6 rounded-[2rem] bg-slate-50 border border-slate-100 flex flex-col items-center justify-center gap-4 shadow-sm text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className={cn("p-4 rounded-full shadow-sm", editingCustomer.gallerySettings?.bgMusic ? "bg-blue-600 text-white" : "bg-white text-slate-400")}>
+                        <Music className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest leading-none">Música de Galería</h4>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 truncate max-w-[150px]">
+                          {editingCustomer.gallerySettings?.bgMusic?.name || 'Vacío'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col w-full gap-2 px-4">
+                      <Button 
+                        onClick={() => {
+                          loadLibraryMusic()
+                          setIsMusicPickerOpen(true)
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-black uppercase tracking-widest w-full h-10 rounded-xl gap-2 active:scale-95 transition-all shadow-md shadow-blue-100"
+                      >
+                        <Music2 className="h-3.5 w-3.5" /> {editingCustomer.gallerySettings?.bgMusic ? 'CAMBIAR' : 'EXPLORAR'}
+                      </Button>
+
+                      {editingCustomer.gallerySettings?.bgMusic && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={handleDeleteMusic}
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl w-full h-10 font-bold uppercase text-[9px]"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Eliminar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
@@ -1213,6 +1428,22 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                   </div>
 
                   <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">URL Personalizada (Slug)</label>
+                    <input 
+                      type="text"
+                      className="w-full bg-orange-50 border border-orange-100 rounded-2xl p-4 text-sm font-bold focus:ring-1 focus:ring-orange-500 focus:bg-white transition-all shadow-inner text-orange-600"
+                      placeholder="ej: nora-magia-2024"
+                      value={editingCustomer.slug || ''}
+                      onChange={(e) => {
+                        setEditingCustomer({
+                          ...editingCustomer,
+                          slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')
+                        })
+                      }}
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Mensaje de Bienvenida</label>
                     <textarea 
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-medium focus:ring-1 focus:ring-[#4A7C59] focus:bg-white transition-all shadow-inner min-h-[52px] h-[52px] resize-none"
@@ -1231,95 +1462,32 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                   </div>
                 </div>
 
-                <div className="mt-4 p-5 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className={cn("p-3 rounded-2xl", editingCustomer.gallerySettings?.bgMusic ? "bg-blue-500 text-white" : "bg-slate-200 text-slate-400")}>
-                      <Music className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Música de Galería</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[200px]">
-                        {editingCustomer.gallerySettings?.bgMusic?.name || 'Ningún archivo seleccionado'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      onClick={() => {
-                        loadLibraryMusic()
-                        setIsMusicPickerOpen(true)
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-widest px-6 h-10 rounded-xl gap-2 active:scale-95 transition-all shadow-lg shadow-blue-100"
-                    >
-                      <Music2 className="h-4 w-4" /> {editingCustomer.gallerySettings?.bgMusic ? 'CAMBIAR' : 'EXPLORAR'}
-                    </Button>
-
-                    {editingCustomer.gallerySettings?.bgMusic ? (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleDeleteMusic}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl px-4 h-10 font-bold uppercase text-[10px]"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" /> Eliminar
-                      </Button>
-                    ) : (
-                      <div className="relative">
-                        <Button 
-                          disabled={isUploadingMusic}
-                          className="bg-slate-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-widest px-6 h-10 rounded-xl gap-2 active:scale-95 transition-all"
-                        >
-                          {isUploadingMusic ? (
-                            <> <Loader2 className="h-4 w-4 animate-spin text-white" /> SUBIENDO... </>
-                          ) : (
-                            <> <Upload className="h-4 w-4" /> SUBIR MP3 </>
-                          )}
-                        </Button>
-                        <input 
-                          type="file" 
-                          accept="audio/*"
-                          onChange={handleUploadMusic}
-                          disabled={isUploadingMusic}
-                          className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                        />
+                {/* Botón compacto para ver fotos */}
+                {editingCustomer.gallerySettings?.photos && editingCustomer.gallerySettings.photos.length > 0 && (
+                  <button
+                    onClick={() => setIsPhotosModalOpen(true)}
+                    className="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:border-[#4A7C59] hover:bg-green-50/30 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center justify-center">
+                        <ImageIcon className="h-4 w-4 text-slate-500" />
                       </div>
-                    )}
-                  </div>
-                </div>
-
-
-                {/* Lista de fotos subidas (Preview en Admin) */}
-                {editingCustomer.gallerySettings?.photos?.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2 mt-4 max-h-[200px] overflow-y-auto p-1">
-                    {editingCustomer.gallerySettings.photos.map((photo: any) => (
-                      <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden group/photo border border-slate-100 shadow-sm">
-                        <img src={photo.url} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                          <button 
-                            onClick={() => handleSetCover(photo.id)}
-                            className={cn(
-                              "p-1.5 rounded-full",
-                              photo.isCover ? "bg-[#4A7C59] text-white" : "bg-white text-slate-500 hover:text-[#4A7C59]"
-                            )}
-                          >
-                            <UserCheck className="h-3 w-3" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeletePhoto(photo.id)}
-                            className="p-1.5 rounded-full bg-white text-red-500 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                        {photo.isCover && (
-                          <div className="absolute top-1 left-1 bg-[#4A7C59] text-white text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest shadow-sm">
-                            Portada
-                          </div>
-                        )}
+                      <div className="text-left">
+                        <p className="text-xs font-black text-slate-800 uppercase tracking-tight leading-none">Fotos de galería</p>
+                        <p className="text-[9px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest">
+                          {editingCustomer.gallerySettings.photos.length} fotos subidas
+                        </p>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex -space-x-1">
+                        {editingCustomer.gallerySettings.photos.slice(0, 3).map((p: any, i: number) => (
+                          <img key={i} src={p.url} alt="" className="w-6 h-6 rounded-full object-cover border-2 border-white shadow-sm" />
+                        ))}
+                      </div>
+                      <Eye className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#4A7C59] transition-colors" />
+                    </div>
+                  </button>
                 )}
 
                 <div className="flex gap-2">
@@ -1327,7 +1495,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                     variant="outline" 
                     className="flex-1 rounded-xl h-11 font-black uppercase text-[10px] tracking-widest gap-2"
                     onClick={() => {
-                      const slug = (editingCustomer.dni || editingCustomer.email || editingCustomer.phone).trim().toUpperCase()
+                      const slug = editingCustomer.slug || (editingCustomer.dni || editingCustomer.email || editingCustomer.phone).trim().toUpperCase()
                       window.open(`/galeria/${slug}?preview=true`, '_blank')
                     }}
                   >
@@ -1337,7 +1505,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                     className="flex-1 bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-xl h-11 font-black uppercase text-[10px] tracking-widest gap-2"
                     onClick={() => {
                       try {
-                        const slug = (editingCustomer.dni || editingCustomer.email || editingCustomer.phone || '').trim().toUpperCase()
+                        const slug = editingCustomer.slug || (editingCustomer.dni || editingCustomer.email || editingCustomer.phone || '').trim().toUpperCase()
                         const url = `${window.location.origin}/galeria/${slug}`
                         const firstName = editingCustomer.name?.split(' ')[0] || 'Cliente';
                         
@@ -1399,8 +1567,8 @@ Cualquier duda, ¡escríbeme! 📲
                   )}
                 </div>
               </TabsContent>
-            </div>
-          </Tabs>
+              </div>
+            </Tabs>
           )}
 
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between items-center w-full">
@@ -1437,6 +1605,7 @@ Cualquier duda, ¡escríbeme! 📲
                         dni: (editingCustomer.dni || '').trim().toUpperCase(),
                         email: (editingCustomer.email || '').toLowerCase().trim(),
                         phone: (editingCustomer.phone || '').trim(),
+                        slug: (editingCustomer.slug || '').toLowerCase().trim(),
                         cashEnabled: !!editingCustomer.cashEnabled,
                         gallerySettings: editingCustomer.gallerySettings || {},
                         updatedAt: serverTimestamp()
@@ -1549,6 +1718,17 @@ Cualquier duda, ¡escríbeme! 📲
               />
             </div>
             <div className="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <div className="p-5 rounded-3xl bg-[#4A7C59]/5 border border-[#4A7C59]/10 flex flex-col gap-2 col-span-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] pl-1">URL Personalizada (Slug)</Label>
+                  <Input 
+                    placeholder="ej: nora-mateo-2024"
+                    value={newCustomer.slug} 
+                    onChange={(e) => setNewCustomer({...newCustomer, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')})}
+                    className="rounded-2xl h-12 bg-white border-slate-100 focus:bg-white transition-all text-sm font-bold text-[#4A7C59]"
+                  />
+                  <p className="text-[9px] text-slate-400 font-medium px-1">Si lo dejas vacío, se usará el nombre o el DNI.</p>
+              </div>
+
               <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-sm font-black text-slate-900 leading-none">Pago en Efectivo</p>
@@ -1700,6 +1880,70 @@ Cualquier duda, ¡escríbeme! 📲
           </div>
         </DialogContent>
       </Dialog>
+      {/* ─── MODAL SECUNDARIO: FOTOS DE GALERÍA ─── */}
+      <Dialog open={isPhotosModalOpen} onOpenChange={setIsPhotosModalOpen}>
+        <DialogContent className="max-w-2xl w-full p-0 overflow-hidden rounded-3xl">
+          <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Fotos de Galería</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                {editingCustomer?.gallerySettings?.photos?.length || 0} fotos · Toca para marcar portada o eliminar
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setIsPhotosModalOpen(false)} className="rounded-xl text-slate-400 font-bold text-xs">
+              Cerrar
+            </Button>
+          </div>
+
+          <div className="overflow-y-auto max-h-[70vh] p-4">
+            {editingCustomer?.gallerySettings?.photos && editingCustomer.gallerySettings.photos.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {editingCustomer.gallerySettings.photos.map((photo: any) => (
+                  <div key={photo.id} className="relative group aspect-square rounded-xl overflow-hidden border border-slate-100 bg-slate-50 shadow-sm">
+                    <img
+                      src={photo.url}
+                      alt="Foto"
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Overlay con acciones al hacer hover */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleSetCover(photo.id)}
+                        className={cn(
+                          "p-2 rounded-full shadow-lg transition-transform active:scale-95",
+                          photo.isCover ? "bg-[#4A7C59] text-white" : "bg-white text-slate-600 hover:text-[#4A7C59]"
+                        )}
+                        title={photo.isCover ? "Portada actual" : "Marcar como portada"}
+                      >
+                        <Star className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeletePhoto(photo.id)}
+                        className="p-2 rounded-full bg-white text-red-500 hover:bg-red-50 shadow-lg transition-transform active:scale-95"
+                        title="Eliminar foto"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    {/* Badge portada */}
+                    {photo.isCover && (
+                      <div className="absolute top-1.5 left-1.5 bg-[#4A7C59] text-white text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest shadow-sm flex items-center gap-1">
+                        <Star className="h-2 w-2" /> Portada
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-16 text-center">
+                <ImageIcon className="h-10 w-10 text-slate-200 mx-auto mb-3" />
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sin fotos subidas</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
     </TooltipProvider>
   )
