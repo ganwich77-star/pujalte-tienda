@@ -41,13 +41,13 @@ model Product {
   updatedAt       DateTime         @updatedAt
   firebaseId      String?          @unique
   isNew           Boolean?         @default(false)
-  isFeatured      Boolean?         @default(false)
   salePrice       Float?
   minQuantity     Int?             @default(1)
   stepQuantity    Int?             @default(1)
   tierPricing     String?          @db.LongText
   customOptions   String?          @db.LongText
   supplierId      String?
+  isFeatured      Boolean?         @default(false)
   category        Category?        @relation(fields: [categoryId], references: [id])
   supplier        Supplier?        @relation(fields: [supplierId], references: [id])
   variants        ProductVariant[]

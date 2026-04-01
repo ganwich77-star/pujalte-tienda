@@ -1,125 +1,125 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, mysqlDb } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params
-    const product = await db.product.findUnique({
-      where: { id },
-      include: {
-        variants: {
-          orderBy: {
-            sortOrder: 'asc'
-          }
-        }
-      }
-    });
-    
-    if (!product) {
-      return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
+    const { id } = await params;
+    const [products]: any = await mysqlDb.query(
+      `SELECT p.*, c.name as categoryName 
+       FROM product p 
+       LEFT JOIN category c ON p.categoryId = c.id 
+       WHERE p.id = ?`, 
+      [id]
+    );
+
+    if (!products || products.length === 0) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
-    
-    return NextResponse.json(product)
+
+    const [variants]: any = await mysqlDb.query(`SELECT * FROM productvariant WHERE productId = ? ORDER BY sortOrder ASC`, [id]);
+
+    return NextResponse.json({
+      ...products[0],
+      variants: variants || []
+    });
   } catch (error: any) {
-    console.error('Error fetching product from MySQL:', error)
-    return NextResponse.json({ error: 'Error al obtener producto' }, { status: 500 })
+    console.error("MySQL GET ID Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params
-    const body = await request.json()
-    console.log('[DEBUG] ID:', id);
-    console.log('[DEBUG] Body received:', JSON.stringify(body, null, 2));
+    const { id } = await params;
+    const body = await request.json();
 
-    // Lista de campos permitidos en el esquema Prisma para evitar errores de tipo si el front envía datos extra
-    const allowedFields = [
-      'name', 'description', 'price', 'categoryId', 'active', 'image', 'stock',
-      'hasVariants', 'variantType', 'variantBehavior', 'sortOrder', 'showPrice',
-      'isPack', 'packItems', 'isNew', 'salePrice', 'minQuantity', 'stepQuantity', 'tierPricing', 'supplierId', 'customOptions'
-    ];
+    const toBool = (val: any) => (val === true || val === 1 || val === 'true') ? 1 : 0;
+    const toNum = (val: any) => {
+       if (val === undefined || val === null || val === '') return 0;
+       return parseFloat(String(val).replace(',', '.')) || 0;
+    };
+    const toStr = (val: any) => (val === undefined || val === null) ? null : String(val);
 
-    const filteredData: any = {};
-    allowedFields.forEach(field => {
-      if (body[field] !== undefined) {
-        if (field === 'price' || field === 'salePrice') {
-           const cleanVal = String(body[field]).replace(',', '.').replace(/[^\d.]/g, '');
-           filteredData[field] = parseFloat(cleanVal) || 0;
-        } else if (field === 'stock' || field === 'sortOrder' || field === 'minQuantity' || field === 'stepQuantity') {
-           filteredData[field] = parseInt(String(body[field])) || 0;
-        } else if (field === 'tierPricing') {
-           // Si el frente envía un objeto/array para los precios por tramos, lo serializamos a string para el DB
-           filteredData[field] = typeof body[field] === 'object' ? JSON.stringify(body[field]) : body[field];
-        } else {
-           filteredData[field] = body[field];
-        }
-      }
-    });
+    // 1. Construir objeto de campos asegurando valores válidos
+    const fields: any = {
+      name: toStr(body.name) || "Sin nombre",
+      description: toStr(body.description) || "",
+      image: toStr(body.image),
+      price: toNum(body.price),
+      salePrice: (body.salePrice === null || body.salePrice === undefined || body.salePrice === '') ? null : toNum(body.salePrice),
+      stock: parseInt(body.stock) || 0,
+      active: toBool(body.active),
+      showPrice: toBool(body.showPrice),
+      isPack: toBool(body.isPack),
+      hasVariants: toBool(body.hasVariants),
+      isNew: toBool(body.isNew),
+      isFeatured: toBool(body.isFeatured),
+      categoryId: toStr(body.categoryId),
+      supplierId: toStr(body.supplierId),
+      variantType: toStr(body.variantType),
+      variantBehavior: toStr(body.variantBehavior) || "replace",
+      minQuantity: parseInt(body.minQuantity) || 1,
+      stepQuantity: parseInt(body.stepQuantity) || 1,
+      tierPricing: typeof body.tierPricing === 'object' ? JSON.stringify(body.tierPricing) : (toStr(body.tierPricing) || "[]"),
+      customOptions: typeof body.customOptions === 'object' ? JSON.stringify(body.customOptions) : (toStr(body.customOptions) || "[]"),
+      packItems: typeof body.packItems === 'object' ? JSON.stringify(body.packItems) : (toStr(body.packItems) || "[]")
+    };
 
-    console.log('[DEBUG] Filtered Data for Update:', JSON.stringify(filteredData, null, 2));
+    // 2. Limpieza final Anti-Undefined (Bulletproof)
+    const keys = Object.keys(fields);
+    const setClause = keys.map(key => `\`${key}\` = ?`).join(', ');
+    const finalValues = keys.map(key => fields[key] === undefined ? null : fields[key]);
+    
+    // IMPORTANTE: Asegurar que el ID no sea undefined (Next.js 15 requiere await params)
+    finalValues.push(id || body.id);
 
-    // 2. Transacción para asegurar integridad de producto y variantes
-    try {
-      const result = await db.$transaction(async (tx) => {
-        // Recreamos las variantes si vienen en el body (o las mantenemos si no vienen)
-        return await tx.product.update({
-          where: { id },
-          data: {
-            ...filteredData,
-            variants: (body.variants && Array.isArray(body.variants)) ? {
-              deleteMany: {},
-              create: body.variants.map((v: any) => ({
-                name: v.name || "",
-                price: parseFloat(String(v.price).replace(',', '.')) || 0,
-                stock: parseInt(String(v.stock)) || 0,
-                sku: v.sku || null,
-                sortOrder: v.sortOrder || 0
-              }))
-            } : undefined
-          },
-          include: { variants: { orderBy: { sortOrder: 'asc' } } }
-        })
-      });
+    await mysqlDb.query(
+      `UPDATE product SET ${setClause}, updatedAt = NOW() WHERE id = ?`,
+      finalValues.map(v => v === undefined ? null : v)
+    );
+
+    // 3. Variantes con limpieza similar
+    if (body.variants && Array.isArray(body.variants)) {
+      await mysqlDb.query(`DELETE FROM productvariant WHERE productId = ?`, [id]);
       
-      console.log('[DEBUG] Update Result SUCCESS:', !!result);
-      return NextResponse.json(result)
-    } catch (saveError: any) {
-      console.error('[ERROR] Prisma Save Error:', saveError.message);
-      console.error('[ERROR] Full Stack:', saveError.stack);
-      return NextResponse.json({ 
-        error: 'Error al actualizar producto en Neon', 
-        details: saveError.message,
-        stack: process.env.NODE_ENV === 'development' ? saveError.stack : undefined
-      }, { status: 500 })
+      for (const v of body.variants) {
+        if (!v.name && v.price === undefined) continue;
+        
+        const vParams = [
+          Math.random().toString(36).substring(2, 12),
+          id,
+          toStr(v.name) || "",
+          toNum(v.price),
+          parseInt(v.stock) || 0,
+          (v.sku && String(v.sku).trim() !== '') ? String(v.sku) : null,
+          parseInt(v.sortOrder) || 0
+        ].map(p => p === undefined ? null : p);
+
+        await mysqlDb.query(
+          `INSERT INTO productvariant (id, productId, name, price, stock, sku, sortOrder, createdAt, updatedAt) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          vParams
+        );
+      }
     }
+
+    return NextResponse.json({ success: true, id });
   } catch (error: any) {
-    console.error('API Outer Error:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+    console.error("SQL UPDATE ERROR:", error);
+    return NextResponse.json({ error: "Error de servidor: " + error.message }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params
-    await db.product.delete({
-      where: { id }
-    });
-    return NextResponse.json({ success: true })
+    const { id } = await params;
+    await mysqlDb.query(`DELETE FROM productvariant WHERE productId = ?`, [id]);
+    await mysqlDb.query(`DELETE FROM product WHERE id = ?`, [id]);
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error deleting product from MySQL:', error)
-    return NextResponse.json({ error: 'Error al eliminar producto' }, { status: 500 })
+    console.error("MySQL DELETE Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

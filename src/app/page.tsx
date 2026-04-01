@@ -113,6 +113,7 @@ const initialProductForm = {
 }
 
 export default function Home() {
+  const [isMounted, setIsMounted] = useState(false)
   const [showSplash, setShowSplash] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [view, setView] = useState<'landing' | 'shop'>('landing')
@@ -123,6 +124,7 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
     // Si la vista cambia o el menú se oculta, fuerzo a Radix a soltar el bloqueo del body.
     document.body.style.pointerEvents = "auto";
     document.body.style.overflow = "auto";
@@ -467,7 +469,6 @@ Mi email: ${formData.email}`
     setIsSaving(true)
     try {
       const isUpdate = !!editingProduct
-      // Usamos el endpoint unificado que mejor manejamos en Prisma
       const url = isUpdate ? `/api/products/${editingProduct.id}` : '/api/products'
       const method = isUpdate ? 'PUT' : 'POST'
       
@@ -511,8 +512,6 @@ Mi email: ${formData.email}`
           customOptions: dataInput.customOptions || null
         }
 
-      // IMPORTANTE: Para evitar el error 413 "Payload Too Large" en Vercel Serverless, 
-      // SOLO enviamos la imagen (Base64) si es un producto nuevo o si el usuario ha cambiado de imagen realmente.
       const currentImage = dataInput.image || dataInput.image_url || null;
       if (!isUpdate || currentImage !== editingProduct?.image) {
         body.image = currentImage;
@@ -524,7 +523,10 @@ Mi email: ${formData.email}`
         body: JSON.stringify(body)
       })
 
-      if (!res.ok) throw new Error('Error al guardar producto')
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.details || errorData.error || 'Error al guardar producto');
+      }
       
       toast({ 
         title: '¡Guardado!', 
@@ -539,14 +541,18 @@ Mi email: ${formData.email}`
       setTimeout(() => {
         setEditingProduct(null)
         setProductForm(initialProductForm)
-        fetchAllProducts() // Cambiamos a fetchAllProducts para usar su sistema de cache busting por defecto
+        fetchAllProducts() 
         fetchStats()
       }, 150)
       
       return true
-    } catch (error) {
-      console.error(error)
-      toast({ title: 'Error', description: 'No se pudo guardar el producto', variant: 'destructive' })
+    } catch (error: any) {
+      console.error('Save Error:', error)
+      toast({ 
+        title: 'Error al guardar', 
+        description: error.message || 'No se pudo guardar el producto', 
+        variant: 'destructive' 
+      })
       return false
     } finally {
       setIsSaving(true) // Esperamos a que todo se asiente antes de liberar el botton
@@ -1340,19 +1346,19 @@ Mi email: ${formData.email}`
                     viewport={{ once: true }}
                     className="flex flex-wrap gap-2"
                   >
-                    {['todos', 'destacados', ...landingCategories.filter(c => c !== 'todos')].map((cat: string) => (
+                    {isMounted && ['todos', 'destacados', ...landingCategories.filter(c => c !== 'todos')].map((cat: string) => (
                       <button
                         key={cat}
                         onClick={() => setActiveLandingCategory(cat)}
-                        className={`px-6 py-2 rounded-full text-xs font-bold tracking-widest uppercase transition-all duration-300 border flex items-center gap-2 ${
-                          activeLandingCategory === cat 
-                            ? (cat === 'destacados' ? 'bg-amber-400 text-black border-amber-400 shadow-lg' : 'bg-[#4A7C59] text-white border-[#4A7C59] shadow-lg shadow-[#4A7C59]/20')
-                            : 'bg-white text-gray-400 border-gray-100 hover:border-[#4A7C59]/30 hover:text-[#4A7C59]'
-                        }`}
-                      >
-                        {cat === 'destacados' && (
-                          <Star className={`h-3 w-3 ${activeLandingCategory === 'destacados' ? 'fill-black' : ''}`} />
+                        className={cn(
+                          "px-6 py-2 rounded-full text-xs font-bold tracking-widest uppercase transition-all duration-300",
+                          activeLandingCategory === cat
+                            ? (cat === 'destacados' 
+                                ? "bg-amber-500 text-white shadow-lg scale-105" 
+                                : "bg-slate-900 text-white shadow-lg scale-105")
+                            : "bg-white/80 text-slate-500 hover:text-slate-900 hover:bg-white border border-slate-200"
                         )}
+                      >
                         {cat === 'todos' ? 'Todos' : cat}
                       </button>
                     ))}
