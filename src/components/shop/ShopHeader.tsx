@@ -11,11 +11,12 @@ import {
   ChevronLeft,
   User,
   LogOut,
-  Mail,
   UserCircle,
   X,
   CreditCard,
-  CheckCircle2
+  CheckCircle2,
+  Mail,
+  Phone
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
@@ -69,6 +70,12 @@ export function ShopHeader({
   const [mounted, setMounted] = useState(false)
   const [isFirstVisit, setIsFirstVisit] = useState(false)
   const [hasClosedThisSession, setHasClosedThisSession] = useState(false)
+  
+  // REGISTRO Y VISTA DUAL
+  const [authView, setAuthView] = useState<'login' | 'register'>('login')
+  const [registerEmail, setRegisterEmail] = useState('')
+  const [registerPhone, setRegisterPhone] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -103,7 +110,54 @@ export function ShopHeader({
     }
   }
 
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!loginDni || !loginName || !registerEmail) {
+      setLoginError("RELLENA NOMBRE, DNI Y EMAIL")
+      return
+    }
+
+    setIsLoggingIn(true)
+    setLoginError(null)
+
+    try {
+      const response = await fetch('/api/clients/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dni: loginDni.trim().toUpperCase(),
+          name: loginName.trim().toUpperCase(),
+          email: registerEmail.trim().toLowerCase(),
+          phone: registerPhone.trim()
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // LOGIN AUTOMÁTICO
+        login({
+          dni: loginDni.trim().toUpperCase(),
+          name: loginName.trim().toUpperCase(),
+          email: registerEmail.trim().toLowerCase(),
+          phone: registerPhone.trim()
+        })
+        setIsLoginModalOpen(false)
+        toast({
+          title: "¡REGISTRO COMPLETADO!",
+          description: "Ya puedes realizar tus pedidos.",
+        })
+      } else {
+        setLoginError(data.error || "ERROR AL REGISTRAR")
+      }
+    } catch (e) {
+      console.error('Error on register:', e)
+      setLoginError("ERROR DE CONEXIÓN")
+    } finally {
+      setIsLoggingIn(false)
+    }
+  }
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -382,13 +436,15 @@ export function ShopHeader({
             <div className="h-12 w-12 bg-[#4A7C59]/5 rounded-2xl flex items-center justify-center mx-auto mb-1 ring-4 ring-white shadow-sm">
               <User className="h-6 w-6 text-[#4A7C59]" />
             </div>
-            <DialogTitle className="text-xl font-black text-slate-900 tracking-tight uppercase text-center">IDENTIFICARSE</DialogTitle>
+            <DialogTitle className="text-xl font-black text-slate-900 tracking-tight uppercase text-center">
+              {authView === 'login' ? 'IDENTIFICARSE' : 'COMENZAR AQUÍ'}
+            </DialogTitle>
             <p className="text-[11px] text-slate-500 font-bold px-2 uppercase tracking-tight leading-relaxed">
-              ACCESO CON DNI / NIE
+              {authView === 'login' ? 'ACCESO CON DNI / NIE' : 'REGÍSTRATE EN UN PASO'}
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-3">
+          <form onSubmit={authView === 'login' ? handleLogin : handleRegister} className="space-y-3">
             <div className="relative group">
               <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#4A7C59]" />
               <Input
@@ -417,6 +473,36 @@ export function ShopHeader({
             </div>
 
             <AnimatePresence>
+              {authView === 'register' && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }} 
+                  animate={{ opacity: 1, height: 'auto' }} 
+                  exit={{ opacity: 0, height: 0 }} 
+                  className="space-y-3 overflow-hidden"
+                >
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#4A7C59]" />
+                    <Input
+                      type="email"
+                      placeholder="TU EMAIL..."
+                      required
+                      value={registerEmail}
+                      onChange={(e) => setRegisterEmail(e.target.value.toLowerCase())}
+                      className="h-11 rounded-xl pl-10 bg-slate-50 border-0 font-black text-xs focus-visible:ring-1 focus-visible:ring-[#4A7C59]/20 uppercase"
+                    />
+                  </div>
+                  <div className="relative group">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#4A7C59]" />
+                    <Input
+                      placeholder="TU TELÉFONO..."
+                      value={registerPhone}
+                      onChange={(e) => setRegisterPhone(e.target.value)}
+                      className="h-11 rounded-xl pl-10 bg-slate-50 border-0 font-black text-xs focus-visible:ring-1 focus-visible:ring-[#4A7C59]/20 uppercase"
+                    />
+                  </div>
+                </motion.div>
+              )}
+
               {loginError && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -434,14 +520,40 @@ export function ShopHeader({
             <div className="pt-4 space-y-3 text-center">
               <Button 
                 type="submit"
-                disabled={!loginDni || !loginName}
+                disabled={!loginDni || !loginName || (authView === 'register' && !registerEmail) || isLoggingIn}
                 className="w-full h-11 rounded-xl bg-[#4A7C59] hover:bg-[#3D6649] text-white font-black tracking-widest uppercase shadow-lg shadow-[#4A7C59]/20 text-xs"
               >
-                ACCEDER
+                {isLoggingIn ? 'PROCESANDO...' : (authView === 'login' ? 'ACCEDER' : 'COMPLETAR REGISTRO')}
               </Button>
-              <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
-                SESIÓN PERSISTENTE
-              </p>
+
+              <div className="pt-2">
+                <p className="text-[9px] text-[#4A7C59] font-black uppercase tracking-[0.2em] italic mb-4 opacity-70">
+                  La tecnología al servicio de los recuerdos.
+                </p>
+                
+                <div className="h-[1px] w-full bg-slate-100 mb-6" />
+
+                <div className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                        setAuthView(authView === 'login' ? 'register' : 'login')
+                        setLoginError(null)
+                    }}
+                    className="text-[10px] font-black text-[#4A7C59] uppercase tracking-widest hover:underline block w-full text-center active:scale-95 transition-all outline-none"
+                  >
+                    {authView === 'login' ? '¿Aún no tienes cuenta? Regístrate aquí' : 'Ya tengo cuenta, quiero entrar'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsLoginModalOpen(false)}
+                    className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-[#4A7C59] block w-full text-center transition-colors outline-none"
+                  >
+                    Solo quiero echar un vistazo
+                  </button>
+                </div>
+              </div>
             </div>
           </form>
         </motion.div>
