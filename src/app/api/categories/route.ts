@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { mysqlDb } from '@/lib/db'
 
 export async function GET() {
   try {
-    const categories = await db.category.findMany({
-      orderBy: {
-        name: 'asc'
-      }
-    });
+    const [categories]: any = await mysqlDb.query(`
+      SELECT * FROM category ORDER BY sortOrder ASC, name ASC
+    `);
     
     return NextResponse.json(categories)
   } catch (error: any) {

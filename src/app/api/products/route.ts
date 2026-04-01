@@ -1,50 +1,51 @@
-import { db } from "@/lib/db";
+import { db, mysqlDb } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// GET: Listar productos desde Prisma (Postgres/Neon)
+// GET: Listar productos desde MySQL Directo (Hostinger)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId') || searchParams.get('category');
     const search = searchParams.get('search');
 
-    const where: any = {};
-    
+    let sql = `
+      SELECT p.*, c.name as categoryName, c.id as categoryId 
+      FROM product p 
+      LEFT JOIN category c ON p.categoryId = c.id 
+      WHERE p.active = 1
+    `;
+    const params: any[] = [];
+
     if (categoryId && categoryId !== 'all') {
-      where.OR = [
-        { categoryId: categoryId },
-        { category: { name: { contains: categoryId, mode: 'insensitive' } } }
-      ];
+      sql += ` AND (p.categoryId = ? OR c.name LIKE ?)`;
+      params.push(categoryId, `%${categoryId}%`);
     }
 
     if (search) {
-      where.OR = [
-        ...(where.OR || []),
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ];
+      sql += ` AND (p.name LIKE ? OR p.description LIKE ?)`;
+      params.push(`%${search}%`, `%${search}%`);
     }
 
-    const products = await db.product.findMany({
-      where,
-      include: {
-        category: true,
-        // Incluimos supplier solo si existe en el cliente de Prisma actual
-        ...( (db.product as any).fields?.supplierId ? { supplier: true } : {} ),
-        variants: true
-      },
-      orderBy: [
-        { name: 'asc' }
-      ]
-    });
+    sql += ` ORDER BY p.name ASC`;
 
-    // Normalización mínima para el frontend si fuera necesaria
-    return NextResponse.json(products);
+    const [products]: any = await mysqlDb.query(sql, params);
+
+    // Obtener variantes para cada producto
+    const productsWithVariants = await Promise.all(products.map(async (p: any) => {
+      const [variants]: any = await mysqlDb.query(`SELECT * FROM productvariant WHERE productId = ? AND active = 1`, [p.id]);
+      return {
+        ...p,
+        category: p.categoryId ? { id: p.categoryId, name: p.categoryName } : null,
+        variants: variants || []
+      };
+    }));
+
+    return NextResponse.json(productsWithVariants);
   } catch (error: any) {
-    console.error("Prisma GET Error:", error);
+    console.error("MySQL GET Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
