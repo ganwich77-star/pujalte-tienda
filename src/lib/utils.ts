@@ -5,8 +5,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function fixPath(path: string | null | undefined) {
-  if (!path) return null
+export function fixPath(path: string | null | undefined): string | undefined {
+  if (!path) return undefined
   if (path.startsWith('http') || path.startsWith('data:')) return path
   
   // Normalizamos para que siempre empiece por /

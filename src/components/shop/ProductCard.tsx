@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon, X, Palette, Loader2, Camera, Upload, Trash2, ChevronRight, Users, ImagePlus, Briefcase, ChevronLeft } from 'lucide-react'
+import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon, X, Palette, Loader2, Camera, Upload, Trash2, ChevronRight, Users, ImagePlus, Briefcase, ChevronLeft, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -29,7 +29,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, config, formatPrice, handleAddToCart }: ProductCardProps) {
-  const { user, isLoggedIn } = useUserStore()
+  const { user, isLoggedIn, setIsLoginModalOpen } = useUserStore()
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, string>>({})
   const [added, setAdded] = useState(false)
@@ -96,6 +96,11 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
     : originalBasePrice) * quantity
 
   const onAdd = () => {
+    if (!isLoggedIn) {
+      setIsLoginModalOpen(true)
+      return
+    }
+
     let finalNote = personalizationNote
 
     Object.entries(selectedCustomOptions).forEach(([key, val]) => {
@@ -148,9 +153,10 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
     }
   }
 
+
   const fetchUserGalleries = async () => {
     if (!isLoggedIn || !user?.dni) {
-      toast({ title: "Atención", description: "Identifícate primero para acceder a tus reportajes.", variant: "destructive" })
+      setIsLoginModalOpen(true)
       return
     }
 
@@ -180,29 +186,51 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
     }
   }
 
-  const WatermarkOverlay = ({ opacity = 0.2 }: { opacity?: number }) => (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden select-none">
-       <p 
-         className="text-white font-black text-2xl sm:text-4xl uppercase tracking-[0.4em] drop-shadow-2xl text-center px-4 -rotate-12"
-         style={{ opacity }}
-       >
-         PUJALTE FOTOGRAFÍA
-       </p>
-    </div>
-  )
+  const WatermarkOverlay = ({ opacity = 0.2 }: { opacity?: number }) => {
+    const finalOpacity = (config.logoOpacity ?? opacity * 100) / 100;
+    
+    return (
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden select-none">
+         {config.logoUrl ? (
+           <img 
+             src={config.logoUrl} 
+             alt="Watermark" 
+             className="max-w-[70%] max-h-[70%] object-contain -rotate-12"
+             style={{ opacity: finalOpacity }}
+           />
+         ) : (
+           <p 
+             className="text-white font-black text-2xl sm:text-4xl uppercase tracking-[0.4em] drop-shadow-2xl text-center px-4 -rotate-12"
+             style={{ opacity: finalOpacity }}
+           >
+             {config.storeName || 'PUJALTE FOTOGRAFÍA'}
+           </p>
+         )}
+      </div>
+    )
+  }
 
   const sortedTiers = tiers.length > 0 ? [...tiers].sort((a, b) => a.minQty - b.minQty) : [];
   const nextTier = sortedTiers.find((t: any) => t.minQty > quantity);
   const currentTier = tiers.length > 0 ? [...tiers].sort((a, b) => b.minQty - a.minQty).find((t: any) => quantity >= t.minQty) : undefined;
 
-  return (
-    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) setShowGallerySelector(false); }}>
+    const [showScrollHint, setShowScrollHint] = useState(true)
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+      if (e.currentTarget.scrollTop > 20) {
+        setShowScrollHint(false)
+      } else {
+        setShowScrollHint(true)
+      }
+    }
+
+    return (
+    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setShowGallerySelector(false); setShowScrollHint(true); } }}>
       <DialogTrigger asChild>
         <motion.div whileHover={{ y: -8 }} className="group cursor-pointer flex flex-col gap-3">
           <div className="relative aspect-square w-full bg-white rounded-[2.5rem] overflow-hidden shadow-[0_15px_40px_-15px_rgba(0,0,0,0.08)] group-hover:shadow-[0_25px_50px_-12px_rgba(74,124,89,0.2)] transition-all duration-700 border border-white/50">
             {config.showImages && product.image ? (
               <img 
-                src={fixPath(product.image || '')} 
+                src={fixPath(product.image || undefined)} 
                 alt={product.name} 
                 loading="lazy" 
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 rounded-[2.5rem]" 
@@ -248,8 +276,37 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
         </motion.div>
       </DialogTrigger>
 
-      <DialogContent showCloseButton={false} className="w-[95vw] max-h-[82dvh] sm:max-h-[90dvh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all">
-        <div className="relative flex-1 flex flex-col overflow-hidden">
+      <DialogContent showCloseButton={false} className={cn("w-[95vw] max-h-[82dvh] sm:max-h-[90dvh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all", showPreview && "bg-transparent shadow-none")}>
+        <div className={cn("relative flex-1 flex flex-col overflow-hidden transition-all duration-300", showPreview ? "opacity-0 pointer-events-none scale-95" : "opacity-100")}>
+            {/* Indicador de scroll flotante sutil */}
+            <AnimatePresence>
+              {showScrollHint && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="absolute bottom-12 left-1/2 -translate-x-1/2 z-[100] pointer-events-none flex flex-col items-center gap-1"
+                >
+                   <div className="flex flex-col items-center">
+                     <motion.div
+                       animate={{ y: [0, 8, 0], opacity: [0.3, 1, 0.3] }}
+                       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                     >
+                        <ChevronDown className="h-5 w-5 text-[#4A7C59]" />
+                     </motion.div>
+                     <motion.div
+                       animate={{ y: [0, 8, 0], opacity: [0.1, 0.6, 0.1] }}
+                       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                       className="-mt-3"
+                     >
+                        <ChevronDown className="h-5 w-5 text-[#4A7C59]" />
+                     </motion.div>
+                   </div>
+                   <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#4A7C59]/60">Deslizar</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* HEADER CON TÍTULO ELEGANTE AL TOP */}
             <div className="h-14 sm:h-16 flex items-center justify-center bg-white border-b border-slate-50 relative shrink-0">
                 <DialogTitle className="text-xl sm:text-2xl font-light text-slate-800 tracking-tight" style={{ fontFamily: 'serif' }}>
@@ -263,7 +320,10 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                 </button>
             </div>
 
-            <div className="p-0 flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+            <div 
+              onScroll={handleScroll}
+              className="p-0 flex-1 flex flex-col overflow-y-auto custom-scrollbar relative"
+            >
                 {/* IMAGEN DEL PRODUCTO - COMPLETA Y SIN RECORTAR */}
                 <div className="relative w-full bg-white overflow-hidden border-b border-slate-50/50 flex-shrink-0 min-h-[250px] sm:min-h-[350px] flex items-center justify-center p-6 sm:p-8">
                   <img src={fixPath(product.image || '')} alt={product.name} className="max-w-full max-h-[300px] sm:max-h-[400px] object-contain transition-all duration-700 hover:scale-105" />
@@ -587,62 +647,73 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
         <AnimatePresence>
           {showPreview && uploadedUrl && (
             <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
-            >
-              <motion.div 
-                initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                className="bg-white w-full max-w-[450px] rounded-[2.5rem] overflow-hidden shadow-2xl relative flex flex-col shadow-black/30"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-10 bg-slate-950/80 backdrop-blur-xl"
               >
-                {/* Botón X superior */}
-                <button 
-                  onClick={() => setShowPreview(false)}
-                  className="absolute top-4 right-4 z-10 h-8 w-8 rounded-full bg-black/10 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/30 transition-all border border-white/10"
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0, y: 30 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.9, opacity: 0, y: 30 }}
+                  className="bg-white w-full max-w-[500px] h-full max-h-[85vh] rounded-[2.5rem] sm:rounded-[3.5rem] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.5)] relative flex flex-col"
                 >
-                  <X className="h-4 w-4" />
-                </button>
+                  {/* Zona de Imagen - Estilo Galería */}
+                  <div className="relative flex-1 bg-slate-900 flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={uploadedUrl || undefined} 
+                      alt="Vista Previa Premium" 
+                      className="w-full h-full object-contain p-4"
+                    />
+                    <WatermarkOverlay opacity={0.25} />
 
-                {/* Imagen Preview */}
-                <div className="relative w-full aspect-[4/5] bg-slate-50 flex items-center justify-center overflow-hidden">
-                  <img 
-                    src={uploadedUrl} 
-                    alt="Vista Previa Premium" 
-                    className="w-full h-full object-contain"
-                  />
-                  <WatermarkOverlay opacity={0.3} />
-                </div>
-
-                {/* Footer del Modal Premium */}
-                <div className="p-8 flex flex-col gap-4 bg-white border-t border-slate-50">
-                   <button 
-                      onClick={() => {
-                        setShowPreview(false);
-                        setUploadedUrl(null);
-                        setShowGallerySelector(true);
-                      }}
-                      className="w-full h-14 rounded-2xl border-2 border-dashed border-[#4A7C59]/30 text-[#4A7C59] font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 hover:bg-[#4A7C59]/5 transition-all"
-                   >
-                     <ImageIcon className="h-4 w-4" />
-                     CAMBIAR FOTO
-                   </button>
-
-                   <button 
+                    {/* Botón Cerrar (X) - Posicionado para no ser cortado */}
+                    <button 
                       onClick={() => setShowPreview(false)}
-                      className="w-full h-14 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 hover:bg-slate-50 active:scale-[0.98] transition-all shadow-sm"
-                   >
-                     CERRAR Y SALIR
-                   </button>
-                </div>
+                      className="absolute top-6 right-6 h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60 transition-all border border-white/10 shadow-xl z-50"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+
+                    {/* Badge de Vista Previa */}
+                    <div className="absolute top-6 left-6 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full pointer-events-none">
+                       <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/80">Vista Previa</span>
+                    </div>
+                  </div>
+
+                  {/* Acciones - Espaciado generoso para evitar cortes */}
+                  <div className="p-6 sm:p-10 bg-white flex flex-col gap-3.5 border-t border-slate-50 pb-10 sm:pb-12">
+                     <button 
+                        onClick={() => {
+                          setShowPreview(false);
+                          setUploadedUrl(null);
+                          setShowGallerySelector(true);
+                        }}
+                        className="w-full h-14 rounded-2xl border-2 border-dashed border-[#4A7C59]/30 text-[#4A7C59] font-black uppercase text-[10px] sm:text-[11px] tracking-[0.15em] flex items-center justify-center gap-3 hover:bg-[#4A7C59]/5 transition-all active:scale-[0.98]"
+                     >
+                       <ImagePlus className="h-4 w-4" />
+                       CAMBIAR FOTOGRAFÍA
+                     </button>
+
+                     <button 
+                        onClick={() => setShowPreview(false)}
+                        className="w-full h-14 rounded-2xl bg-slate-900 text-white font-black uppercase text-[10px] sm:text-[11px] tracking-[0.15em] flex items-center justify-center gap-3 hover:bg-black active:scale-[0.98] transition-all shadow-xl shadow-slate-900/20"
+                     >
+                       <Check className="h-4 w-4" />
+                       CONFIRMAR Y CERRAR
+                     </button>
+                     
+                     <div className="flex justify-center mt-2 group">
+                        <span className="text-[10px] sm:text-[12px] font-black text-slate-400 uppercase tracking-[0.25em] text-center px-4 transition-colors group-hover:text-[#4A7C59]">
+                          Más que fotografía, tus mejores recuerdos
+                        </span>
+                     </div>
+                  </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
           )}
         </AnimatePresence>
       </DialogContent>
     </Dialog>
   )
 }
-

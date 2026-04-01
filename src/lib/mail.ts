@@ -87,28 +87,47 @@ export const sendOrderEmails = async (order: any, isCash: boolean = false) => {
   `
 
   const adminEmailHtml = `
-    <div style="font-family: sans-serif; padding: 30px; border: 2px solid #ACC3B1; border-radius: 16px; background: #1a1a1a; color: #ffffff; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #ACC3B1; margin: 0 0 20px 0; letter-spacing: 1px;">🚀 ${isCash ? 'AVISO: PEDIDO PENDIENTE DE VALIDACIÓN' : 'NUEVO PEDIDO RECIBIDO'}</h2>
+    <div style="font-family: sans-serif; padding: 30px; border: 2px solid #ACC3B1; border-radius: 24px; background: #1a1a1a; color: #ffffff; max-width: 600px; margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.4);">
+      <h2 style="color: #ACC3B1; margin: 0 0 20px 0; letter-spacing: 1px; font-size: 20px;">🚀 ${isCash ? 'AVISO: PEDIDO PENDIENTE' : 'NUEVO PEDIDO RECIBIDO'}</h2>
       
-      <div style="background: #222; padding: 20px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #333;">
-        <p style="margin: 0 0 10px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px;">Cliente:</strong><br/> ${customerName}</p>
-        <p style="margin: 0 0 10px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px;">Email:</strong><br/> ${customerEmail}</p>
-        <p style="margin: 0 0 10px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px;">Teléfono:</strong><br/> ${order.customerPhone || 'N/A'}</p>
-        <p style="margin: 0 0 0 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px;">Pago:</strong><br/> ${isCash ? 'ESPECIFICO / MANUAL (PENDIENTE)' : 'PASARELA DE PAGO'}</p>
+      <div style="background: #222; padding: 25px; border-radius: 20px; margin-bottom: 25px; border: 1px solid #333;">
+        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Cliente:</strong><br/> <span style="font-size: 16px; font-weight: bold;">${customerName}</span></p>
+        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Email:</strong><br/> ${customerEmail}</p>
+        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Teléfono:</strong><br/> ${order.customerPhone || 'N/A'}</p>
+        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Dirección:</strong><br/> ${order.address || 'Recogida en tienda'}</p>
+        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Método Pago:</strong><br/> ${isCash ? '💵 EFECTIVO / PAGO MANUAL' : '💳 PASARELA ONLINE'}</p>
+        ${order.notes ? `<p style="margin: 0;"><strong style="color: #ff9800; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Notas del Pedido:</strong><br/> <span style="color: #ff9800;">${order.notes}</span></p>` : ''}
       </div>
 
-      <h3 style="font-size: 12px; text-transform: uppercase; color: #555; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; letter-spacing: 1px;">Productos y Archivos 📦</h3>
+      <h3 style="font-size: 11px; text-transform: uppercase; color: #555; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; letter-spacing: 2px; font-weight: 800;">Desglose del Pedido 📦</h3>
       <table style="width: 100%; border-collapse: collapse;">
-        ${itemsHtml}
+        ${items.map((item: any) => `
+          <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 15px 0;">
+              <div style="font-weight: bold; color: #ffffff; font-size: 14px;">🛍️ ${item.productName}</div>
+              ${item.variantName ? `<div style="font-size: 11px; color: #ACC3B1;">Variante: ${item.variantName}</div>` : ''}
+              ${item.note ? `<div style="font-size: 11px; color: #ff9800; margin-top: 5px; font-style: italic;">📝 Nota: ${item.note}</div>` : ''}
+              ${item.fileUrl ? `
+                <div style="margin-top: 8px;">
+                  <a href="${item.fileUrl}" style="color: #ACC3B1; font-size: 10px; text-decoration: underline;">🔗 Ver archivo adjunto</a>
+                </div>
+              ` : ''}
+            </td>
+            <td style="padding: 15px 0; text-align: center; color: #ACC3B1; font-weight: bold;">x${item.quantity}</td>
+            <td style="padding: 15px 0; text-align: right; font-weight: 800; color: #ffffff;">
+              ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(item.price * item.quantity)}
+            </td>
+          </tr>
+        `).join('')}
         <tr>
-          <td colspan="2" style="padding-top: 25px; font-size: 18px; font-weight: 900; color: #888;">TOTAL</td>
-          <td style="padding-top: 25px; text-align: right; font-size: 24px; font-weight: 900; color: #ACC3B1;">
+          <td colspan="2" style="padding-top: 25px; font-size: 16px; font-weight: 900; color: #666; letter-spacing: 1px;">TOTAL PEDIDO</td>
+          <td style="padding-top: 25px; text-align: right; font-size: 22px; font-weight: 900; color: #ACC3B1;">
             ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(total)}
           </td>
         </tr>
       </table>
 
-      <div style="margin-top: 40px; font-size: 10px; color: #444; text-align: right;">ID Pedido: ${id}</div>
+      <div style="margin-top: 40px; font-size: 9px; color: #333; text-align: center; letter-spacing: 1px;">ID: ${id} • Pujalte Creative Studio</div>
     </div>
   `
 

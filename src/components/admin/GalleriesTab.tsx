@@ -213,8 +213,11 @@ export function GalleriesTab({ onEditCustomerGallery }: GalleriesTabProps) {
                                  <Edit3 className="h-3.5 w-3.5" /> Gestionar Galería
                                </DropdownMenuItem>
                                <DropdownMenuItem onClick={() => {
-                                 const slug = (customer.dni || customer.email || customer.phone).trim().toUpperCase()
-                                 window.open(`/galeria/${slug}?preview=true`, '_blank')
+                               const slug = customer.slug || 
+                                            customer.gallerySettings?.galleryTitle?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                            customer.name?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                            (customer.dni || customer.id || '').trim().toUpperCase();
+                               window.open(`/galeria/${slug}?preview=true`, '_blank')
                                }} className="gap-2 font-bold text-xs uppercase tracking-tight">
                                  <Eye className="h-3.5 w-3.5" /> Vista Previa
                                </DropdownMenuItem>
@@ -262,8 +265,11 @@ export function GalleriesTab({ onEditCustomerGallery }: GalleriesTabProps) {
                              </button>
                              <button 
                                 onClick={() => {
-                                  const slug = (customer.dni || customer.email || customer.phone || '').trim().toUpperCase()
-                                  window.open(`/galeria/${slug}?preview=true`, '_blank')
+                                   const slug = customer.slug || 
+                                                customer.gallerySettings?.galleryTitle?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                                customer.name?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                                (customer.dni || customer.id || '').trim().toUpperCase();
+                                   window.open(`/galeria/${slug}?preview=true`, '_blank')
                                 }}
                                 className="w-11 h-11 rounded-full bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white transition-all shadow-sm border border-blue-100 flex items-center justify-center group/btn"
                                 title="Vista Previa"
@@ -273,7 +279,10 @@ export function GalleriesTab({ onEditCustomerGallery }: GalleriesTabProps) {
                              <button 
                                 onClick={() => {
                                     try {
-                                       const slug = (customer.dni || customer.email || customer.phone || '').trim().toUpperCase()
+                                       const slug = customer.slug || 
+                                                   customer.gallerySettings?.galleryTitle?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                                   customer.name?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                                   (customer.dni || customer.id || '').trim().toUpperCase();
                                        const url = `${window.location.origin}/galeria/${slug}`
                                        const firstName = customer.name?.split(' ')[0] || 'Cliente';
                                        
@@ -369,8 +378,11 @@ Cualquier duda, ¡escríbeme! 📲
                            </button>
                            <button 
                               onClick={() => {
-                                const slug = (customer.dni || customer.email || customer.phone || '').trim().toUpperCase()
-                                window.open(`/galeria/${slug}?preview=true`, '_blank')
+                                 const slug = customer.slug || 
+                                              customer.gallerySettings?.galleryTitle?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                              customer.name?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                              (customer.dni || customer.id || '').trim().toUpperCase();
+                                 window.open(`/galeria/${slug}?preview=true`, '_blank')
                               }}
                               className="p-2 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-all border border-transparent hover:border-blue-100"
                               title="Vista Previa"

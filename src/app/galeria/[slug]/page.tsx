@@ -1069,10 +1069,19 @@ export default function GalleryPage() {
                       style={{ opacity: (globalConfig.logoOpacity ?? 15) / 100 }}
                     />
                   ) : (
-                    <div className="relative w-full h-full flex items-center justify-center">
-                      <p className="text-white/10 font-black text-6xl sm:text-9xl uppercase tracking-[0.5em] drop-shadow-xl text-center px-4">
-                        {client.gallerySettings?.watermarkText || 'PUJALTE FOTOGRAFÍA'}
-                      </p>
+                    <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
+                      {globalConfig?.logoUrl ? (
+                         <img 
+                           src={globalConfig.logoUrl} 
+                           alt="Watermark" 
+                           className="max-w-[80%] max-h-[80%] object-contain"
+                           style={{ opacity: (globalConfig.logoOpacity ?? 20) / 100 }}
+                         />
+                      ) : (
+                        <p className="text-white font-black text-6xl sm:text-9xl uppercase tracking-[0.5em] drop-shadow-xl text-center px-4" style={{ opacity: (globalConfig.logoOpacity ?? 20) / 100 }}>
+                          {client.gallerySettings?.watermarkText || globalConfig?.storeName || 'PUJALTE FOTOGRAFÍA'}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

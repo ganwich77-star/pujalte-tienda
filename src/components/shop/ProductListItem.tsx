@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Product, ProductVariant, StoreConfig } from '@/types'
 import { motion } from 'framer-motion'
+import { useUserStore } from '@/store/user'
 
 interface ProductListItemProps {
   product: Product
@@ -17,6 +18,7 @@ interface ProductListItemProps {
 }
 
 export function ProductListItem({ product, config, formatPrice, handleAddToCart }: ProductListItemProps) {
+  const { isLoggedIn, setIsLoginModalOpen } = useUserStore()
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     product.hasVariants && product.variants.length > 0 ? product.variants[0] : null
   )
@@ -80,7 +82,13 @@ export function ProductListItem({ product, config, formatPrice, handleAddToCart 
         </div>
 
         <Button 
-          onClick={() => handleAddToCart(product, selectedVariant || undefined)}
+          onClick={() => {
+            if (!isLoggedIn) {
+              setIsLoginModalOpen(true)
+            } else {
+              handleAddToCart(product, selectedVariant || undefined)
+            }
+          }}
           className="h-11 px-6 rounded-xl shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all active:scale-95 gap-2"
         >
           <Plus className="h-4 w-4" />

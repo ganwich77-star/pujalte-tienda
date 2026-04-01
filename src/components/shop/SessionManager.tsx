@@ -35,6 +35,10 @@ export function SessionManager() {
   useEffect(() => {
     if (!isLoggedIn) return
 
+    // Reiniciar actividad al loguearse para evitar logout inmediato 
+    // si el componente SessionManager ya llevaba tiempo cargado
+    resetInactivity()
+
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
     events.forEach(event => window.addEventListener(event, resetInactivity))
 

@@ -110,8 +110,14 @@ export default function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    if (password === (config.adminPassword || 'admin123')) setIsAdmin(true)
-    else { setLoginError(true); setTimeout(() => setLoginError(false), 600) }
+    const targetPassword = config.adminPassword || 'admin123'
+    if (password === targetPassword) {
+      setIsAdmin(true)
+    } else {
+      console.log('Login fallido localmente. Intenta con "admin123" si no has configurado local-db.')
+      setLoginError(true); 
+      setTimeout(() => setLoginError(false), 600)
+    }
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

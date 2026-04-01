@@ -13,6 +13,8 @@ interface User {
 interface UserState {
   isLoggedIn: boolean
   user: User | null
+  isLoginModalOpen: boolean
+  setIsLoginModalOpen: (open: boolean) => void
   login: (userData: User) => void
   logout: () => void
 }
@@ -22,6 +24,8 @@ export const useUserStore = create<UserState>()(
     (set) => ({
       isLoggedIn: false,
       user: null,
+      isLoginModalOpen: false,
+      setIsLoginModalOpen: (open) => set({ isLoginModalOpen: open }),
       login: (userData) => set({ 
         isLoggedIn: true, 
         user: userData 
@@ -34,6 +38,11 @@ export const useUserStore = create<UserState>()(
     {
       name: 'user-storage',
       storage: createJSONStorage(() => localStorage),
+      // No persistimos el estado del modal
+      partialize: (state) => ({ 
+        isLoggedIn: state.isLoggedIn, 
+        user: state.user 
+      }),
     }
   )
 )

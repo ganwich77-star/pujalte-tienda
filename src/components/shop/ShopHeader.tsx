@@ -60,13 +60,11 @@ export function ShopHeader({
   const [adminPassword, setAdminPassword] = useState('')
   const [isError, setIsError] = useState(false)
   
-  // LOGIN CUSTOM STATE (DNI/NIE)
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  // LOGIN GLOBAL STATE (vía useUserStore)
+  const { isLoggedIn, user, login, logout, isLoginModalOpen, setIsLoginModalOpen } = useUserStore()
   const [loginDni, setLoginDni] = useState('')
   const [loginName, setLoginName] = useState('')
   const [loginError, setLoginError] = useState<string | null>(null)
-  
-  const { isLoggedIn, user, login, logout } = useUserStore()
   const { toast } = useToast()
   const [mounted, setMounted] = useState(false)
   const [isFirstVisit, setIsFirstVisit] = useState(false)
@@ -118,16 +116,17 @@ export function ShopHeader({
     
     try {
       // Pasamos tanto el DNI como el NOMBRE a la API para verificar ambos
-      const res = await fetch(`/api/clients/check-cash?dni=${normalizedDni}&name=${normalizedName}`)
+      const res = await fetch(`/api/clients/check-cash?dni=${encodeURIComponent(normalizedDni)}&name=${encodeURIComponent(normalizedName)}`)
       if (res.ok) {
         const data = await res.json()
+        console.log('Login Result:', data) // DEPURALOG: Ver respuesta del servidor
         
         if (data.exists) {
           if (data.errorType === 'NAME_MISMATCH') {
             setLoginError("EL NOMBRE NO COINCIDE CON EL REGISTRADO")
           } else {
             login({
-              email: data.dni, // Usamos el DNI completo desde la DB
+              email: data.dni,
               name: data.fullName || loginName.trim(),
               dni: data.dni,
               cashEnabled: !!data.cashEnabled
@@ -137,41 +136,29 @@ export function ShopHeader({
             setLoginName('')
             
             toast({
-              title: (
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-[#4A7C59] flex items-center justify-center shadow-lg shadow-[#4A7C59]/20">
-                    <User className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-sm font-black tracking-tight uppercase">Bienvenid@ a la mejor experiencia para crear tus mejores recuerdos.</span>
-                </div>
-              ) as any,
-              description: (
-                <div className="flex flex-col gap-1 ml-11">
-                  <p className="text-xs text-slate-500 font-medium leading-tight">
-                    <span className="text-[#4A7C59] font-black uppercase tracking-tighter">{(data.fullName || loginName).split(' ')[0]}</span>, es un placer volverte a ver.
-                  </p>
-                </div>
-              ) as any,
-              className: "bg-white/95 backdrop-blur-md border-none shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[1.5rem] p-6",
-              duration: 5000,
+              title: "ACCESO CORRECTO",
+              description: `BIENVENID@ ${data.fullName || loginName}`,
+              className: "bg-white border-primary shadow-xl",
+              duration: 3000,
             })
           }
         } else {
-          setLoginError("DNI NO REGISTRADO EN EL SISTEMA")
+          setLoginError("DNI NO ENCONTRADO EN LA BASE DE DATOS")
         }
       } else {
         throw new Error('Error en la verificación')
       }
     } catch (e) { 
       console.error('Error in login flow:', e)
-      setLoginError("ERROR DE CONEXIÓN AL VERIFICAR")
+      setLoginError("ERROR DE CONEXIÓN CON EL SERVIDOR")
     } finally {
       setIsLoggingIn(false)
     }
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm px-4">
+    <>
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm px-4">
       <div className="container flex h-16 items-center justify-between max-w-7xl mx-auto">
         {/* LOGO & WEB BUTTON */}
         <div className="flex items-center gap-2 sm:gap-4">
@@ -370,173 +357,158 @@ export function ShopHeader({
         </div>
       </div>
 
-      {/* LOGIN MODAL (CENTRADO TOTAL EN VENTANA DEL NAVEGADOR) */}
-      <AnimatePresence>
-        {isLoginModalOpen && (
-          <div className="fixed inset-0 z-[999999999] flex items-center justify-center p-4 min-h-[100dvh]">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsLoginModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0, y: 0 }}
-              animate={loginError ? { 
-                scale: 1, 
-                opacity: 1, 
-                x: [0, -10, 10, -10, 10, 0],
-                transition: { duration: 0.4 }
-              } : { 
-                scale: 1, 
-                opacity: 1, 
-                x: 0 
-              }}
-              exit={{ scale: 0.95, opacity: 0, y: 0 }}
-              className="bg-white w-full max-w-[360px] rounded-[2rem] shadow-2xl relative overflow-hidden p-6 z-[1000000000]"
-            >
-              <div className="absolute top-0 left-0 w-full h-1 bg-[#4A7C59]" />
-              
-              <button 
-                onClick={() => setIsLoginModalOpen(false)}
-                className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-slate-100 transition-colors text-slate-400"
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              <div className="space-y-3 text-center mb-6 mt-2">
-                <div className="h-12 w-12 bg-[#4A7C59]/5 rounded-2xl flex items-center justify-center mx-auto mb-1 ring-4 ring-white shadow-sm">
-                  <User className="h-6 w-6 text-[#4A7C59]" />
-                </div>
-                <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">IDENTIFICARSE</h2>
-                <p className="text-[11px] text-slate-500 font-bold px-2 uppercase tracking-tight leading-relaxed">
-                  ACCESO CON DNI / NIE
-                </p>
-              </div>
-
-              <form onSubmit={handleLogin} className="space-y-3">
-                <div className="relative group">
-                  <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#4A7C59]" />
-                  <Input
-                    placeholder="TU NOMBRE COMPLETO..."
-                    required
-                    value={loginName}
-                    onChange={(e) => setLoginName(e.target.value.toUpperCase())}
-                    className="h-11 rounded-xl pl-10 bg-slate-50 border-0 font-black text-xs focus-visible:ring-1 focus-visible:ring-[#4A7C59]/20 uppercase"
-                  />
-                </div>
-                <div className="relative group">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#4A7C59]" />
-                  <Input
-                    placeholder="TU DNI O NIE..."
-                    required
-                    value={loginDni}
-                    onChange={(e) => {
-                      setLoginDni(e.target.value)
-                      setLoginError(null)
-                    }}
-                    className={cn(
-                      "h-11 rounded-xl pl-10 bg-slate-50 border-0 font-black text-xs focus-visible:ring-1 uppercase",
-                      loginError ? "ring-2 ring-red-500/50 bg-red-50" : "focus-visible:ring-[#4A7C59]/20"
-                    )}
-                  />
-                </div>
-
-                <AnimatePresence>
-                  {loginError && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <p className="text-[9px] text-red-600 font-black uppercase tracking-widest bg-red-50 py-2 px-3 rounded-lg border border-red-100 italic">
-                        {loginError}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                
-                <div className="pt-4 space-y-3 text-center">
-                  <Button 
-                    type="submit"
-                    disabled={!loginDni || !loginName}
-                    className="w-full h-11 rounded-xl bg-[#4A7C59] hover:bg-[#3D6649] text-white font-black tracking-widest uppercase shadow-lg shadow-[#4A7C59]/20 text-xs"
-                  >
-                    ACCEDER
-                  </Button>
-                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
-                    SESIÓN PERSISTENTE
-                  </p>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ADMIN DIALOG - PREMIUM DESIGN */}
-      <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
-        <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] p-8 border-none shadow-2xl">
-          <DialogHeader className="space-y-4">
-            <div className="h-16 w-16 bg-[#4A7C59]/10 rounded-3xl flex items-center justify-center mx-auto mb-2">
-              <LayoutDashboard className="h-8 w-8 text-[#4A7C59]" />
-            </div>
-            <DialogTitle className="text-2xl font-black text-center text-gray-900 tracking-tight uppercase">Modo Administrador</DialogTitle>
-            <div className="text-center text-gray-500 font-medium leading-relaxed text-sm">
-              Introduce la contraseña de gestión para acceder al panel de control de la tienda.
-            </div>
-          </DialogHeader>
+    </header>
+    
+    {/* LOGIN MODAL (USANDO DIALOG PARA EVITAR BLOQUEO DE FOCO) */}
+    <Dialog open={isLoginModalOpen} onOpenChange={setIsLoginModalOpen}>
+      <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-[360px]">
+        <motion.div 
+          initial={{ scale: 0.95, opacity: 0, y: 0 }}
+          animate={loginError ? { 
+            scale: 1, 
+            opacity: 1, 
+            x: [0, -10, 10, -10, 10, 0],
+            transition: { duration: 0.4 }
+          } : { 
+            scale: 1, 
+            opacity: 1, 
+            x: 0 
+          }}
+          className="bg-white w-full rounded-[2rem] shadow-2xl relative overflow-hidden p-6"
+        >
+          <div className="absolute top-0 left-0 w-full h-1 bg-[#4A7C59]" />
           
-          <div className="space-y-4 py-6">
+          <div className="space-y-3 text-center mb-6 mt-2">
+            <div className="h-12 w-12 bg-[#4A7C59]/5 rounded-2xl flex items-center justify-center mx-auto mb-1 ring-4 ring-white shadow-sm">
+              <User className="h-6 w-6 text-[#4A7C59]" />
+            </div>
+            <DialogTitle className="text-xl font-black text-slate-900 tracking-tight uppercase text-center">IDENTIFICARSE</DialogTitle>
+            <p className="text-[11px] text-slate-500 font-bold px-2 uppercase tracking-tight leading-relaxed">
+              ACCESO CON DNI / NIE
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-3">
             <div className="relative group">
+              <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#4A7C59]" />
               <Input
-                type="password"
-                placeholder="Contraseña de acceso"
-                value={adminPassword}
+                placeholder="TU NOMBRE COMPLETO..."
+                required
+                value={loginName}
+                onChange={(e) => setLoginName(e.target.value.toUpperCase())}
+                className="h-11 rounded-xl pl-10 bg-slate-50 border-0 font-black text-xs focus-visible:ring-1 focus-visible:ring-[#4A7C59]/20 uppercase"
+              />
+            </div>
+            <div className="relative group">
+              <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#4A7C59]" />
+              <Input
+                placeholder="TU DNI O NIE..."
+                required
+                value={loginDni}
                 onChange={(e) => {
-                  setAdminPassword(e.target.value)
-                  setIsError(false)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAdminCheck()
+                  setLoginDni(e.target.value)
+                  setLoginError(null)
                 }}
                 className={cn(
-                  "h-14 rounded-2xl bg-slate-50 border-0 font-bold text-center text-lg tracking-widest focus-visible:ring-2 transition-all",
-                  isError ? "focus-visible:ring-red-500 bg-red-50" : "focus-visible:ring-[#4A7C59]/20"
+                  "h-11 rounded-xl pl-10 bg-slate-50 border-0 font-black text-xs focus-visible:ring-1 uppercase",
+                  loginError ? "ring-2 ring-red-500/50 bg-red-50" : "focus-visible:ring-[#4A7C59]/20"
                 )}
-                autoFocus
               />
-              {isError && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-[10px] text-red-500 font-black uppercase tracking-widest text-center mt-2"
-                >
-                  Contraseña incorrecta
-                </motion.p>
-              )}
             </div>
-          </div>
 
-          <DialogFooter className="flex-col sm:flex-col gap-3">
-            <Button 
-              onClick={handleAdminCheck}
-              className="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-xs shadow-xl transition-all w-full"
-            >
-              Entrar al Panel
-            </Button>
-            <Button 
-              variant="ghost"
-              onClick={() => setIsAdminDialogOpen(false)}
-              className="h-12 rounded-xl font-bold uppercase tracking-widest text-[10px] text-slate-400 hover:text-slate-600 transition-all w-full"
-            >
-              Cancelar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </header>
+            <AnimatePresence>
+              {loginError && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <p className="text-[9px] text-red-600 font-black uppercase tracking-widest bg-red-50 py-2 px-3 rounded-lg border border-red-100 italic">
+                    {loginError}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            <div className="pt-4 space-y-3 text-center">
+              <Button 
+                type="submit"
+                disabled={!loginDni || !loginName}
+                className="w-full h-11 rounded-xl bg-[#4A7C59] hover:bg-[#3D6649] text-white font-black tracking-widest uppercase shadow-lg shadow-[#4A7C59]/20 text-xs"
+              >
+                ACCEDER
+              </Button>
+              <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
+                SESIÓN PERSISTENTE
+              </p>
+            </div>
+          </form>
+        </motion.div>
+      </DialogContent>
+    </Dialog>
+
+    {/* ADMIN DIALOG - PREMIUM DESIGN */}
+    <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
+      <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] p-8 border-none shadow-2xl">
+        <DialogHeader className="space-y-4">
+          <div className="h-16 w-16 bg-[#4A7C59]/10 rounded-3xl flex items-center justify-center mx-auto mb-2">
+            <LayoutDashboard className="h-8 w-8 text-[#4A7C59]" />
+          </div>
+          <DialogTitle className="text-2xl font-black text-center text-gray-900 tracking-tight uppercase">Modo Administrador</DialogTitle>
+          <div className="text-center text-gray-500 font-medium leading-relaxed text-sm">
+            Introduce la contraseña de gestión para acceder al panel de control de la tienda.
+          </div>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-6">
+          <div className="relative group">
+            <Input
+              type="password"
+              placeholder="Contraseña de acceso"
+              value={adminPassword}
+              onChange={(e) => {
+                setAdminPassword(e.target.value)
+                setIsError(false)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAdminCheck()
+              }}
+              className={cn(
+                "h-14 rounded-2xl bg-slate-50 border-0 font-bold text-center text-lg tracking-widest focus-visible:ring-2 transition-all",
+                isError ? "focus-visible:ring-red-500 bg-red-50" : "focus-visible:ring-[#4A7C59]/20"
+              )}
+              autoFocus
+            />
+            {isError && (
+              <motion.p 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-[10px] text-red-500 font-black uppercase tracking-widest text-center mt-2"
+              >
+                Contraseña incorrecta
+              </motion.p>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="flex-col sm:flex-col gap-3">
+          <Button 
+            onClick={handleAdminCheck}
+            className="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-xs shadow-xl transition-all w-full"
+          >
+            Entrar al Panel
+          </Button>
+          <Button 
+            variant="ghost"
+            onClick={() => setIsAdminDialogOpen(false)}
+            className="h-12 rounded-xl font-bold uppercase tracking-widest text-[10px] text-slate-400 hover:text-slate-600 transition-all w-full"
+          >
+            Cancelar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

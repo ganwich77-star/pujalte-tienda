@@ -110,6 +110,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
     phone: '',
     cashEnabled: false,
     gallerySettings: {
+      galleryTitle: '',
       shopRequiresFavorite: false,
       digitalFiles: {
         enabled: false,
@@ -268,6 +269,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
         phone: '', 
         cashEnabled: false, 
         gallerySettings: { 
+          galleryTitle: '',
           shopRequiresFavorite: false,
           digitalFiles: {
             enabled: false,
@@ -706,7 +708,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
               placeholder="Buscar cliente..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-11 h-10 sm:h-12 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 shadow-inner focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 transition-all font-medium text-sm"
+              className="pl-11 h-10 sm:h-12 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 dark:bg-slate-900 dark:border-white/5 dark:text-white shadow-inner focus-visible:bg-white dark:focus-visible:bg-slate-800 focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 transition-all font-medium text-sm"
             />
           </div>
           {selectedIds.size > 0 && (
@@ -733,14 +735,14 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4"
+            className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4"
           >
-            <div className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl ${item.bg} ${item.color}`}>
+            <div className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl ${item.bg} dark:bg-opacity-10 ${item.color}`}>
               <item.icon className="h-4 w-4 sm:h-6 sm:w-6" />
             </div>
             <div>
               <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{item.label}</p>
-              <p className="text-sm sm:text-xl font-black text-slate-800 tracking-tight leading-none">{item.value}</p>
+              <p className="text-sm sm:text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none">{item.value}</p>
             </div>
           </motion.div>
         ))}
@@ -748,7 +750,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
 
       {/* Customers List View */}
       {/* Customers List View */}
-      <div className="mx-4 sm:mx-0 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.02)] overflow-hidden">
+      <div className="mx-4 sm:mx-0 bg-white dark:bg-[#0f172a] rounded-2xl sm:rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-[0_4px_20px_rgb(0,0,0,0.02)] overflow-hidden">
         {/* VISTA MÓVIL (CARDS) */}
         <div className="block sm:hidden divide-y divide-slate-50">
           {filteredCustomers.map((customer) => (
@@ -793,7 +795,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                   <TooltipTrigger asChild>
                     <Button 
                       variant="outline" 
-                      className="flex-1 h-11 rounded-xl bg-white text-slate-900 border-slate-100 font-bold text-xs gap-2 shadow-sm"
+                      className="flex-1 h-11 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-slate-100 dark:border-white/5 font-bold text-xs gap-2 shadow-sm transition-all"
                       onClick={() => setEditingCustomer({
                         ...customer,
                         originalId: customer.id,
@@ -812,8 +814,11 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                   <TooltipTrigger asChild>
                     <Button 
                       variant="ghost" 
-                      className="h-11 w-11 rounded-xl bg-[#4A7C59]/5 text-[#4A7C59] border border-[#4A7C59]/10 shadow-sm"
-                      onClick={() => window.open(`https://api.whatsapp.com/send?phone=${customer.phone.replace(/\D/g, '')}`, '_blank')}
+                      className="h-11 w-11 rounded-xl bg-[#4A7C59]/5 dark:bg-[#4A7C59]/10 text-[#4A7C59] border border-[#4A7C59]/10 shadow-sm"
+                      onClick={() => {
+                        const welcomeMsg = `🎨 ¡Bienvenido/a a Pujalte Creative Studio! 📸✨\n\nHola *${customer.name}*, es un placer saludarte. \n\nFiel a nuestro lema: "La tecnología al servicio de los recuerdos", hemos habilitado tu acceso a nuestra plataforma privada. 🚀\n\nDesde aquí podrás ver, gestionar y pedir tus fotos de forma sencilla:\n\n🔗 Acceso: https://pujalte-tienda.vercel.app/\n👤 Usuario: *${customer.name.split(' ')[0].toUpperCase()}*\n🔑 Contraseña: *${customer.dni}*\n\n(Te recomendamos copiar y pegar tus datos para acceder más rápido) ⚡️\n\nCualquier duda o consulta, ¡escríbenos por aquí mismo! \nEstamos para ayudarte. 👋😊`;
+                        window.open(`https://api.whatsapp.com/send?phone=${customer.phone.replace(/\D/g, '')}&text=${encodeURIComponent(welcomeMsg)}`, '_blank');
+                      }}
                     >
                       <MessageSquare className="h-4.5 w-4.5" />
                     </Button>
@@ -825,7 +830,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                   <TooltipTrigger asChild>
                     <Button 
                       variant="ghost" 
-                      className="h-11 w-11 rounded-xl bg-orange-50 text-orange-500 border border-orange-100 shadow-sm"
+                      className="h-11 w-11 rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-500 border border-orange-100 dark:border-orange-500/20 shadow-sm"
                       onClick={() => handleSendWelcomeEmail(customer)}
                     >
                       <Mail className="h-4.5 w-4.5" />
@@ -838,7 +843,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                   <TooltipTrigger asChild>
                     <Button 
                       variant="ghost" 
-                      className="h-11 w-11 rounded-xl bg-rose-50 text-rose-500 border border-rose-100 shadow-sm"
+                      className="h-11 w-11 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 border border-rose-100 dark:border-rose-500/20 shadow-sm"
                       onClick={() => setDeletingCustomer(customer)}
                     >
                       <Trash2 className="h-4.5 w-4.5" />
@@ -934,8 +939,8 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                               className={cn(
                                 "h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl shadow-sm transition-all border",
                                 customer.cashEnabled 
-                                  ? "bg-emerald-50 text-emerald-500 border-emerald-100 hover:bg-emerald-100" 
-                                  : "bg-slate-50 text-slate-300 border-slate-100 hover:bg-white"
+                                  ? "bg-emerald-50 text-emerald-500 border-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/20" 
+                                  : "bg-slate-50 text-slate-300 border-slate-100 dark:bg-slate-800 dark:border-white/5"
                               )}
                               onClick={() => handleToggleCash(customer)}
                             >
@@ -950,7 +955,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white border border-slate-100 shadow-sm transition-all"
+                              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-white/5 shadow-sm transition-all"
                               onClick={() => setEditingCustomer({
                                 ...customer,
                                 originalId: customer.id,
@@ -970,7 +975,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-orange-50 text-orange-400 hover:text-orange-600 hover:bg-white border border-orange-100 shadow-sm transition-all"
+                              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-400 border border-orange-100 dark:border-orange-500/20 shadow-sm transition-all"
                               onClick={() => handleSendWelcomeEmail(customer)}
                             >
                               <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -984,9 +989,10 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 text-slate-400 hover:text-[#4A7C59] hover:bg-white border border-slate-100 shadow-sm transition-all"
+                              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-white/5 shadow-sm transition-all"
                               onClick={() => {
-                                  window.open(`https://api.whatsapp.com/send?phone=${customer.phone.replace(/\D/g, '')}`, '_blank')
+                                  const welcomeMsg = `🎨 ¡Bienvenido/a a Pujalte Creative Studio! 📸✨\n\nHola *${customer.name}*, es un placer saludarte. \n\nFiel a nuestro lema: "La tecnología al servicio de los recuerdos", hemos habilitado tu acceso a nuestra plataforma privada. 🚀\n\nDesde aquí podrás ver, gestionar y pedir tus fotos de forma sencilla:\n\n🔗 Acceso: https://pujalte-tienda.vercel.app/\n👤 Usuario: *${customer.name.split(' ')[0].toUpperCase()}*\n🔑 Contraseña: *${customer.dni}*\n\n(Te recomendamos copiar y pegar tus datos para acceder más rápido) ⚡️\n\nCualquier duda o consulta, ¡escríbenos por aquí mismo! \nEstamos para ayudarte. 👋😊`;
+                                  window.open(`https://api.whatsapp.com/send?phone=${customer.phone.replace(/\D/g, '')}&text=${encodeURIComponent(welcomeMsg)}`, '_blank');
                               }}
                             >
                               <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -1019,11 +1025,11 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
 
         {filteredCustomers.length === 0 && (
           <div className="py-20 text-center space-y-4">
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm">
-              <Users className="h-8 w-8 text-slate-200" />
+            <div className="w-20 h-20 bg-white dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto shadow-sm border border-slate-50 dark:border-white/5 transition-colors">
+              <Users className="h-8 w-8 text-slate-200 dark:text-slate-700" />
             </div>
             <div>
-              <p className="text-xl font-black text-slate-800 tracking-tight">No se han encontrado clientes</p>
+              <p className="text-xl font-black text-slate-800 dark:text-white tracking-tight">No se han encontrado clientes</p>
               <p className="text-sm text-slate-400 font-medium">Intenta con otros términos de búsqueda.</p>
             </div>
           </div>
@@ -1416,13 +1422,23 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                       placeholder="Ej: Boda de María y Juan"
                       value={editingCustomer.gallerySettings?.galleryTitle || ''}
                       onChange={(e) => {
-                        setEditingCustomer({
-                          ...editingCustomer,
-                          gallerySettings: {
-                            ...editingCustomer.gallerySettings,
-                            galleryTitle: e.target.value
-                          }
-                        })
+                        const newTitle = e.target.value;
+                        const newSlug = newTitle
+                          .toLowerCase()
+                          .normalize("NFD")
+                          .replace(/[\u0300-\u036f]/g, "")
+                          .replace(/[^a-z0-9]+/g, '-')
+                          .replace(/^-+|-+$/g, '');
+                        
+                        setEditingCustomer(prev => {
+                          const updated = { ...prev };
+                          if (newSlug) updated.slug = newSlug;
+                          updated.gallerySettings = {
+                            ...(prev?.gallerySettings || {}),
+                            galleryTitle: newTitle
+                          };
+                          return updated;
+                        });
                       }}
                     />
                   </div>
@@ -1435,10 +1451,11 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                       placeholder="ej: nora-magia-2024"
                       value={editingCustomer.slug || ''}
                       onChange={(e) => {
-                        setEditingCustomer({
-                          ...editingCustomer,
-                          slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-')
-                        })
+                        const val = e.target.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+                        setEditingCustomer(prev => ({
+                          ...prev,
+                          slug: val
+                        }))
                       }}
                     />
                   </div>
@@ -1495,7 +1512,10 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                     variant="outline" 
                     className="flex-1 rounded-xl h-11 font-black uppercase text-[10px] tracking-widest gap-2"
                     onClick={() => {
-                      const slug = editingCustomer.slug || (editingCustomer.dni || editingCustomer.email || editingCustomer.phone).trim().toUpperCase()
+                      const slug = editingCustomer.slug || 
+                                  editingCustomer.gallerySettings?.galleryTitle?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                  editingCustomer.name?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                  (editingCustomer.dni || editingCustomer.id || '').trim().toUpperCase();
                       window.open(`/galeria/${slug}?preview=true`, '_blank')
                     }}
                   >
@@ -1505,7 +1525,10 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                     className="flex-1 bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-xl h-11 font-black uppercase text-[10px] tracking-widest gap-2"
                     onClick={() => {
                       try {
-                        const slug = editingCustomer.slug || (editingCustomer.dni || editingCustomer.email || editingCustomer.phone || '').trim().toUpperCase()
+                        const slug = editingCustomer.slug || 
+                                    editingCustomer.gallerySettings?.galleryTitle?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                    editingCustomer.name?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+                                    (editingCustomer.dni || editingCustomer.id || '').trim().toUpperCase();
                         const url = `${window.location.origin}/galeria/${slug}`
                         const firstName = editingCustomer.name?.split(' ')[0] || 'Cliente';
                         
@@ -1686,7 +1709,21 @@ Cualquier duda, ¡escríbeme! 📲
               <Input 
                 placeholder="Ej: Juan Pérez"
                 value={newCustomer.name} 
-                onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                onChange={(e) => {
+                  const newName = e.target.value;
+                  const newSlug = newName
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                    
+                  setNewCustomer({
+                    ...newCustomer, 
+                    name: newName,
+                    slug: newSlug
+                  })
+                }}
                 className="rounded-2xl h-12 bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-bold"
               />
             </div>
@@ -1697,6 +1734,32 @@ Cualquier duda, ¡escríbeme! 📲
                 value={newCustomer.dni} 
                 onChange={(e) => setNewCustomer({...newCustomer, dni: e.target.value})}
                 className="rounded-2xl h-12 bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-bold"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Título de Galería</Label>
+              <Input 
+                placeholder="Ej: Reportaje de Comunión"
+                value={newCustomer.gallerySettings?.galleryTitle || ''} 
+                onChange={(e) => {
+                  const newTitle = e.target.value;
+                  const newSlug = newTitle
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                    
+                  setNewCustomer(prev => ({
+                    ...prev, 
+                    slug: newSlug || prev.slug,
+                    gallerySettings: {
+                      ...prev.gallerySettings,
+                      galleryTitle: newTitle
+                    }
+                  }))
+                }}
+                className="rounded-2xl h-12 bg-slate-50 border-slate-100 focus:bg-white transition-all text-sm font-bold text-[#4A7C59]"
               />
             </div>
             <div className="space-y-2">

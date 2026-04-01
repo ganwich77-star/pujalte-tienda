@@ -13,42 +13,63 @@ export async function GET(req: Request) {
 
     // 1. Limpiar DNI del request (solo números)
     const numericDni = dni.replace(/[^0-9]/g, '')
+    const exactDni = dni.trim().toUpperCase()
 
     if (!numericDni) {
       return NextResponse.json({ error: 'DNI inválido' }, { status: 400 })
     }
 
-    // 2. Obtener todos los clientes para buscar por el número del DNI 
-    // (Firebase no permite buscar por parte del ID fácilmente, consultamos la colección)
     const { collection, getDocs, query, where } = await import('firebase/firestore')
     const clientsRef = collection(db, COLLECTIONS.CLIENTS)
-    const q = query(clientsRef)
-    const querySnapshot = await getDocs(q)
     
     let targetClient: any = null
     let clientIdMatch: string | null = null
 
-    // Buscamos un cliente cuyo ID (DNI) contenga los números proporcionados
+    const normalize = (str: string) => 
+      str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim()
+
+    const nameParam = searchParams.get('name')
+    const normalizedParam = nameParam ? normalize(nameParam) : ''
+
+    // Traemos todos para una búsqueda flexible total
+    const q = query(clientsRef)
+    const querySnapshot = await getDocs(q)
+    
+    // Almacenamos posibles matches por DNI numérico
+    const candidates: any[] = []
+
     querySnapshot.forEach((doc) => {
-      const docIdNumeric = doc.id.replace(/[^0-9]/g, '')
-      if (docIdNumeric === numericDni) {
-        targetClient = doc.data()
-        clientIdMatch = doc.id
+      const docId = doc.id.toUpperCase().trim()
+      const docIdNumeric = docId.replace(/[^0-9]/g, '')
+      
+      // Si hay match exacto o match numérico
+      if (docId === exactDni || docIdNumeric === numericDni) {
+        candidates.push({ id: doc.id, ...doc.data() })
       }
     })
 
-    if (!targetClient) {
+    if (candidates.length === 0) {
       return NextResponse.json({ exists: false, errorType: 'NOT_FOUND' })
     }
 
-    // 3. Validar el nombre si se proporciona (opcional en la URL, pero lo usaremos para el login)
-    const nameParam = searchParams.get('name')?.toUpperCase().trim()
-    if (nameParam) {
-      const dbName = targetClient.name?.toUpperCase().trim() || ''
-      // Comprobación de nombre (flexibilidad básica: que el nombre esté contenido o coincida)
-      if (dbName !== nameParam && !dbName.includes(nameParam) && !nameParam.includes(dbName)) {
+    // Buscamos el mejor candidato comparando el nombre
+    if (normalizedParam) {
+      targetClient = candidates.find(c => {
+        const dbNameNormalized = normalize(c.name || '')
+        return dbNameNormalized === normalizedParam || 
+               dbNameNormalized.includes(normalizedParam) || 
+               normalizedParam.includes(dbNameNormalized)
+      })
+
+      if (!targetClient) {
+        // Si no hay match de nombre pero sí de DNI, informamos
         return NextResponse.json({ exists: true, errorType: 'NAME_MISMATCH' })
       }
+      clientIdMatch = targetClient.id
+    } else {
+      // Si no hay nombre para validar, cogemos el primero (caso raro)
+      targetClient = candidates[0]
+      clientIdMatch = targetClient.id
     }
 
     return NextResponse.json({ 
