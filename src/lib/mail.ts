@@ -76,7 +76,7 @@ export const sendOrderEmails = async (order: any, isCash: boolean = false) => {
         <p style="text-align: center; margin-top: 40px; font-size: 15px; color: #ffffff;">¡Mil gracias por confiar en nosotros! ❤️</p>
 
         <div style="margin-top: 60px; padding-top: 20px; border-top: 1px solid #333; font-size: 10px; color: #444; text-align: justify; line-height: 1.4;">
-          <strong>LOPD:</strong> Responsable: Pepe Pujalte Molina. Finalidad: Gestión de su pedido. Email: hola@pujaltefotografia.es.
+          <strong>LOPD:</strong> Responsable: Pepe Pujalte Molina. Finalidad: Gestión de su pedido. Email: pedidos@pujaltefotografia.es.
         </div>
         
         <div style="margin-top: 30px; text-align: center;">
@@ -116,7 +116,7 @@ export const sendOrderEmails = async (order: any, isCash: boolean = false) => {
     // Solo enviamos al cliente si NO es pago en efectivo (según petición de Jose)
     if (!isCash) {
       await transporter.sendMail({
-        from: `"Pujalte Creative Studio" <${process.env.MAIL_USER || 'hola@pujaltefotografia.es'}>`,
+        from: `"Pujalte Creative Studio" <${process.env.MAIL_USER || 'pedidos@pujaltefotografia.es'}>`,
         to: customerEmail,
         subject: `✅ Pedido Confirmado - ${trackingNumber || id.slice(-6)}`,
         html: customerEmailHtml,
@@ -125,8 +125,8 @@ export const sendOrderEmails = async (order: any, isCash: boolean = false) => {
 
     // Al administrador (Jose) se le avisa SIEMPRE
     await transporter.sendMail({
-      from: isCash ? '"Aviso de Pedido" <hola@pujaltefotografia.es>' : '"Gestión de Pedidos" <hola@pujaltefotografia.es>',
-      to: 'hola@pujaltefotografia.es, apps@pujaltefotografia.es',
+      from: isCash ? '"Aviso de Pedido" <pedidos@pujaltefotografia.es>' : '"Gestión de Pedidos" <pedidos@pujaltefotografia.es>',
+      to: 'pedidos@pujaltefotografia.es, apps@pujaltefotografia.es',
       subject: isCash ? `⚠️ PEDIDO PENDIENTE: ${customerName}` : `🚀 NUEVO PEDIDO: ${customerName}`,
       html: adminEmailHtml,
     })

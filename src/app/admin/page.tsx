@@ -52,7 +52,7 @@ export default function AdminPage() {
     async function init() {
       try {
         const [pRes, catRes, confRes, ordRes] = await Promise.all([
-          fetch('/api/products'), fetch('/api/categories'), fetch('/api/config'), fetch('/api/orders')
+          fetch('/api/products?admin=true'), fetch('/api/categories'), fetch('/api/config'), fetch('/api/orders')
         ])
         if (pRes.ok) setProducts(await pRes.json())
         if (catRes.ok) setCategories(await catRes.json())
@@ -82,7 +82,7 @@ export default function AdminPage() {
       if (res.ok) {
         toast({ title: 'Éxito', description: 'Producto guardado correctamente.' })
         setIsProductDialogOpen(false)
-        setProducts(await fetch('/api/products').then(r => r.json()))
+        setProducts(await fetch('/api/products?admin=true').then(r => r.json()))
       }
     } catch (e) { console.error(e) } finally { setIsSaving(false) }
   }
@@ -124,7 +124,7 @@ export default function AdminPage() {
       const res = await fetch('/api/upload/bulk', { method: 'POST', body: formData })
       if (res.ok) {
         toast({ title: 'Importación completada' })
-        setProducts(await fetch('/api/products').then(r => r.json()))
+        setProducts(await fetch('/api/products?admin=true').then(r => r.json()))
       }
     } catch (e) { console.error(e) } finally { setUploading(false) }
   }
@@ -206,7 +206,7 @@ export default function AdminPage() {
             if (typeof processedProduct.customOptions === 'string' && processedProduct.customOptions.trim() !== '' && processedProduct.customOptions.trim() !== 'null') {
               processedProduct.customOptions = JSON.parse(processedProduct.customOptions);
             } else if (!processedProduct.customOptions || (typeof processedProduct.customOptions === 'string' && processedProduct.customOptions.trim() === 'null')) {
-              processedProduct.customOptions = [];
+              processedProduct.customOptions = "[]";
             }
 
             // Asegurar variants
@@ -215,8 +215,8 @@ export default function AdminPage() {
             }
           } catch (e) {
             console.error('Error procesando datos del producto:', e);
-            if (!processedProduct.tierPricing) processedProduct.tierPricing = [];
-            if (!processedProduct.customOptions) processedProduct.customOptions = [];
+            if (!processedProduct.tierPricing) (processedProduct as any).tierPricing = [];
+            if (!processedProduct.customOptions) (processedProduct as any).customOptions = "[]";
             if (!processedProduct.variants) processedProduct.variants = [];
           }
           

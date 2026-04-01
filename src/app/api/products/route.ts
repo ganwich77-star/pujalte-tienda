@@ -4,20 +4,26 @@ import { NextResponse } from "next/server";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// GET: Listar productos desde MySQL Directo (Hostinger)
+// GET: Listar productos
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId') || searchParams.get('category');
     const search = searchParams.get('search');
+    const isAdmin = searchParams.get('admin') === 'true'; // Nuevo flag para admin
 
     let sql = `
       SELECT p.*, c.name as categoryName, c.id as categoryId 
       FROM product p 
       LEFT JOIN category c ON p.categoryId = c.id 
-      WHERE p.active = 1
+      WHERE 1=1
     `;
     const params: any[] = [];
+
+    // Si no es admin, solo mostrar activos
+    if (!isAdmin) {
+      sql += ` AND p.active = 1`;
+    }
 
     if (categoryId && categoryId !== 'all') {
       sql += ` AND (p.categoryId = ? OR c.name LIKE ?)`;
@@ -33,9 +39,9 @@ export async function GET(request: Request) {
 
     const [products]: any = await mysqlDb.query(sql, params);
 
-    // Obtener variantes para cada producto
+    // Obtener variantes
     const productsWithVariants = await Promise.all(products.map(async (p: any) => {
-      const [variants]: any = await mysqlDb.query(`SELECT * FROM productvariant WHERE productId = ? AND active = 1`, [p.id]);
+      const [variants]: any = await mysqlDb.query(`SELECT * FROM productvariant WHERE productId = ?`, [p.id]);
       return {
         ...p,
         category: p.categoryId ? { id: p.categoryId, name: p.categoryName } : null,
@@ -50,33 +56,37 @@ export async function GET(request: Request) {
   }
 }
 
-// POST: Crear producto en Prisma
+// POST: Crear producto
 export async function POST(request: Request) {
   try {
     const data = await request.json();
+    
+    // Limpieza de datos antes de enviar a Prisma
+    const { variants, category, supplier, categoryName, ...fields } = data;
+
     const product = await db.product.create({
       data: {
-        name: data.name,
-        description: data.description,
-        price: parseFloat(data.price) || 0,
-        image: data.image,
-        stock: parseInt(data.stock) || 0,
-        categoryId: data.categoryId,
-        active: data.active ?? true,
-        showPrice: data.showPrice ?? true,
-        isPack: data.isPack ?? false,
-        hasVariants: data.hasVariants ?? false,
-        variantType: data.variantType,
-        variantBehavior: data.variantBehavior,
-        isNew: data.isNew ?? false,
-        salePrice: data.salePrice ? parseFloat(data.salePrice) : null,
-        minQuantity: parseInt(data.minQuantity) || 1,
-        stepQuantity: parseInt(data.stepQuantity) || 1,
-        tierPricing: typeof data.tierPricing === 'object' ? JSON.stringify(data.tierPricing) : data.tierPricing,
-        supplierId: data.supplierId || null,
-        customOptions: typeof data.customOptions === 'object' ? JSON.stringify(data.customOptions) : data.customOptions,
+        name: fields.name,
+        description: fields.description,
+        price: parseFloat(fields.price) || 0,
+        image: fields.image,
+        stock: parseInt(fields.stock) || 0,
+        categoryId: fields.categoryId,
+        active: fields.active ?? true,
+        showPrice: fields.showPrice ?? true,
+        isPack: fields.isPack ?? false,
+        hasVariants: fields.hasVariants ?? false,
+        variantType: fields.variantType,
+        variantBehavior: fields.variantBehavior,
+        isNew: fields.isNew ?? false,
+        salePrice: fields.salePrice ? parseFloat(fields.salePrice) : null,
+        minQuantity: parseInt(fields.minQuantity) || 1,
+        stepQuantity: parseInt(fields.stepQuantity) || 1,
+        tierPricing: typeof fields.tierPricing === 'object' ? JSON.stringify(fields.tierPricing) : (fields.tierPricing || "[]"),
+        supplierId: fields.supplierId || null,
+        customOptions: typeof fields.customOptions === 'object' ? JSON.stringify(fields.customOptions) : (fields.customOptions || "[]"),
         variants: {
-          create: (data.variants || []).map((v: any) => ({
+          create: (variants || []).map((v: any) => ({
             name: v.name,
             price: parseFloat(v.price) || 0,
             stock: parseInt(v.stock) || 0,
@@ -93,17 +103,28 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT: Actualizar en Prisma
+// PUT: Actualizar producto
 export async function PUT(request: Request) {
   try {
     const data = await request.json();
-    // Extraemos ID y otros campos que NO deben ir en el update principal o necesitan trato especial
-    const { id, variants, category, supplier, ...fields } = data;
+    
+    // EXTREMADAMENTE IMPORTANTE: Filtrar campos que NO existen en el modelo de Prisma
+    // o que vienen de joins en el GET previo (como categoryName).
+    const { 
+      id, 
+      variants, 
+      category, 
+      supplier, 
+      categoryName, // Viene del JOIN en el GET
+      createdAt,    // No lo actualizamos manualmente
+      updatedAt,    // Prisma lo maneja solo
+      ...fields     // El resto de campos que sí coinciden con el modelo
+    } = data;
 
     if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
 
     const product = await db.product.update({
-      where: { id },
+      where: { id: String(id) },
       data: {
         ...fields,
         price: fields.price !== undefined ? parseFloat(fields.price) : undefined,
@@ -111,10 +132,10 @@ export async function PUT(request: Request) {
         salePrice: (fields.salePrice !== undefined && fields.salePrice !== null) ? parseFloat(fields.salePrice) : (fields.salePrice === null ? null : undefined),
         minQuantity: fields.minQuantity !== undefined ? parseInt(fields.minQuantity) : undefined,
         stepQuantity: fields.stepQuantity !== undefined ? parseInt(fields.stepQuantity) : undefined,
-        tierPricing: typeof fields.tierPricing === 'object' ? JSON.stringify(fields.tierPricing) : fields.tierPricing,
-        customOptions: typeof fields.customOptions === 'object' ? JSON.stringify(fields.customOptions) : fields.customOptions,
+        tierPricing: typeof fields.tierPricing === 'object' ? JSON.stringify(fields.tierPricing) : (fields.tierPricing || undefined),
+        customOptions: typeof fields.customOptions === 'object' ? JSON.stringify(fields.customOptions) : (fields.customOptions || undefined),
         variants: variants ? {
-          deleteMany: {},
+          deleteMany: {}, // Simplificamos: borrar todas y recrear (evita problemas de ID)
           create: variants.map((v: any) => ({
             name: v.name,
             price: parseFloat(v.price) || 0,
