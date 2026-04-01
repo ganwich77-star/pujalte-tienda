@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import landingData from '@/data/landing-config.json'
 import { StoreConfig } from '@/types'
-
-// Cliente singleton local con timeout agresivo
-const prisma = new PrismaClient()
+import { db as prisma } from '@/lib/db'
 
 const defaultConfig: StoreConfig = {
   ...landingData,

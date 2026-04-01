@@ -1009,7 +1009,42 @@ export default function GalleryPage() {
 
             <div className="max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar">
               <AnimatePresence mode="wait">
-                {!selectedProduct ? (
+                {photoToBuy && !favorites.has(photoToBuy.id) ? (
+                  <motion.div 
+                    key="no-favorite-message"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="flex flex-col items-center justify-center py-10 px-6 text-center space-y-6 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200"
+                  >
+                    <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center text-orange-500 scale-110 rotate-3">
+                      <Heart className="h-10 w-10 fill-current" />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">
+                        ¡Esta foto es espectacular!
+                      </h3>
+                      <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-sm mx-auto">
+                        Para poder añadir artículos personalizados con esta imagen, primero debes <span className="text-[#4A7C59] font-black italic underline">seleccionarla como favorita</span>.
+                      </p>
+                      <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] bg-orange-100/50 py-2 px-4 rounded-full inline-block">
+                        ✨ ¡Recuerda! Puede contar como una foto extra ✨
+                      </p>
+                    </div>
+
+                    <Button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(photoToBuy.id);
+                        toast({ title: "¡Foto seleccionada!", description: "Ya puedes elegir tus artículos." });
+                      }}
+                      className="bg-slate-900 hover:bg-black text-white rounded-full h-14 px-10 font-black uppercase text-[11px] tracking-widest shadow-2xl flex gap-2 active:scale-95 transition-all"
+                    >
+                      <Heart className="h-4 w-4 fill-current" /> Seleccionar como favorita ahora
+                    </Button>
+                  </motion.div>
+                ) : !selectedProduct ? (
                   <motion.div 
                     key="product-list"
                     initial={{ opacity: 0, x: -20 }}
