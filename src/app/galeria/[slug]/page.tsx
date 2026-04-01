@@ -232,7 +232,7 @@ export default function GalleryPage() {
     };
   }, []);
 
-  // 2. Gestión de música de fondo Pro - Sincronizada con interacción
+  // 2. Gestión de música de fondo Pro - Sincronizada con interacción y visibilidad
   useEffect(() => {
     const audio = audioRef.current;
     if (client?.gallerySettings?.bgMusic?.url && audio) {
@@ -251,6 +251,25 @@ export default function GalleryPage() {
           }).catch(e => console.log("Error al reproducir audio:", e));
         }
     }
+
+    // GESTIÓN DE VISIBILIDAD: Parar música si salimos de la pestaña
+    const handleVisibilityChange = () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      if (document.hidden) {
+        // Pausamos pero mantenemos el estado isPlaying para saber que debe sonar al volver
+        audio.pause();
+      } else {
+        // Reanudamos solo si el usuario tenía la música activa
+        if (isPlaying && (hasInteracted || isPreview)) {
+          audio.play().catch(e => console.log("Error reanudando audio:", e));
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [client, hasInteracted, isPlaying, isPreview]);
 
   const toggleMusic = () => {

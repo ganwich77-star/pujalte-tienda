@@ -547,7 +547,11 @@ export function ShopHeader({
 
                   <button
                     type="button"
-                    onClick={() => setIsLoginModalOpen(false)}
+                    onClick={() => {
+                        setIsLoginModalOpen(false)
+                        setHasClosedThisSession(true)
+                        setIsFirstVisit(false)
+                    }}
                     className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-[#4A7C59] block w-full text-center transition-colors outline-none"
                   >
                     Solo quiero echar un vistazo
