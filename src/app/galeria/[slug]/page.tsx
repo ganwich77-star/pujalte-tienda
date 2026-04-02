@@ -1131,34 +1131,48 @@ export default function GalleryPage() {
             className="fixed inset-0 z-[80] bg-black flex flex-col"
           >
             {/* Header Lightbox */}
-            <div className="flex items-center justify-between p-6 bg-black/50 backdrop-blur-md text-white absolute top-0 left-0 right-0 z-10">
-              <div className="flex items-center gap-4">
+            <div className={cn(
+              "flex items-center justify-between p-4 sm:p-6 bg-black/50 backdrop-blur-md text-white absolute left-0 right-0 z-10 transition-all",
+              isPreview ? "top-[40px] sm:top-0" : "top-0"
+            )}>
+              <div className="flex items-center gap-3 sm:gap-4">
                 <button onClick={() => setSelectedPhoto(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                   <ChevronLeft className="h-6 w-6" />
                 </button>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white/50">{selectedPhoto.fileName}</span>
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white/50 truncate max-w-[120px] sm:max-w-none">
+                    {selectedPhoto.fileName}
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button 
                   onClick={() => handleOpenShop(selectedPhoto)}
-                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-6"
+                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-4 sm:px-6 relative"
                 >
-                  <ShoppingBag className="h-4 w-4" /> Comprar
+                  <ShoppingBag className="h-4 w-4" />
+                  <span className="hidden sm:inline">Comprar</span>
+                  {(() => {
+                    const photoCartItems = getItemsForPhoto(selectedPhoto.url);
+                    return photoCartItems.length > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-[#4A7C59] text-white text-[9px] h-5 w-5 rounded-full flex items-center justify-center font-black border-2 border-slate-900 shadow-lg">
+                        {photoCartItems.length}
+                      </span>
+                    );
+                  })()}
                 </Button>
                 <Button 
                   variant="ghost"
                   onClick={() => toggleFavorite(selectedPhoto.id)}
                   className={cn(
-                    "rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10",
+                    "rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-3 sm:px-4",
                     favorites.has(selectedPhoto.id) ? "bg-[#4A7C59] text-white" : "text-white hover:bg-white/10"
                   )}
                 >
                   <Heart className={cn("h-4 w-4", favorites.has(selectedPhoto.id) && "fill-current")} />
-                  {favorites.has(selectedPhoto.id) ? 'En favoritos' : 'Favorita'}
+                  <span className="hidden md:inline">{favorites.has(selectedPhoto.id) ? 'En favoritos' : 'Favorita'}</span>
                 </Button>
-                <button onClick={() => setSelectedPhoto(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors ml-4">
+                <button onClick={() => setSelectedPhoto(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors ml-2 sm:ml-4">
                   <X className="h-6 w-6" />
                 </button>
               </div>
@@ -1875,8 +1889,8 @@ export default function GalleryPage() {
             <button
                 onClick={toggleMusic}
                 className={cn(
-                  "fixed right-6 z-[100] w-12 h-12 rounded-full bg-white/90 backdrop-blur-md shadow-2xl border border-slate-100 flex items-center justify-center text-slate-800 hover:scale-110 active:scale-95 transition-all group",
-                  isPreview ? "top-16 sm:top-6" : "top-6"
+                  "fixed right-6 z-[120] w-12 h-12 rounded-full bg-white/95 backdrop-blur-md shadow-2xl border border-slate-100 flex items-center justify-center text-slate-800 hover:scale-110 active:scale-95 transition-all group",
+                  isPreview ? "top-14 sm:top-6" : "top-6"
                 )}
                 title={isPlaying ? "Silenciar" : "Escuchar música"}
             >
