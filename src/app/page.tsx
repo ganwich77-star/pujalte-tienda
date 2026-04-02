@@ -1469,6 +1469,9 @@ Mi email: ${formData.email}`
                 {/* Lightbox / Zoom */}
                 <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
                   <DialogContent className="!max-w-none w-screen h-screen p-0 bg-transparent border-none shadow-none flex items-center justify-center overflow-hidden z-[100] [&>button]:hidden">
+                    <DialogHeader className="sr-only">
+                      <DialogTitle>Previsualización de imagen de galería</DialogTitle>
+                    </DialogHeader>
                     {/* Background Layer with Blur and Dimming */}
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-xl" onClick={() => setSelectedGalleryImage(null)} />
                     
@@ -1704,6 +1707,9 @@ Mi email: ${formData.email}`
 
           <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
             <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-3xl">
+              <DialogHeader className="sr-only">
+                <DialogTitle>Detalles del producto</DialogTitle>
+              </DialogHeader>
               {editingProduct && (
                 <div className="flex flex-col">
                   <img src={fixPath(editingProduct.image || '')} className="w-full h-64 object-cover" alt="" />

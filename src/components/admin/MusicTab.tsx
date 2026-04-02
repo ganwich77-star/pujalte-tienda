@@ -456,15 +456,15 @@ export function MusicTab() {
       {/* DIALOG GESTION ETIQUETAS */}
       <Dialog open={isManagingTags} onOpenChange={setIsManagingTags}>
         <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
-           <div className="bg-slate-900 p-8 text-white">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-white/10 rounded-xl">
-                  <Tag className="h-5 w-5" />
-                </div>
-                <h2 className="text-xl font-black uppercase tracking-tighter">Gestionar Etiquetas</h2>
+          <DialogHeader className="bg-slate-900 p-8 text-white space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/10 rounded-xl">
+                <Tag className="h-5 w-5" />
               </div>
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Crea categorías personalizadas para vuestra música</p>
-           </div>
+              <DialogTitle className="text-xl font-black uppercase tracking-tighter">Gestionar Etiquetas</DialogTitle>
+            </div>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Crea categorías personalizadas para vuestra música</p>
+          </DialogHeader>
 
            <div className="p-8 space-y-6">
               <div className="flex gap-2">

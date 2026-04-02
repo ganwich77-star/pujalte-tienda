@@ -112,6 +112,13 @@ export default function GalleryPage() {
       if (showOnlyFavorites) {
         filtered = filtered.filter((p: any) => favorites.has(p.id));
       }
+      
+      // ORDENAR: Favoritas primero
+      filtered = [...filtered].sort((a, b) => {
+        const aFav = favorites.has(a.id) ? 1 : 0;
+        const bFav = favorites.has(b.id) ? 1 : 0;
+        return bFav - aFav; // 1 (fav) va antes que 0 (no fav)
+      });
     }
     return filtered || [];
   }, [photos, rejectedPhotos, showRejected, showOnlyFavorites, favorites]);
@@ -314,10 +321,15 @@ export default function GalleryPage() {
   
   const handleRejectAction = async (photo: any) => {
     if (showRejected) {
-      // Si estamos en modo rechazadas, el botón sirve para RESTAURAR
+      // Si estamos en modo explorador de rechazadas, el botón sirve para RESTAURAR
       const newRejected = new Set(rejectedPhotos);
       newRejected.delete(photo.id);
       setRejectedPhotos(newRejected);
+      
+      // SI ERA LA ÚLTIMA FOTO DESCARTADA, VOLVEMOS A LA GALERÍA NORMAL AUTOMÁTICAMENTE
+      if (newRejected.size === 0) {
+        setShowRejected(false);
+      }
       
       try {
         const docRef = doc(db, COLLECTIONS.CLIENTS, clientId || slug.toUpperCase());
@@ -992,96 +1004,93 @@ export default function GalleryPage() {
         ) : (
           /* MODO LISTA */
           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50 border-b border-slate-100">
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Miniatura</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre del Archivo</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Favorito</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Comentario / Nota</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Productos Extras</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acciones</th>
+            {/* Ocultamos el scroll lateral y forzamos un ancho completo */}
+            <div className="overflow-hidden">
+              <table className="w-full text-left border-collapse table-fixed md:table-auto">
+                <thead className="bg-slate-50/50 border-b border-slate-100 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <tr>
+                    <th className="px-2 md:px-6 py-3 md:py-4 w-[65px] md:w-auto">Foto</th>
+                    <th className="px-2 md:px-6 py-3 md:py-4">Archivo / Comentario</th>
+                    <th className="px-2 md:px-6 py-3 md:py-4 w-[40px] md:w-auto text-center">Fav</th>
+                    <th className="px-2 md:px-6 py-3 md:py-4 w-[85px] md:w-auto text-right">Acción</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {displayedPhotos.map((photo: any) => {
-                    const photoCartItems = getItemsForPhoto(photo.url)
                     return (
                       <tr key={photo.id} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="px-6 py-4">
-                          <div className="w-20 h-20 rounded-xl overflow-hidden shadow-sm border-2 border-white cursor-pointer relative" onClick={() => setViewerIndex(displayedPhotos.findIndex((p:any) => p.id === photo.id))}>
+                        {/* MINIATURA COMPACTA */}
+                        <td className="px-2 md:px-6 py-3 md:py-4">
+                          <div 
+                            className="w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden shadow-sm border-2 border-white cursor-pointer relative shrink-0" 
+                            onClick={() => setViewerIndex(displayedPhotos.findIndex((p:any) => p.id === photo.id))}
+                          >
                             <img src={photo.url} className="w-full h-full object-contain" />
-                             {/* Watermark miniatura */}
+                             {/* Watermark sutil */}
                              {(client.gallerySettings?.watermarkEnabled !== false) && (
-                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-                                <span className="text-white text-[6px] font-black -rotate-45">PUJALTE</span>
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+                                <span className="text-white text-[4px] md:text-[6px] font-black -rotate-45">P</span>
                               </div>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-black text-slate-700 tracking-tight">{photo.fileName?.replace(/\.[^/.]+$/, "")}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ref: {photo.id.slice(0, 8)}</p>
+
+                        {/* NOMBRE + COMENTARIO INTEGRADOS */}
+                        <td className="px-2 md:px-6 py-3 md:py-4">
+                          <div className="flex flex-col gap-1.5 md:gap-2">
+                             <div className="flex items-center gap-2">
+                               <p className="text-[11px] md:text-sm font-black text-slate-700 tracking-tight truncate max-w-[80px] md:max-w-none">
+                                 {photo.fileName?.replace(/\.[^/.]+$/, "") || 'Foto'}
+                               </p>
+                               <span className="text-[7px] md:text-[8px] font-bold text-slate-300 uppercase shrink-0">Ref: {photo.id.slice(0, 4)}</span>
+                             </div>
+                             
+                             <div className="relative">
+                               <input 
+                                 type="text"
+                                 placeholder="Añadir comentario..."
+                                 value={photoNotes[photo.id] || ''}
+                                 onChange={(e) => setPhotoNotes(prev => ({...prev, [photo.id]: e.target.value}))}
+                                 className="w-full bg-slate-50/60 border-none rounded-lg py-1 px-2 text-[9px] md:text-[11px] font-medium focus:ring-1 focus:ring-[#4A7C59] transition-all placeholder:text-slate-300 shadow-inner"
+                               />
+                             </div>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 text-center">
+
+                        {/* FAVORITO */}
+                        <td className="px-1 md:px-6 py-3 md:py-4 text-center">
                           <button 
-                            onClick={() => toggleFavorite(photo.id)}
+                            onClick={(e) => { e.stopPropagation(); toggleFavorite(photo.id); }}
                             className={cn(
-                              "p-3 rounded-full transition-all scale-110",
-                              favorites.has(photo.id) ? "text-orange-500 bg-white shadow-md border-orange-50" : "text-slate-200 hover:text-slate-400"
+                              "p-2 rounded-full transition-all",
+                              favorites.has(photo.id) ? "text-orange-500 bg-orange-50 shadow-sm" : "text-slate-200"
                             )}
                           >
-                            <Heart className={cn("h-5 w-5", favorites.has(photo.id) && "fill-current")} />
+                            <Heart className={cn("h-4 w-4 md:h-5 md:w-5", favorites.has(photo.id) && "fill-current")} />
                           </button>
                         </td>
-                        <td className="px-6 py-4 max-w-xs">
-                          <div className="relative">
-                            <input 
-                              type="text"
-                              placeholder="Sin comentarios..."
-                              value={photoNotes[photo.id] || ''}
-                              onChange={(e) => setPhotoNotes(prev => ({...prev, [photo.id]: e.target.value}))}
-                              className="w-full bg-slate-50 border-none rounded-xl py-2 px-4 shadow-inner text-xs font-medium focus:ring-1 focus:ring-[#4A7C59] transition-all placeholder:text-slate-300"
-                            />
-                            {photoNotes[photo.id] && (
-                              <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#4A7C59]" />
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-1">
-                            {(photoCartItems?.length || 0) > 0 ? (
-                              photoCartItems.map((item, i) => (
-                                <Badge key={i} className="bg-[#4A7C59]/10 text-[#4A7C59] border-[#4A7C59]/20 hover:bg-[#4A7C59]/20 transition-all font-black text-[9px] uppercase py-1 shadow-sm">
-                                  {item.name} {item.variantName ? `(${item.variantName})` : ''}
-                                </Badge>
-                              ))
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">Nada en cesta</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex justify-end gap-2">
+
+                        {/* ACCIONES COMPACTAS */}
+                        <td className="px-2 md:px-6 py-3 md:py-4 text-right">
+                          <div className="flex justify-end gap-1.5 md:gap-2">
                             <button 
                               onClick={() => handleOpenShop(photo)}
-                              className="bg-orange-50 hover:bg-orange-500 text-orange-500 hover:text-white h-10 w-10 rounded-xl transition-all flex items-center justify-center border border-orange-100"
+                              className="bg-orange-50 hover:bg-orange-500 text-orange-500 hover:text-white h-8 w-8 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center border border-orange-100"
                             >
-                              <ShoppingBag className="h-4 w-4" />
+                              <ShoppingBag className="h-3.5 w-3.5" />
                             </button>
                             <button 
                               onClick={() => handleRejectAction(photo)}
                               className={cn(
-                                "h-10 rounded-xl transition-all flex items-center justify-center border",
+                                "h-8 md:h-10 rounded-lg transition-all flex items-center justify-center border",
                                 showRejected 
-                                  ? "bg-[#4A7C59] text-white border-[#4A7C59] px-5 gap-2 shadow-sm font-black uppercase text-[10px] tracking-widest" 
-                                  : "w-10 h-10 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border-red-100"
+                                  ? "bg-[#4A7C59] text-white border-[#4A7C59] px-2 text-[8px] font-black uppercase" 
+                                  : "w-8 h-8 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border-red-100"
                               )}
                             >
                               {showRejected ? (
                                   "Recuperar"
-                              ) : <Trash2 className="h-4 w-4" />}
+                              ) : <Trash2 className="h-3.5 w-3.5" />}
                             </button>
                           </div>
                         </td>
@@ -1752,10 +1761,24 @@ export default function GalleryPage() {
               </div>
               
               <div className="flex items-center gap-1.5 sm:gap-3">
-                {/* DESCARTAR EN ZOOM */}
-                {!showRejected && (
+                {/* ACCIÓN DE DESCARTE / RECUPERACIÓN EN ZOOM */}
+                {showRejected ? (
                   <button 
-                    onClick={(e) => { e.stopPropagation(); handleRejectAction(displayedPhotos[viewerIndex]); }}
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      handleRejectAction(displayedPhotos[viewerIndex!]);
+                      // Si era la última, el handleRejectAction ya pondrá showRejected en false,
+                      // pero además cerramos el visor para una transición limpia.
+                      if (rejectedPhotos.size <= 1) setViewerIndex(null);
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 sm:px-4 h-9 sm:h-10 rounded-xl transition-all font-black text-[9px] uppercase tracking-tighter border-2 shrink-0 bg-orange-500 border-orange-500 text-white shadow-lg hover:bg-orange-600"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Recuperar</span>
+                  </button>
+                ) : (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleRejectAction(displayedPhotos[viewerIndex!]); }}
                     className="flex items-center gap-1.5 px-2.5 sm:px-4 h-9 sm:h-10 rounded-xl transition-all font-black text-[9px] uppercase tracking-tighter border-2 shrink-0 bg-black/20 text-white border-white/20 hover:bg-red-500 hover:border-red-500"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -1895,10 +1918,10 @@ export default function GalleryPage() {
       <Dialog open={showSummary} onOpenChange={setShowSummary}>
         <DialogContent className="sm:max-w-2xl rounded-[32px] p-8 overflow-hidden border-none shadow-2xl z-[100]">
           <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Resumen de Selección</h2>
+            <DialogHeader className="flex flex-col gap-2 text-left">
+              <DialogTitle className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Resumen de Selección</DialogTitle>
               <p className="text-slate-500 text-sm">Este es el resumen listo para enviar. Puedes copiarlo y pegarlo.</p>
-            </div>
+            </DialogHeader>
             
             <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
                <textarea 
@@ -1956,7 +1979,7 @@ export default function GalleryPage() {
             <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
               <Trash2 className="h-8 w-8 text-white" />
             </div>
-            <h2 className="text-xl font-black text-white uppercase tracking-tight">¿Ocultar esta foto?</h2>
+            <DialogTitle className="text-xl font-black text-white uppercase tracking-tight">¿Ocultar esta foto?</DialogTitle>
             <p className="text-slate-400 text-sm mt-2">La foto dejará de verse en la galería principal para que puedas centrarte en tus favoritas.</p>
           </div>
           <div className="p-8 bg-white text-center">
