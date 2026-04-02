@@ -681,7 +681,7 @@ export default function GalleryPage() {
     <div className="min-h-screen bg-white selection:bg-[#4A7C59]/10">
       {/* MODO VISTA PREVIA INDICATOR */}
       {isPreview && (
-        <div className="fixed top-0 left-0 right-0 z-[110] bg-orange-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-2 text-center shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 z-[110] bg-orange-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-2 text-center shadow-lg pointer-events-none">
           ESTÁS EN MODO VISTA PREVIA • ASÍ ES COMO VERÁ EL CLIENTE SU GALERÍA
         </div>
       )}
@@ -1131,10 +1131,7 @@ export default function GalleryPage() {
             className="fixed inset-0 z-[80] bg-black flex flex-col"
           >
             {/* Header Lightbox */}
-            <div className={cn(
-              "flex items-center justify-between p-4 sm:p-6 bg-black/50 backdrop-blur-md text-white absolute left-0 right-0 z-10 transition-all",
-              isPreview ? "top-[40px] sm:top-0" : "top-0"
-            )}>
+            <div className="flex items-center justify-between p-4 sm:p-6 bg-black/50 backdrop-blur-md text-white absolute top-0 left-0 right-0 z-10 transition-all">
               <div className="flex items-center gap-3 sm:gap-4">
                 <button onClick={() => setSelectedPhoto(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                   <ChevronLeft className="h-6 w-6" />
@@ -1145,37 +1142,67 @@ export default function GalleryPage() {
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button 
-                  onClick={() => handleOpenShop(selectedPhoto)}
-                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-4 sm:px-6 relative"
-                >
-                  <ShoppingBag className="h-4 w-4" />
-                  <span className="hidden sm:inline">Comprar</span>
-                  {(() => {
-                    const photoCartItems = getItemsForPhoto(selectedPhoto.url);
-                    return photoCartItems.length > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-[#4A7C59] text-white text-[9px] h-5 w-5 rounded-full flex items-center justify-center font-black border-2 border-slate-900 shadow-lg">
-                        {photoCartItems.length}
+               <div className="flex items-center gap-1 sm:gap-2">
+                 <Button 
+                   onClick={() => handleOpenShop(selectedPhoto)}
+                   className="bg-orange-500 hover:bg-orange-600 text-white rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-4 sm:px-6 relative shrink-0"
+                 >
+                   <ShoppingBag className="h-4 w-4" />
+                   <span className="hidden sm:inline">Comprar</span>
+                   {(() => {
+                     const photoCartItems = getItemsForPhoto(selectedPhoto.url);
+                     return photoCartItems.length > 0 && (
+                       <span className="absolute -top-1.5 -right-1.5 bg-[#4A7C59] text-white text-[9px] h-5 w-5 rounded-full flex items-center justify-center font-black border-2 border-slate-900 shadow-lg">
+                         {photoCartItems.length}
+                       </span>
+                     );
+                   })()}
+                 </Button>
+
+                 <Button 
+                   variant="ghost"
+                   onClick={() => toggleFavorite(selectedPhoto.id)}
+                   className={cn(
+                     "rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-3 sm:px-4 shrink-0",
+                     favorites.has(selectedPhoto.id) ? "bg-[#4A7C59] text-white underline decoration-2 underline-offset-4" : "text-white hover:bg-white/10"
+                   )}
+                 >
+                   <Heart className={cn("h-4 w-4", favorites.has(selectedPhoto.id) && "fill-current")} />
+                   <span className="hidden md:inline">{favorites.has(selectedPhoto.id) ? 'Favorita' : 'Favorita'}</span>
+                 </Button>
+
+                 <div className="w-[1px] h-6 bg-white/20 mx-1 hidden sm:block" />
+
+                 {/* Cesta Global */}
+                 <Button 
+                   onClick={() => setIsCartOpen(true)}
+                   variant="ghost"
+                   className="rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-3 sm:px-4 text-white hover:bg-white/10 relative shrink-0"
+                 >
+                   <ShoppingBag className="h-4 w-4" />
+                   <span className="hidden md:inline">Cesta</span>
+                    {getItemCount() > 0 && (
+                      <span className="absolute top-1 right-1 sm:-top-1 sm:-right-1 bg-red-500 text-white text-[9px] h-4 w-4 rounded-full flex items-center justify-center font-black border border-black shadow-lg">
+                        {getItemCount()}
                       </span>
-                    );
-                  })()}
-                </Button>
-                <Button 
-                  variant="ghost"
-                  onClick={() => toggleFavorite(selectedPhoto.id)}
-                  className={cn(
-                    "rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-3 sm:px-4",
-                    favorites.has(selectedPhoto.id) ? "bg-[#4A7C59] text-white" : "text-white hover:bg-white/10"
-                  )}
-                >
-                  <Heart className={cn("h-4 w-4", favorites.has(selectedPhoto.id) && "fill-current")} />
-                  <span className="hidden md:inline">{favorites.has(selectedPhoto.id) ? 'En favoritos' : 'Favorita'}</span>
-                </Button>
-                <button onClick={() => setSelectedPhoto(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors ml-2 sm:ml-4">
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
+                    )}
+                 </Button>
+
+                 {/* Sonido integrado */}
+                 {client?.gallerySettings?.bgMusic?.url && (
+                    <button
+                      onClick={toggleMusic}
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-all shrink-0"
+                    >
+                      {isPlaying ? (
+                        <div className="relative">
+                          <Volume2 className="h-5 w-5 text-blue-400" />
+                          <span className="absolute inset-[-2px] rounded-full border border-blue-400 animate-ping opacity-30" />
+                        </div>
+                      ) : <VolumeX className="h-5 w-5 text-white/40" />}
+                    </button>
+                 )}
+               </div>
             </div>
 
             {/* Photo View */}
@@ -1710,13 +1737,13 @@ export default function GalleryPage() {
             className="fixed inset-0 z-[80] bg-black"
           >
             {/* Cabecera Visor (OVERLAY) */}
-            <div className="absolute top-0 inset-x-0 z-30 p-4 sm:p-6 flex items-center justify-between text-white bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+            <div className="absolute top-0 inset-x-0 z-30 p-4 sm:p-6 flex items-center justify-between text-white bg-gradient-to-b from-black/90 via-black/40 to-transparent transition-all duration-500">
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setViewerIndex(null)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/50 hover:text-white"
                 >
-                  <X className="h-6 w-6" />
+                  <ChevronLeft className="h-6 w-6" />
                 </button>
                 <div className="hidden md:flex flex-col">
                   <p className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white leading-none">
@@ -1728,19 +1755,28 @@ export default function GalleryPage() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 sm:gap-3">
                 <Button 
                   onClick={() => handleOpenShop(displayedPhotos[viewerIndex])}
-                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-11 px-4 sm:px-8 font-black uppercase text-[11px] tracking-widest shadow-xl flex gap-2"
+                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-11 px-4 sm:px-8 font-black uppercase text-[11px] tracking-widest shadow-xl flex gap-2 relative shrink-0"
                 >
                   <ShoppingBag className="h-4 w-4" /> 
                   <span className="hidden sm:inline">Comprar</span>
+                  {(() => {
+                    const photoCartItems = getItemsForPhoto(displayedPhotos[viewerIndex]?.url || '');
+                    return photoCartItems.length > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-[#4A7C59] text-white text-[9px] h-5 w-5 rounded-full flex items-center justify-center font-black border-2 border-slate-900 shadow-lg">
+                        {photoCartItems.length}
+                      </span>
+                    );
+                  })()}
                 </Button>
+
                 <Button 
                   onClick={() => toggleFavorite(displayedPhotos[viewerIndex]?.id)}
                   variant="outline"
                   className={cn(
-                    "rounded-full h-11 px-4 sm:px-8 font-black uppercase text-[11px] tracking-widest border-2 transition-all flex gap-2",
+                    "rounded-full h-11 px-4 sm:px-8 font-black uppercase text-[11px] tracking-widest border-2 transition-all flex gap-2 shrink-0",
                     displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id)
                       ? "bg-white text-orange-500 border-white shadow-lg"
                       : "bg-transparent text-white border-white/20 hover:bg-white/10"
@@ -1748,15 +1784,39 @@ export default function GalleryPage() {
                 >
                   <Heart className={cn("h-4 w-4", displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) && "fill-current")} /> 
                   <span className="hidden sm:inline">
-                    {displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) ? 'Favorita' : 'Marcar Favorita'}
+                    {displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) ? 'Favorita' : 'Favorita'}
                   </span>
                 </Button>
-                <button 
-                  onClick={() => setViewerIndex(null)}
-                  className="ml-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+
+                <div className="w-[1px] h-6 bg-white/20 mx-1 hidden sm:block" />
+
+                <Button 
+                  onClick={() => setIsCartOpen(true)}
+                  variant="ghost"
+                  className="rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-11 px-3 sm:px-4 text-white hover:bg-white/10 relative shrink-0"
                 >
-                  <X className="h-6 w-6 text-white" />
-                </button>
+                  <ShoppingBag className="h-4 w-4" />
+                  <span className="hidden md:inline">Cesta</span>
+                   {getItemCount() > 0 && (
+                     <span className="absolute top-1 right-1 sm:-top-1 sm:-right-1 bg-red-500 text-white text-[9px] h-4 w-4 rounded-full flex items-center justify-center font-black border border-black shadow-lg">
+                       {getItemCount()}
+                     </span>
+                   )}
+                </Button>
+
+                {client?.gallerySettings?.bgMusic?.url && (
+                   <button
+                     onClick={toggleMusic}
+                     className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-all shrink-0"
+                   >
+                     {isPlaying ? (
+                       <div className="relative">
+                         <Volume2 className="h-5 w-5 text-blue-400" />
+                         <span className="absolute inset-[-2px] rounded-full border border-blue-400 animate-ping opacity-30" />
+                       </div>
+                     ) : <VolumeX className="h-5 w-5 text-white/40" />}
+                   </button>
+                )}
               </div>
             </div>
 
@@ -1889,8 +1949,8 @@ export default function GalleryPage() {
             <button
                 onClick={toggleMusic}
                 className={cn(
-                  "fixed right-6 z-[120] w-12 h-12 rounded-full bg-white/95 backdrop-blur-md shadow-2xl border border-slate-100 flex items-center justify-center text-slate-800 hover:scale-110 active:scale-95 transition-all group",
-                  isPreview ? "top-14 sm:top-6" : "top-6"
+                  "fixed right-6 z-[120] rounded-full bg-white/95 backdrop-blur-md shadow-2xl border border-slate-100 flex items-center justify-center text-slate-800 hover:scale-110 active:scale-95 transition-all group top-6",
+                  (selectedPhoto || viewerIndex !== null) ? "hidden" : "w-12 h-12"
                 )}
                 title={isPlaying ? "Silenciar" : "Escuchar música"}
             >
