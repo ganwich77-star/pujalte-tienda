@@ -112,7 +112,7 @@ export function AdminPanel(props: AdminPanelProps) {
     onLogout, onViewStore, isSaving
   } = props
 
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState('galleries')
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [isLandingExpanded, setIsLandingExpanded] = useState(false)
   const [suppliers, setSuppliers] = useState<any[]>([])

@@ -271,6 +271,42 @@ export function CartSheet({ isOpen, onClose, clientId }: { isOpen: boolean, onCl
     }
   }
 
+  const sendWhatsAppOrder = () => {
+    const phone = config?.whatsappConfig?.phone || "34600000000"; // Número por defecto si no hay config
+    const galleryName = clientId || "Galería Privada";
+    
+    let message = `📸 *¡NUEVA COMPRA DE GALERÍA!* 📸\n\n`;
+    message += `Hola *Pujalte Fotografía*, he completado mi pedido desde mi área de cliente. Aquí tienes los detalles:\n\n`;
+    message += `📂 *GALERÍA:* ${galleryName}\n`;
+    message += `👤 *CLIENTE:* ${shippingData.firstName} ${shippingData.lastName}\n`;
+    message += `📧 *EMAIL:* ${shippingData.email}\n`;
+    message += `📱 *TEL:* ${shippingData.phone}\n\n`;
+    message += `--- 📦 *DETALLE DEL PEDIDO* ---\n\n`;
+
+    items.forEach((item, index) => {
+      message += `${index + 1}. *${item.name}* (x${item.quantity}) - ${formatCurrency(item.price * item.quantity)}\n`;
+      if (item.variantName) message += `   ▫️ _Opción: ${item.variantName}_\n`;
+      if (item.notes) {
+        const noteParts = item.notes.split(' | ').filter(p => !p.startsWith('FOTO:'));
+        if (noteParts.length > 0) message += `   📝 _Notas: ${noteParts.join(', ')}_\n`;
+      }
+      message += `\n`;
+    });
+
+    message += `--- 💳 *TOTAL: ${formatCurrency(getTotal())}* ---\n\n`;
+    message += `📌 *ESTADO DEL PAGO:* ${paymentMethod === 'cash' ? 'Pendiente (Efectivo/Transferencia)' : 'Pagado (Tarjeta/Bizum)'}\n`;
+    
+    if (shippingData.address) {
+      message += `📍 *ENVÍO:* ${shippingData.address}, ${shippingData.city}\n\n`;
+    }
+
+    message += `💬 *MENSAJE FINAL:* "Quedo a la espera de que prepares mi pedido. ¡Muchas gracias!"\n\n`;
+    message += `🚀 _Enviado desde mi Galería de Cliente_`;
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${encodedMessage}`, '_blank');
+  }
+
   const resetCheckout = () => {
     setCheckoutStep('cart')
     onClose()
@@ -279,7 +315,7 @@ export function CartSheet({ isOpen, onClose, clientId }: { isOpen: boolean, onCl
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent className="w-full sm:max-w-[540px] p-0 flex flex-col border-none shadow-2xl bg-[#F8FAFC]">
+        <SheetContent className="w-full sm:max-w-[540px] p-0 flex flex-col border-none shadow-2xl bg-[#F8FAFC] z-[200]">
           <SheetHeader className="sr-only">
             <SheetTitle>Carrito de Compras - Pujalte Creative Studio</SheetTitle>
           </SheetHeader>
@@ -567,7 +603,18 @@ export function CartSheet({ isOpen, onClose, clientId }: { isOpen: boolean, onCl
                   <div className="h-1 w-12 bg-[#4A7C59] mx-auto rounded-full mb-6" />
                   <p className="text-slate-500 font-bold mb-8 leading-relaxed">Gracias por confiar en Pujalte Creative Studio.<br/>Tu número de seguimiento es:</p>
                   <div className="bg-slate-900 text-white px-8 py-5 rounded-3xl font-black text-2xl tracking-[0.3em] mb-12 shadow-inner border border-white/10 uppercase">{trackingCode}</div>
-                  <Button onClick={resetCheckout} className="h-14 px-10 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-2xl font-black uppercase tracking-widest transition-all">Seguir Comprando</Button>
+                  
+                  <div className="flex flex-col w-full gap-3">
+                    <Button 
+                      onClick={sendWhatsAppOrder}
+                      className="h-16 w-full bg-[#25D366] hover:bg-[#128C7E] text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"
+                    >
+                      <MessageCircle className="h-6 w-6 fill-current" />
+                      Enviar por WhatsApp
+                    </Button>
+                    
+                    <Button onClick={resetCheckout} variant="ghost" className="h-14 w-full text-slate-400 font-black uppercase tracking-widest transition-all">Seguir Comprando</Button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

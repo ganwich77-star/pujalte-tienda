@@ -41,7 +41,8 @@ import {
   Download,
   Info,
   Star,
-  FileImage
+  FileImage,
+  Copy
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -97,6 +98,38 @@ interface CustomersTabProps {
   customerIdToEdit?: string | null
 }
 
+const resizeImage = (file: File, maxSide: number = 1500): Promise<File> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) return resolve(file);
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxSide) { height *= maxSide / width; width = maxSide; }
+        } else {
+          if (height > maxSide) { width *= maxSide / height; height = maxSide; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          else resolve(file);
+        }, 'image/jpeg', 0.85);
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
 export function CustomersTab({ orders, formatPrice, customerIdToEdit }: CustomersTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [editingCustomer, setEditingCustomer] = useState<any>(null)
@@ -114,6 +147,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
     cashEnabled: false,
     gallerySettings: {
       galleryTitle: '',
+      gallerySubtitle: '',
       shopRequiresFavorite: false,
       safetyLockEnabled: true,
       watermarkEnabled: true,
@@ -251,11 +285,25 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
     }
     setUpdating(true)
     try {
-      const { doc: firestoreDoc, setDoc: firestoreSet, serverTimestamp } = await import('firebase/firestore')
+      const { doc: firestoreDoc, setDoc: firestoreSet, serverTimestamp, query, where, getDocs, collection } = await import('firebase/firestore')
       
-      // Si no hay slug, generamos uno amigable basado en el nombre
-      const finalSlug = (newCustomer.slug || newCustomer.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) || 
+      // GARANTIZAR SLUG ÚNICO
+      let baseSlug = (newCustomer.slug || newCustomer.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) || 
                         (newCustomer.dni || newCustomer.email || newCustomer.phone).trim().toUpperCase();
+      
+      let finalSlug = baseSlug;
+      let count = 1;
+      let exists = true;
+      while (exists) {
+        const q = query(collection(db, COLLECTIONS.CLIENTS), where("slug", "==", finalSlug));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+          exists = false;
+        } else {
+          count++;
+          finalSlug = `${baseSlug}-${count}`;
+        }
+      }
 
       const key = (newCustomer.dni || newCustomer.email || newCustomer.phone).trim().toUpperCase()
       
@@ -297,6 +345,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
         cashEnabled: false, 
         gallerySettings: { 
           galleryTitle: '',
+          gallerySubtitle: '',
           shopRequiresFavorite: false,
           safetyLockEnabled: true,
           watermarkEnabled: true,
@@ -415,15 +464,17 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
     const addedPhotos: any[] = []
     
     try {
-      // Subida secuencial para evitar bloqueos del navegador con muchos archivos (p.j. 93 fotos)
       for (let i = 0; i < filesArray.length; i++) {
-        // Verificar si se ha solicitado cancelar
         if (uploadControllerRef.current) {
-          toast({ title: 'Subida cancelada', description: `Se han subido ${addedPhotos.length} fotos antes de cancelar.` })
+          toast({ title: 'Subida cancelada', description: `Se han subido ${addedPhotos.length} fotos.` })
           break
         }
 
-        const file = filesArray[i]
+        let file = filesArray[i]
+        if (file.type.startsWith('image/')) {
+          file = await resizeImage(file, 1500)
+        }
+
         const storageRef = ref(storage, `clients/${clientKey}/gallery/${file.name}`)
         
         await new Promise((resolve, reject) => {
@@ -683,7 +734,8 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
         lastOrderDate: fc.createdAt ? formatDate(fc.createdAt) : new Date(0),
         marketing: fc.marketing || false,
         cashEnabled: fc.cashEnabled || false,
-        gallerySettings: fc.gallerySettings || {}
+        gallerySettings: fc.gallerySettings || {},
+        slug: fc.slug || ''
       })
     })
 
@@ -909,7 +961,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                       variant="ghost" 
                       className="h-11 w-11 rounded-xl bg-[#4A7C59]/5 dark:bg-[#4A7C59]/10 text-[#4A7C59] border border-[#4A7C59]/10 shadow-sm"
                       onClick={() => {
-                        const welcomeMsg = `🎨 ¡Bienvenido/a a Pujalte Creative Studio! 📸✨\n\nHola *${customer.name}*, es un placer saludarte. \n\nFiel a nuestro lema: "La tecnología al servicio de los recuerdos", hemos habilitado tu acceso a nuestra plataforma privada. 🚀\n\nDesde aquí podrás ver, gestionar y pedir tus fotos de forma sencilla:\n\n🔗 Acceso: https://pujalte-tienda.vercel.app/\n👤 Usuario: *${customer.name.split(' ')[0].toUpperCase()}*\n🔑 Contraseña: *${customer.dni}*\n\n(Te recomendamos copiar y pegar tus datos para acceder más rápido) ⚡️\n\nCualquier duda o consulta, ¡escríbenos por aquí mismo! \nEstamos para ayudarte. 👋😊`;
+                        const welcomeMsg = `🎨 ¡Bienvenido/a a Pujalte Creative Studio! 📸✨\n\nHola *${customer.name}*, es un placer saludarte. \n\nFiel a nuestro lema: "La tecnología al servicio de los recuerdos", hemos habilitado tu acceso a nuestra plataforma privada. 🚀\n\nDesde aquí podrás ver, gestionar y pedir tus fotos de forma sencilla:\n\n🔗 Acceso: https://pujalte-tienda.vercel.app/\n👤 Usuario: *${customer.name.toUpperCase()}*\n🔑 Contraseña: *${customer.dni}*\n\n(Te recomendamos copiar y pegar tus datos para acceder más rápido) ⚡️\n\nCualquier duda o consulta, ¡escríbenos por aquí mismo! \nEstamos para ayudarte. 👋😊`;
                         window.open(`https://api.whatsapp.com/send?phone=${customer.phone.replace(/\D/g, '')}&text=${encodeURIComponent(welcomeMsg)}`, '_blank');
                       }}
                     >
@@ -1088,7 +1140,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                               size="icon" 
                               className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-white/5 shadow-sm transition-all"
                               onClick={() => {
-                                  const welcomeMsg = `🎨 ¡Bienvenido/a a Pujalte Creative Studio! 📸✨\n\nHola *${customer.name}*, es un placer saludarte. \n\nFiel a nuestro lema: "La tecnología al servicio de los recuerdos", hemos habilitado tu acceso a nuestra plataforma privada. 🚀\n\nDesde aquí podrás ver, gestionar y pedir tus fotos de forma sencilla:\n\n🔗 Acceso: https://pujalte-tienda.vercel.app/\n👤 Usuario: *${customer.name.split(' ')[0].toUpperCase()}*\n🔑 Contraseña: *${customer.dni}*\n\n(Te recomendamos copiar y pegar tus datos para acceder más rápido) ⚡️\n\nCualquier duda o consulta, ¡escríbenos por aquí mismo! \nEstamos para ayudarte. 👋😊`;
+                                  const welcomeMsg = `🎨 ¡Bienvenido/a a Pujalte Creative Studio! 📸✨\n\nHola *${customer.name}*, es un placer saludarte. \n\nFiel a nuestro lema: "La tecnología al servicio de los recuerdos", hemos habilitado tu acceso a nuestra plataforma privada. 🚀\n\nDesde aquí podrás ver, gestionar y pedir tus fotos de forma sencilla:\n\n🔗 Acceso: https://pujalte-tienda.vercel.app/\n👤 Usuario: *${customer.name.toUpperCase()}*\n🔑 Contraseña: *${customer.dni}*\n\n(Te recomendamos copiar y pegar tus datos para acceder más rápido) ⚡️\n\nCualquier duda o consulta, ¡escríbenos por aquí mismo! \nEstamos para ayudarte. 👋😊`;
                                   window.open(`https://api.whatsapp.com/send?phone=${customer.phone.replace(/\D/g, '')}&text=${encodeURIComponent(welcomeMsg)}`, '_blank');
                               }}
                             >
@@ -1135,20 +1187,26 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
         {/* Modal de Edición */}
         <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && setEditingCustomer(null)}>
           <DialogContent className="w-[95vw] sm:max-w-[950px] h-[90dvh] max-h-[90dvh] overflow-hidden rounded-[2rem] p-0 flex flex-col shadow-2xl border-none bg-white">
-            <Tabs defaultValue={customerIdToEdit ? "galeria" : "datos"} className="flex flex-col h-full overflow-hidden">
-                <DialogHeader className="p-5 sm:p-8 pb-3 sm:pb-4 border-b border-slate-50">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <DialogTitle className="text-2xl sm:text-3xl font-black tracking-tight text-slate-800 uppercase">Gestionar Cliente</DialogTitle>
-                      <DialogDescription className="text-[9px] sm:text-xs font-black text-slate-400 uppercase tracking-[0.15em]">Panel de Control Avanzado</DialogDescription>
-                    </div>
-                    <TabsList className="bg-slate-100/50 p-1 rounded-2xl h-11 sm:h-12 w-full sm:w-fit gap-1 overflow-x-auto justify-start sm:justify-start">
-                      <TabsTrigger value="datos" className="rounded-xl px-4 sm:px-6 font-black text-[10px] sm:text-[11px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full flex-1 sm:flex-none">DATOS</TabsTrigger>
-                      <TabsTrigger value="galeria" className="rounded-xl px-4 sm:px-6 font-black text-[10px] sm:text-[11px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full flex-1 sm:flex-none">GALERÍA</TabsTrigger>
-                      <TabsTrigger value="pedidos" className="rounded-xl px-4 sm:px-6 font-black text-[10px] sm:text-[11px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full flex-1 sm:flex-none">PEDIDOS</TabsTrigger>
-                    </TabsList>
+            <div className="absolute top-4 right-4 z-[60]">
+              <Button variant="ghost" size="icon" onClick={() => setEditingCustomer(null)} className="rounded-full bg-slate-50/50 hover:bg-slate-100 hover:text-slate-900 h-8 w-8 transition-all"><X className="h-4 w-4 text-slate-400 group-hover:text-slate-900" /></Button>
+            </div>
+            <Tabs defaultValue="galeria" className="h-full flex flex-col">
+              <DialogHeader className="p-4 sm:p-6 pb-2 border-b border-slate-50 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+                <div className="space-y-0.5 text-center sm:text-left transition-all">
+                  <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight uppercase leading-tight">Gestionar Cliente</DialogTitle>
+                  <div className="flex items-center justify-center sm:justify-start gap-2 opacity-80">
+                    <div className="h-1 w-4 sm:w-6 rounded-full bg-[#4A7C59]" />
+                    <p className="text-[11px] sm:text-[13px] font-black text-[#4A7C59] uppercase tracking-wider">
+                      {editingCustomer?.name} <span className="text-slate-300 mx-1">•</span> {editingCustomer?.dni}
+                    </p>
                   </div>
-                </DialogHeader>
+                </div>
+                <TabsList className="bg-slate-100/50 dark:bg-slate-900/50 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl h-10 sm:h-11">
+                  <TabsTrigger value="datos" className="rounded-lg sm:rounded-xl px-4 sm:px-6 text-[10px] sm:text-[12px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[#4A7C59] data-[state=active]:shadow-sm transition-all h-full">Datos</TabsTrigger>
+                  <TabsTrigger value="galeria" className="rounded-lg sm:rounded-xl px-4 sm:px-6 text-[10px] sm:text-[12px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[#4A7C59] data-[state=active]:shadow-sm transition-all h-full">Galería</TabsTrigger>
+                  <TabsTrigger value="pedidos" className="rounded-lg sm:rounded-xl px-4 sm:px-6 text-[10px] sm:text-[12px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[#4A7C59] data-[state=active]:shadow-sm transition-all h-full">Pedidos</TabsTrigger>
+                </TabsList>
+              </DialogHeader>
 
                 <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-4 custom-scrollbar">
                   {editingCustomer && (
@@ -1156,20 +1214,20 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                       <TabsContent value="datos" className="m-0 space-y-6 animate-in fade-in slide-in-from-left-4 outline-none">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                           <div className="space-y-2 transition-all">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] pl-1">Nombre Completo</Label>
-                            <Input value={editingCustomer.name} onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })} className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 px-5" />
+                            <Label className="text-[13px] font-black uppercase tracking-widest text-[#4A7C59] pl-1">Nombre Completo</Label>
+                            <Input value={editingCustomer.name} onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })} className="rounded-2xl h-12 text-base font-bold bg-slate-50/50 border-slate-100 px-5" />
                           </div>
                           <div className="space-y-2 transition-all">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">DNI / Identificación</Label>
-                            <Input value={editingCustomer.dni || ''} onChange={(e) => setEditingCustomer({...editingCustomer, dni: e.target.value})} className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 px-5" />
+                            <Label className="text-[13px] font-black uppercase tracking-widest text-slate-400 pl-1">DNI / Identificación</Label>
+                            <Input value={editingCustomer.dni || ''} onChange={(e) => setEditingCustomer({...editingCustomer, dni: e.target.value})} className="rounded-2xl h-12 text-base font-bold bg-slate-50/50 border-slate-100 px-5" />
                           </div>
                           <div className="space-y-2 transition-all">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Correo Electrónico</Label>
-                            <Input value={editingCustomer.email} onChange={(e) => setEditingCustomer({...editingCustomer, email: e.target.value})} className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 px-5" />
+                            <Label className="text-[13px] font-black uppercase tracking-widest text-slate-400 pl-1">Correo Electrónico</Label>
+                            <Input value={editingCustomer.email} onChange={(e) => setEditingCustomer({...editingCustomer, email: e.target.value})} className="rounded-2xl h-12 text-base font-bold bg-slate-50/50 border-slate-100 px-5" />
                           </div>
                           <div className="space-y-2 transition-all">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Teléfono Contacto</Label>
-                            <Input value={editingCustomer.phone || ''} onChange={(e) => setEditingCustomer({...editingCustomer, phone: e.target.value})} className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 px-5" />
+                            <Label className="text-[13px] font-black uppercase tracking-widest text-slate-400 pl-1">Teléfono Contacto</Label>
+                            <Input value={editingCustomer.phone || ''} onChange={(e) => setEditingCustomer({...editingCustomer, phone: e.target.value})} className="rounded-2xl h-12 text-base font-bold bg-slate-50/50 border-slate-100 px-5" />
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -1185,21 +1243,24 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
 
                       <TabsContent value="galeria" className="m-0 space-y-3 animate-in fade-in slide-in-from-right-4 outline-none overflow-x-hidden">
                         {/* SELECTOR DE MODOS COMPACTO */}
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-6">
                           {[
-                            { id: 'solo-fotos', label: 'Visita', icon: Camera, color: 'text-blue-500' },
-                            { id: 'dual', label: 'Tienda', icon: ShoppingBag, color: 'text-green-500' },
-                            { id: 'archivos', label: 'Descarga', icon: Download, color: 'text-purple-500' }
-                          ].map((mode) => {
-                            const isActive = (editingCustomer.gallerySettings?.digitalFiles?.mode || 'dual') === mode.id
-                            return (
-                              <button key={mode.id} onClick={() => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, mode: mode.id, enabled: mode.id !== 'solo-fotos' } } })}
-                                className={cn("flex flex-col items-center justify-center p-2 rounded-xl border transition-all h-14 sm:h-20 shadow-sm", isActive ? "bg-[#4A7C59] border-[#4A7C59] text-white shadow-md shadow-[#4A7C59]/10" : "bg-white border-slate-100 hover:border-slate-300")}>
-                                <mode.icon className={cn("h-4 w-4 sm:h-6 sm:w-6 mb-1", isActive ? "text-white" : mode.color)} />
-                                <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-tight leading-none text-center">{mode.label}</p>
-                              </button>
-                            )
-                          })}
+                            { id: 'solo-fotos', label: 'VISITA', icon: Camera, desc: 'Solo visualizar fotos' },
+                            { id: 'dual', label: 'GALERÍA', icon: ShoppingBag, desc: 'Selección y Tienda' },
+                            { id: 'archivos', label: 'DESCARGA', icon: Download, desc: 'Entrega de archivos' }
+                          ].map((mode) => (
+                            <button 
+                              key={mode.id} 
+                              onClick={() => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, mode: mode.id, enabled: mode.id !== 'solo-fotos' } } })}
+                              className={cn("flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border-2 transition-all gap-1 sm:gap-2", (editingCustomer.gallerySettings?.digitalFiles?.mode === mode.id || (!editingCustomer.gallerySettings?.digitalFiles?.mode && mode.id === 'dual')) ? "bg-[#4A7C59] border-[#4A7C59] text-white shadow-lg shadow-[#4A7C59]/20" : "bg-white border-slate-100 text-slate-400 hover:border-[#4A7C59]/30")}
+                            >
+                              <mode.icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                              <span className="text-[10px] sm:text-[11px] font-black tracking-widest leading-none">{mode.label}</span>
+                              <span className={cn("text-[7px] sm:text-[8px] font-bold uppercase tracking-tight opacity-70", (editingCustomer.gallerySettings?.digitalFiles?.mode === mode.id || (!editingCustomer.gallerySettings?.digitalFiles?.mode && mode.id === 'dual')) ? "text-white" : "text-slate-400")}>
+                                {mode.desc}
+                              </span>
+                            </button>
+                          ))}
                         </div>
 
                         {/* INTERRUPTORES Y CARGA EN REJILLA COMPACTA */}
@@ -1214,8 +1275,8 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                                 <div className="flex items-center gap-2 overflow-hidden">
                                   <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center border shrink-0", item.bg)}><item.icon className={cn("h-3.5 w-3.5", item.color)} /></div>
                                   <div className="text-left overflow-hidden">
-                                    <p className="text-[8px] sm:text-[9px] font-black uppercase text-slate-800 leading-none truncate">{item.label}</p>
-                                    <p className="text-[6px] sm:text-[7px] font-black uppercase text-slate-400 leading-none mt-1 truncate">{item.sub}</p>
+                                    <p className="text-[10px] sm:text-[12px] font-black uppercase text-slate-800 leading-none truncate">{item.label}</p>
+                                    <p className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 leading-none mt-1 truncate">{item.sub}</p>
                                   </div>
                                 </div>
                                 <Switch checked={item.root ? (editingCustomer as any)[item.field] : (editingCustomer.gallerySettings as any)[item.field]} onCheckedChange={(checked) => item.root ? setEditingCustomer({ ...editingCustomer, [item.field]: checked }) : setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, [item.field]: checked } })} className="scale-[0.75] sm:scale-90 origin-right shrink-0" />
@@ -1243,9 +1304,20 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                                 { label: 'Gal. (€)', key: 'fullPackPrice', help: 'Completa' }
                               ].map((f) => (
                                 <div key={f.key} className="space-y-1.5 sm:space-y-2">
-                                  <Label className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 block text-center truncate tracking-tight">{f.label}</Label>
-                                  <Input type="number" value={(editingCustomer.gallerySettings?.digitalFiles as any)?.[f.key] ?? 0} onChange={(e) => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, [f.key]: parseFloat(e.target.value) || 0 } } })} className="rounded-xl h-10 sm:h-11 px-2 font-bold text-sm text-[#4A7C59] text-center bg-slate-50/50 border-none transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10" />
-                                  <p className="text-[7px] sm:text-[8px] font-bold text-slate-300 uppercase text-center tracking-widest">{f.help}</p>
+                                  <Label className="text-[10px] sm:text-[12px] font-black uppercase text-slate-400 block text-center truncate tracking-tight">{f.label}</Label>
+                                  <Input 
+                                    type="number" 
+                                    value={f.key === 'packIncluded' ? (editingCustomer.gallerySettings?.includedPhotos ?? (editingCustomer.gallerySettings?.digitalFiles as any)?.[f.key] ?? 0) : (editingCustomer.gallerySettings?.digitalFiles as any)?.[f.key] ?? 0} 
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      const newSettings = { ...editingCustomer.gallerySettings };
+                                      if (f.key === 'packIncluded') newSettings.includedPhotos = val;
+                                      newSettings.digitalFiles = { ...newSettings.digitalFiles, [f.key]: val };
+                                      setEditingCustomer({ ...editingCustomer, gallerySettings: newSettings });
+                                    }} 
+                                    className="rounded-xl h-11 sm:h-12 px-2 font-black text-lg text-[#4A7C59] text-center bg-slate-50/50 border-none transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10" 
+                                  />
+                                  <p className="text-[9px] sm:text-[10px] font-black text-slate-300 uppercase text-center tracking-widest">{f.help}</p>
                                 </div>
                               ))}
                         </div>
@@ -1257,8 +1329,8 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                                   <Music className="h-4 w-4" />
                                 </div>
                                 <div className="truncate">
-                                  <p className="text-[8px] font-black uppercase text-slate-800 leading-none mb-1">Música</p>
-                                  <p className="text-[7px] font-black text-indigo-500 uppercase truncate">{(editingCustomer.gallerySettings?.bgMusic?.name || "No")}</p>
+                                  <p className="text-[10px] font-black uppercase text-slate-800 leading-none mb-1">Música</p>
+                                  <p className="text-[9px] font-black text-indigo-500 uppercase truncate">{(editingCustomer.gallerySettings?.bgMusic?.name || "No seleccionada")}</p>
                                 </div>
                              </div>
                              <Button variant="outline" size="sm" onClick={() => { setIsMusicPickerOpen(true); loadLibraryMusic(); }} className="h-6 rounded-lg px-2 text-[7px] font-black uppercase border-indigo-200 text-indigo-600 bg-white">MOD</Button>
@@ -1267,8 +1339,8 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                              <div className="flex items-center gap-2 overflow-hidden">
                                 <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-[#4A7C59] border border-slate-100 shadow-xs"><FileImage className="h-4 w-4" /></div>
                                 <div>
-                                  <p className="text-[8px] font-black uppercase text-slate-800 leading-none mb-1">Nube</p>
-                                  <p className="text-[7px] font-black text-[#4A7C59] uppercase">{(editingCustomer.gallerySettings?.photos?.length || 0)} f</p>
+                                  <p className="text-[10px] font-black uppercase text-slate-800 leading-none mb-1">Nube</p>
+                                  <p className="text-[9px] font-black text-[#4A7C59] uppercase">{(editingCustomer.gallerySettings?.photos?.length || 0)} fotos</p>
                                 </div>
                              </div>
                              <Button variant="outline" size="sm" onClick={() => setIsPhotosModalOpen(true)} className="h-6 rounded-lg px-2 text-[7px] font-black uppercase border-slate-200 text-slate-600 bg-white">GES</Button>
@@ -1277,7 +1349,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
 
                         <div className="grid grid-cols-2 gap-2">
                            <div className="space-y-1">
-                             <Label className="text-[8px] font-black uppercase text-slate-400 pl-1">Título</Label>
+                             <Label className="text-[11px] font-black uppercase text-slate-400 pl-1">Título de Galería</Label>
                              <Input 
                                value={editingCustomer.gallerySettings?.galleryTitle || ''} 
                                onChange={(e) => {
@@ -1293,25 +1365,60 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                                    gallerySettings: { ...editingCustomer.gallerySettings, galleryTitle: newTitle }
                                  });
                                }} 
-                               className="rounded-xl h-10 text-[11px] font-black border-slate-100 px-3 transition-all focus:ring-1 focus:ring-[#4A7C59]/10" 
+                               className="rounded-xl h-12 text-[14px] font-black border-slate-100 px-4 transition-all focus:ring-1 focus:ring-[#4A7C59]/10" 
                              />
                            </div>
                            <div className="space-y-1">
-                             <Label className="text-[8px] font-black uppercase text-slate-400 pl-1">Slug (URL)</Label>
+                             <Label className="text-[11px] font-black uppercase text-slate-400 pl-1">Slug de URL (Enlace)</Label>
                              <Input 
                                value={editingCustomer.slug || ''} 
                                onChange={(e) => setEditingCustomer({ ...editingCustomer, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} 
-                               className="rounded-xl h-10 text-[11px] font-black bg-slate-50/50 border-slate-100 px-3 transition-all opacity-80" 
+                               className="rounded-xl h-12 text-[14px] font-black bg-slate-50/50 border-slate-100 px-4 transition-all opacity-80" 
                                placeholder="auto-generado"
                              />
                            </div>
                         </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-black uppercase text-slate-400 pl-1">Subtítulo de Galería</Label>
+                          <textarea 
+                            value={editingCustomer.gallerySettings?.gallerySubtitle || ''} 
+                            onChange={(e) => setEditingCustomer({ 
+                              ...editingCustomer, 
+                              gallerySettings: { ...editingCustomer.gallerySettings, gallerySubtitle: e.target.value } 
+                            })}
+                            className="w-full p-4 rounded-xl text-sm font-bold border-slate-100 bg-slate-50/50 min-h-[80px] outline-none transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10 scrollbar-hide"
+                            placeholder="Añade un subtítulo o descripción corta..."
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-black uppercase text-slate-400 pl-1">Enlace Directo</Label>
+                          <div className="relative group">
+                            <Input 
+                              readOnly 
+                              value={`${window.location.origin}/galeria/${editingCustomer.slug}`} 
+                              className="rounded-xl h-12 text-[13px] font-bold bg-slate-50 border-slate-100 pr-12 focus:ring-[#4A7C59]/10 select-all" 
+                            />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/galeria/${editingCustomer.slug}`);
+                                toast({ title: '¡Copiado!', description: 'Enlace guardado en el portapapeles' });
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-[#4A7C59]/10 text-[#4A7C59]"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                         
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
-                          <Button variant="outline" className="flex-1 rounded-2xl h-12 sm:h-14 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] border-slate-200 hover:bg-slate-50 shadow-sm" onClick={() => window.open(`/galeria/${editingCustomer.slug}?preview=true`, '_blank')}> <Eye className="h-4 w-4 sm:h-5 sm:w-5 mr-3" /> VISTA PREVIA </Button>
-                          <Button className="flex-1 bg-[#4A7C59]/10 hover:bg-[#4A7C59] text-[#4A7C59] hover:text-white rounded-2xl h-12 sm:h-14 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-[#4A7C59]/5 border border-[#4A7C59]/20" onClick={() => {
+                          <Button variant="outline" className="flex-1 rounded-xl h-11 sm:h-12 text-[10px] sm:text-xs font-black uppercase tracking-widest border-slate-200 hover:bg-slate-50 shadow-sm" onClick={() => window.open(`/galeria/${editingCustomer.slug}?preview=true`, '_blank')}> <Eye className="h-4 w-4 sm:h-5 sm:w-5 mr-3" /> VISTA PREVIA </Button>
+                          <Button className="flex-1 bg-[#4A7C59]/10 hover:bg-[#4A7C59] text-[#4A7C59] hover:text-white rounded-xl h-11 sm:h-12 text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-[#4A7C59]/5 border border-[#4A7C59]/20" onClick={() => {
                             const url = `${window.location.origin}/galeria/${editingCustomer.slug}`;
-                            const msg = `👋 ✨ ¡Hola *${editingCustomer.name}*! 👋\n\n¡Buenas noticias! ¡Ya tienes lista tu galería online! 🎞️📷\n\nEs el momento de revivir esos momentos mágicos. En el siguiente enlace podrás seleccionar tus fotos favoritas y convertirlas en recuerdos tangibles en nuestra tienda:\n\n🔗 Accede aquí a vuestra galería: \n\n👉 ${url} ✨\n\nIdentifícate en la tienda con estos datos: 👤 Usuario: *${editingCustomer.name.split(' ')[0].toUpperCase()}* 🔑 Contraseña: *${editingCustomer.dni}*\n\nQueremos que vuestro reportaje sea una experiencia inolvidable y que la tecnología os lo ponga muy fácil. 🚀💻\n\n¿Nos ayudas a seguir creciendo? 🌱✨\n\nEn PujalteFotografia nos apasiona saber qué piensas. Si te ha gustado nuestro trabajo y el trato recibido, nos harías un favor enorme dejando una reseña en nuestro perfil. 💬🙏\n\n¿Nos regalas 5 estrellas? ⭐⭐⭐⭐⭐ Un comentario contando vuestra experiencia sería el broche de oro perfecto para nosotros. 😜🎁\n\nPuedes hacerlo directamente aquí 👇 📍 https://g.page/r/CTswPlAvjlLXEAo/review\n\nCualquier duda, ¡escríbeme! 📲\n\n¡Mil gracias por vuestra confianza y apoyo! 🤗💖`;
+                            const msg = `👋 ✨ ¡Hola *${editingCustomer.name}*! 👋\n\n¡Buenas noticias! ¡Ya tienes lista tu galería online! 🎞️📷\n\nEs el momento de revivir esos momentos mágicos. En el siguiente enlace podrás seleccionar tus fotos favoritas y convertirlas en recuerdos tangibles en nuestra galería:\n\n🔗 Accede aquí a vuestra galería: \n\n👉 ${url} ✨\n\nIdentifícate en la galería con estos datos: 👤 Usuario: *${editingCustomer.name.toUpperCase()}* 🔑 Contraseña: *${editingCustomer.dni}*\n\nQueremos que vuestro reportaje sea una experiencia inolvidable y que la tecnología os lo ponga muy fácil. 🚀💻\n\n¿Nos ayudas a seguir creciendo? 🌱✨\n\nEn PujalteFotografia nos apasiona saber qué piensas. Si te ha gustado nuestro trabajo y el trato recibido, nos harías un favor enorme dejando una reseña en nuestro perfil. 💬🙏\n\n¿Nos regalas 5 estrellas? ⭐⭐⭐⭐⭐ Un comentario contando vuestra experiencia sería el broche de oro perfecto para nosotros. 😜🎁\n\nPuedes hacerlo directamente aquí 👇 📍 https://g.page/r/CTswPlAvjlLXEAo/review\n\nCualquier duda, ¡escríbeme! 📲\n\n¡Mil gracias por vuestra confianza y apoyo! 🤗💖`;
                             window.open(`https://api.whatsapp.com/send?phone=${editingCustomer.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(msg)}`, '_blank');
                           }}> <Send className="h-4 w-4 sm:h-5 sm:w-5 mr-3" /> WHATSAPP </Button>
                         </div>
@@ -1328,8 +1435,8 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                   )}
                 </div>
 
-                <DialogFooter className="p-5 sm:p-8 border-t border-slate-50 bg-slate-50/20 flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-4 sm:gap-6">
-                  <Button variant="ghost" onClick={() => setEditingCustomer(null)} className="w-full sm:w-auto rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] h-12 sm:h-14 px-10 text-slate-400 hover:text-slate-600">Cancelar</Button>
+                <DialogFooter className="p-4 sm:p-6 border-t border-slate-50 bg-slate-50/20 flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-4 shrink-0">
+                  <Button variant="ghost" onClick={() => setEditingCustomer(null)} className="w-full sm:w-auto rounded-xl text-xs font-black uppercase tracking-widest h-11 px-8 text-slate-400 hover:text-slate-600">Cancelar</Button>
                   <Button 
                     onClick={async () => {
                       if (!editingCustomer.name || !editingCustomer.email) {
@@ -1338,7 +1445,26 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                       }
                       setUpdating(true)
                       try {
-                        const { doc, deleteDoc, setDoc, updateDoc, serverTimestamp } = await import('firebase/firestore')
+                        const { doc, deleteDoc, setDoc, updateDoc, serverTimestamp, getDocs, query, collection, where } = await import('firebase/firestore')
+                        
+                        // GARANTIZAR SLUG ÚNICO
+                        let finalSlug = editingCustomer.slug || '';
+                        if (finalSlug) {
+                          let count = 1;
+                          let exists = true;
+                          while (exists) {
+                            const q = query(collection(db, COLLECTIONS.CLIENTS), where("slug", "==", finalSlug));
+                            const snap = await getDocs(q);
+                            const duplicate = snap.docs.find(d => d.id !== (editingCustomer.originalId || editingCustomer.id));
+                            if (!duplicate) {
+                              exists = false;
+                            } else {
+                              count++;
+                              finalSlug = `${editingCustomer.slug.split('-').filter((s: string, i: number, a: string[]) => i < a.length - 1 || isNaN(parseInt(s))).join('-')}-${count}`;
+                            }
+                          }
+                        }
+
                         const oldKey = (editingCustomer.originalId || editingCustomer.id).toString().toUpperCase()
                         const newKey = (editingCustomer.dni || editingCustomer.email).toString().toUpperCase()
                         const data = {
@@ -1346,7 +1472,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                           dni: (editingCustomer.dni || '').toUpperCase(),
                           email: (editingCustomer.email || '').toLowerCase(),
                           phone: editingCustomer.phone || '',
-                          slug: editingCustomer.slug || '',
+                          slug: finalSlug,
                           gallerySettings: editingCustomer.gallerySettings || {},
                           cashEnabled: !!editingCustomer.cashEnabled,
                           updatedAt: serverTimestamp()
@@ -1359,7 +1485,6 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                         }
                         toast({ title: 'Éxito', description: 'Cliente actualizado' })
                         await reloadFirebase()
-                        setEditingCustomer(null)
                       } catch (e) {
                         toast({ title: 'Error', description: 'No se pudo guardar', variant: 'destructive' })
                       } finally {
@@ -1367,7 +1492,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                       }
                     }} 
                     disabled={updating}
-                    className="w-full sm:w-auto bg-[#4A7C59] hover:bg-[#3d664a] text-white rounded-[2rem] text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] h-14 sm:h-14 px-10 sm:px-14 shadow-xl shadow-green-900/10 min-w-[200px] sm:min-w-[240px]"
+                    className="w-full sm:w-auto bg-[#4A7C59] hover:bg-[#3d664a] text-white rounded-xl text-[12px] font-black uppercase tracking-widest h-12 px-10 shadow-xl shadow-green-900/10 min-w-[200px]"
                   >
                     {updating ? <Loader2 className="h-5 w-5 animate-spin" /> : "Guardar Cambios"}
                   </Button>

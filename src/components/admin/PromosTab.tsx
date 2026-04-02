@@ -56,7 +56,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { PromoModal } from '@/components/landing/PromoModal'
-import { ImageCropper } from './image-cropper'
+import { ImageCropper } from './ImageCropper'
 
 interface PromosTabProps {
   config: LandingConfig
