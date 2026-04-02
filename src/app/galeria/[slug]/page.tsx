@@ -52,6 +52,7 @@ export default function GalleryPage() {
   const [client, setClient] = useState<any>(null)
   const [clientId, setClientId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [viewerNotification, setViewerNotification] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [digitalFilesCount, setDigitalFilesCount] = useState(0)
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null)
@@ -87,6 +88,11 @@ export default function GalleryPage() {
   const [isPlaying, setIsPlaying] = useState(true)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [userInteracted, setUserInteracted] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
 
   const photos = client?.gallerySettings?.photos || []
   
@@ -290,13 +296,15 @@ export default function GalleryPage() {
   const coverPhoto = photos.find((p: any) => p.isCover) || photos[0]
   
   const toggleFavorite = (id: string) => {
+    const alreadyFavorite = favorites.has(id);
     const newFavs = new Set(favorites)
-    if (newFavs.has(id)) newFavs.delete(id)
+    if (alreadyFavorite) newFavs.delete(id)
     else newFavs.add(id)
     setFavorites(newFavs)
-    toast({ 
-      title: newFavs.has(id) ? 'Añadida a favoritos' : 'Eliminada de favoritos',
-    })
+    
+    // Notificación rápida e integrada
+    setViewerNotification(alreadyFavorite ? "Eliminada de favoritos" : "Añadida a favoritos");
+    setTimeout(() => setViewerNotification(null), 1200);
   }
   
   const handleRejectAction = async (photo: any) => {
@@ -1678,22 +1686,25 @@ export default function GalleryPage() {
               <div className="flex items-center gap-3">
                 <Button 
                   onClick={() => handleOpenShop(displayedPhotos[viewerIndex])}
-                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-11 px-8 font-black uppercase text-[11px] tracking-widest flex gap-2 shadow-lg shadow-orange-500/20"
+                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-11 px-4 sm:px-8 font-black uppercase text-[11px] tracking-widest shadow-xl flex gap-2"
                 >
-                  <ShoppingBag className="h-4 w-4" /> Comprar
+                  <ShoppingBag className="h-4 w-4" /> 
+                  <span className="hidden sm:inline">Comprar</span>
                 </Button>
                 <Button 
                   onClick={() => toggleFavorite(displayedPhotos[viewerIndex]?.id)}
                   variant="outline"
                   className={cn(
-                    "rounded-full h-11 px-8 font-black uppercase text-[11px] tracking-widest border-2 transition-all flex gap-2",
+                    "rounded-full h-11 px-4 sm:px-8 font-black uppercase text-[11px] tracking-widest border-2 transition-all flex gap-2",
                     displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id)
                       ? "bg-white text-orange-500 border-white shadow-lg"
                       : "bg-transparent text-white border-white/20 hover:bg-white/10"
                   )}
                 >
                   <Heart className={cn("h-4 w-4", displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) && "fill-current")} /> 
-                  {displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) ? 'Favorita' : 'Marcar Favorita'}
+                  <span className="hidden sm:inline">
+                    {displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) ? 'Favorita' : 'Marcar Favorita'}
+                  </span>
                 </Button>
                 <button 
                   onClick={() => setViewerIndex(null)}
@@ -1765,7 +1776,27 @@ export default function GalleryPage() {
                     className="w-full bg-white/10 backdrop-blur-xl border-2 border-white/30 rounded-full py-4 pl-12 pr-6 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-white/50 transition-all placeholder:text-white/60 shadow-2xl"
                   />
                </div>
-               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Usa las flechas de tu teclado para navegar</p>
+               
+               <div className="flex flex-col items-center">
+                 {viewerNotification && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="bg-white/90 backdrop-blur-md px-6 py-2 rounded-full shadow-2xl mb-2"
+                    >
+                      <span className={cn(
+                        "text-[11px] font-black uppercase tracking-[0.15em]",
+                        viewerNotification.includes("Eliminada") ? "text-red-500" : "text-[#4A7C59]"
+                      )}>
+                        {viewerNotification}
+                      </span>
+                    </motion.div>
+                 )}
+                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mt-2">
+                   {isMobile ? 'Desliza para navegar' : 'usa las flechas de tu teclado para navegar'}
+                 </p>
+               </div>
             </div>
           </motion.div>
         )}
