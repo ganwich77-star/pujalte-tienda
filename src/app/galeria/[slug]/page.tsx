@@ -732,26 +732,26 @@ export default function GalleryPage() {
       </section>
 
       {/* INFO BAR - PACK DETAILS */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100 py-4 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
+      <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100 py-3 sm:py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center justify-between w-full sm:w-auto gap-4 sm:gap-6">
             <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fotos Incluidas</span>
-              <span className="text-xl font-black text-slate-900 leading-none">
+              <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest">Fotos Incluidas</span>
+              <span className="text-lg sm:text-xl font-black text-slate-900 leading-none">
                 {favorites.size} / <span className="text-[#4A7C59]">{Number(client.gallerySettings?.includedPhotos) === 0 ? 'ILIMITADAS' : (client.gallerySettings?.includedPhotos || 0)}</span>
               </span>
             </div>
             {Number(client.gallerySettings?.includedPhotos) > 0 && favorites.size > (Number(client.gallerySettings?.includedPhotos) || 0) && (
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest">Extras acumuladas</span>
-                <span className="text-lg font-black text-orange-500 leading-none">
+              <div className="flex flex-col border-l border-slate-100 pl-4 sm:pl-6">
+                <span className="text-[8px] sm:text-[9px] font-black text-orange-400 uppercase tracking-widest">Extras</span>
+                <span className="text-base sm:text-lg font-black text-orange-500 leading-none">
                   +{Math.max(0, favorites.size - (Number(client.gallerySettings?.includedPhotos) || 0)) * (Number(client.gallerySettings?.extraPrice) || 0)}€
                 </span>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
              <div className="flex bg-slate-100 p-1 rounded-full mr-1">
                 <button 
                   onClick={() => setViewMode('grid')}
@@ -773,11 +773,11 @@ export default function GalleryPage() {
                 </button>
              </div>
 
-             {/* Botón de Papelera / Recuperación (Más pequeño y Ámbar) */}
+             {/* Botón de Papelera / Recuperación (Cambiado para móvil) */}
              <button
                onClick={() => setShowRejected(!showRejected)}
                className={cn(
-                 "flex items-center gap-2 px-4 h-10 rounded-full transition-all font-black text-[9px] uppercase tracking-widest border",
+                 "flex items-center gap-2 px-3 sm:px-4 h-10 rounded-full transition-all font-black text-[9px] uppercase tracking-widest border",
                  showRejected 
                    ? "bg-slate-900 border-slate-900 text-white" 
                    : rejectedPhotos.size > 0
@@ -785,8 +785,9 @@ export default function GalleryPage() {
                      : "bg-white border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900"
                )}
              >
-               {showRejected ? <ChevronLeft className="h-3 w-3" /> : <Trash2 className="h-3 w-3" />}
-               {showRejected ? "Volver" : `Descartadas (${rejectedPhotos.size})`}
+               {showRejected ? <ChevronLeft className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+               <span className="hidden md:inline">{showRejected ? "Volver" : "Descartadas"}</span>
+               <span className="ml-0.5">({rejectedPhotos.size})</span>
              </button>
 
              <div className="h-8 w-[1px] bg-slate-200 mx-1" />
@@ -796,16 +797,18 @@ export default function GalleryPage() {
                 <Button 
                   onClick={() => setShowOnlyFavorites(false)}
                   variant="destructive"
-                  className="rounded-full px-8 h-12 font-black uppercase text-[11px] tracking-widest flex gap-2 shadow-lg shadow-red-500/20"
+                  className="rounded-full px-4 sm:px-8 h-12 font-black uppercase text-[10px] sm:text-[11px] tracking-widest flex gap-2 shadow-lg shadow-red-500/20"
                 >
-                  <X className="h-4 w-4" /> Cancelar Selección
+                  <X className="h-4 w-4" />
+                  <span className="hidden md:inline">Cancelar</span>
                 </Button>
 
                 <Button 
                   onClick={handleSaveSelection}
-                  className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-full px-8 h-12 font-black uppercase text-[11px] tracking-widest shadow-lg shadow-[#4A7C59]/20 flex gap-2"
+                  className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-full px-4 sm:px-8 h-12 font-black uppercase text-[10px] sm:text-[11px] tracking-widest shadow-lg shadow-[#4A7C59]/20 flex gap-2"
                 >
-                  <Send className="h-4 w-4" /> Enviar Selección
+                  <Send className="h-4 w-4" />
+                  <span className="hidden md:inline">Enviar Selección</span>
                 </Button>
                </>
              ) : (
@@ -818,9 +821,10 @@ export default function GalleryPage() {
                     setShowOnlyFavorites(true)
                     window.scrollTo({ top: 400, behavior: 'smooth' })
                   }}
-                  className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-full px-8 h-12 font-black uppercase text-[11px] tracking-widest shadow-lg shadow-[#4A7C59]/20 flex gap-2"
+                  className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-full px-4 sm:px-8 h-12 font-black uppercase text-[10px] sm:text-[11px] tracking-widest shadow-lg shadow-[#4A7C59]/20 flex items-center justify-center gap-2"
                 >
-                  <Check className="h-4 w-4" /> Confirmar Selección
+                  <Check className="h-4 w-4" />
+                  <span className="hidden md:inline">Confirmar Selección</span>
                 </Button>
              )}
               <div className="h-8 w-[1px] bg-slate-200 mx-1" />
@@ -828,10 +832,10 @@ export default function GalleryPage() {
               <Button 
                 onClick={() => setIsCartOpen(true)}
                 variant="outline"
-                className="relative bg-white border-slate-200 text-slate-900 rounded-full h-12 px-6 font-black uppercase text-[10px] tracking-widest shadow-sm hover:border-[#4A7C59] transition-all flex gap-3"
+                className="relative bg-white border-slate-200 text-slate-900 rounded-full h-12 px-3 sm:px-6 font-black uppercase text-[10px] tracking-widest shadow-sm hover:border-[#4A7C59] transition-all flex items-center justify-center gap-2"
               >
                 <ShoppingBag className="h-4 w-4" />
-                <span className="hidden sm:inline">Mi Carrito</span>
+                <span className="hidden md:inline">Mi Carrito</span>
                 {getItemCount() > 0 && (
                   <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] h-5 w-5 rounded-full flex items-center justify-center font-black animate-in fade-in zoom-in border-2 border-white">
                     {getItemCount()}
@@ -1870,7 +1874,10 @@ export default function GalleryPage() {
             />
             <button
                 onClick={toggleMusic}
-                className="fixed top-6 right-6 z-[100] w-12 h-12 rounded-full bg-white/90 backdrop-blur-md shadow-2xl border border-slate-100 flex items-center justify-center text-slate-800 hover:scale-110 active:scale-95 transition-all group"
+                className={cn(
+                  "fixed right-6 z-[100] w-12 h-12 rounded-full bg-white/90 backdrop-blur-md shadow-2xl border border-slate-100 flex items-center justify-center text-slate-800 hover:scale-110 active:scale-95 transition-all group",
+                  isPreview ? "top-16 sm:top-6" : "top-6"
+                )}
                 title={isPlaying ? "Silenciar" : "Escuchar música"}
             >
                 {isPlaying ? (
@@ -1918,17 +1925,17 @@ export default function GalleryPage() {
       </Dialog>
       <CartSheet isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
-      {/* Notificación Global para Galería (cuando el visor no está abierto) */}
+      {/* Global Notification at the bottom */}
       <AnimatePresence>
         {viewerNotification && viewerIndex === null && (
           <motion.div 
             initial={{ opacity: 0, y: 50, x: "-50%" }}
             animate={{ opacity: 1, y: 0, x: "-50%" }}
             exit={{ opacity: 0, y: 50, x: "-50%" }}
-            className="fixed bottom-10 left-1/2 z-[150] bg-white/95 backdrop-blur-xl px-8 py-4 rounded-full shadow-2xl border-2 border-slate-100 flex items-center gap-4 min-w-[280px] justify-center"
+            className="fixed bottom-10 left-1/2 z-[150] bg-white/95 backdrop-blur-xl px-6 py-4 rounded-full shadow-2xl border-2 border-slate-100 flex items-center gap-3 w-[calc(100%-2.5rem)] max-w-[340px] justify-center"
           >
-             <div className="h-2.5 w-2.5 rounded-full bg-[#4A7C59] animate-pulse" />
-             <span className="text-[12px] font-black uppercase tracking-widest text-slate-800 whitespace-nowrap">
+             <div className="h-2 w-2 rounded-full bg-[#4A7C59] animate-pulse shrink-0" />
+             <span className="text-[11px] font-black uppercase tracking-widest text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">
                {viewerNotification}
              </span>
           </motion.div>
