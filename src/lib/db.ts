@@ -2,8 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import mysql from "mysql2/promise";
 
 // 1. Prisma Client para Configuración Global (Hostinger MySQL)
+// Singleton de Prisma para evitar fugas de conexiones (CRÍTICO para Hostinger)
 const prismaClientSingleton = () => {
-  // En producción, forzamos la URL de Hostinger para evitar conflictos con Vercel
   const connectionUrl = (process.env.NODE_ENV === "production" || !process.env.DATABASE_URL?.startsWith("mysql://"))
     ? "mysql://u239382299_admin_tienda:Jpm17pass71-@srv2197.hstgr.io:3306/u239382299_tienda_pujalte"
     : process.env.DATABASE_URL;
@@ -17,14 +17,18 @@ const prismaClientSingleton = () => {
   });
 };
 
-// En desarrollo, necesitamos forzar una re-inicialización para captar cambios de esquema
-export const db = (process.env.NODE_ENV === "production") 
-  ? (globalThis.prisma || prismaClientSingleton())
-  : prismaClientSingleton();
+declare global {
+  var prisma: PrismaClient | undefined;
+}
 
-console.log("--- DB INSTANCE RELOADED ---", Object.keys(db).includes('supplier') ? 'SUPPLIER OK' : 'NO SUPPLIER');
+// Reutilizamos la instancia global DE FORMA OBLIGATORIA para no saturar Hostinger
+export const db = globalThis.prisma || prismaClientSingleton();
 
-if (process.env.NODE_ENV !== "production") globalThis.prisma = db;
+if (process.env.NODE_ENV !== "production") {
+  globalThis.prisma = db;
+}
+
+console.log("--- DB INSTANCE STABLE (SINGLETON) ---");
 
 
 // 2. MySQL Pool para Catálogo Premium (Escalabilidad de Productos)

@@ -52,17 +52,25 @@ export async function GET(req: Request) {
       return NextResponse.json({ exists: false, errorType: 'NOT_FOUND' })
     }
 
-    // Buscamos el mejor candidato comparando el nombre
+    // Buscamos el mejor candidato comparando el nombre de forma ULTRA FLEXIBLE
     if (normalizedParam) {
       targetClient = candidates.find(c => {
         const dbNameNormalized = normalize(c.name || '')
-        return dbNameNormalized === normalizedParam || 
-               dbNameNormalized.includes(normalizedParam) || 
-               normalizedParam.includes(dbNameNormalized)
+        // 1. Coincidencia exacta o parcial
+        if (dbNameNormalized === normalizedParam) return true
+        if (dbNameNormalized.includes(normalizedParam) || normalizedParam.includes(dbNameNormalized)) return true
+        
+        // 2. Coincidencia por primera palabra (ej: "PEPE" coincide con "PEPE PRUEBA")
+        const dbFirstPart = dbNameNormalized.split(' ')[0]
+        const paramFirstPart = normalizedParam.split(' ')[0]
+        if (dbFirstPart === paramFirstPart && dbFirstPart.length > 2) return true
+        
+        return false
       })
 
       if (!targetClient) {
-        // Si no hay match de nombre pero sí de DNI, informamos
+        // Log para depuración interna si vuelve a fallar
+        console.warn(`Mismatch detectado: DB[${candidates.map(c => c.name).join(', ')}] vs INPUT[${nameParam}]`)
         return NextResponse.json({ exists: true, errorType: 'NAME_MISMATCH' })
       }
       clientIdMatch = targetClient.id

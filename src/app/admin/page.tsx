@@ -98,14 +98,37 @@ export default function AdminPage() {
   }
 
   const handleSaveConfig = async (newCfg?: StoreConfig) => {
+    const configToSave = newCfg || config;
+    
+    // VALIDACIÓN DE SEGURIDAD (CIERRE DE AGUJERO): Evitar sobrescribir con objeto vacío
+    const keysCount = Object.keys(configToSave || {}).length;
+    if (keysCount < 5) {
+      toast({ 
+        title: '⛔ ERROR CRÍTICO DE SEGURIDAD', 
+        description: 'La configuración parece estar vacía (0 artículos). Guardado bloqueado para evitar pérdida de datos. Recarga la página.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
+      setIsSaving(true)
       const res = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCfg || config)
+        body: JSON.stringify(configToSave)
       })
-      if (res.ok) toast({ title: 'Configuración guardada' })
-    } catch (e) { console.error(e) }
+      if (res.ok) {
+        toast({ title: 'Configuración guardada correctamente' })
+      } else {
+        throw new Error('Error en el servidor al intentar guardar')
+      }
+    } catch (e) { 
+      console.error(e)
+      toast({ title: 'Error al guardar', description: 'Inténtalo de nuevo más tarde o contacta con soporte.', variant: 'destructive' })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleLogin = (e: React.FormEvent) => {
