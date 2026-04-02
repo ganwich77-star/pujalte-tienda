@@ -123,22 +123,51 @@ export function CartSheet({ isOpen, onClose, clientId }: { isOpen: boolean, onCl
     }
   }, [isOpen])
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (checkoutStep === 'cart') {
-      if (isLoggedIn && loggedUser) {
-        setShippingData({
-          firstName: loggedUser.name?.split(' ')[0] || '',
-          lastName: loggedUser.name?.split(' ').slice(1).join(' ') || '',
-          email: loggedUser.email || '',
-          phone: loggedUser.phone || '',
-          address: loggedUser.address || '',
-          city: '', 
-          zipCode: '',
-          dni: loggedUser.dni || ''
-        })
-        setCheckoutStep('payment') 
+      // Si ya está logueado o venimos de una galería identificada
+      if ((isLoggedIn && loggedUser) || clientId) {
+        setProcessingPayment(true);
+        try {
+          // Intentamos recuperar los datos del cliente por su DNI/ID (clientId)
+          const targetDni = (loggedUser?.dni || clientId || '').toUpperCase();
+          const response = await fetch(`/api/customers/${targetDni}`);
+          
+          if (response.ok) {
+            const customer = await response.json();
+            setShippingData({
+              firstName: customer.firstName || '',
+              lastName: customer.lastName || '',
+              email: customer.email || '',
+              phone: customer.phone || '',
+              address: customer.address || '',
+              city: customer.city || '',
+              zipCode: customer.zipCode || '',
+              dni: customer.dni || targetDni
+            });
+            
+            // ¡SALTO DIRECTO AL PAGO! Eliminamos la pantalla de "Tus Datos"
+            setCheckoutStep('payment');
+          } else {
+            // Si no existe en la base de datos pero tiene clientId, 
+            // le dejamos en 'payment' también para no frenar la venta
+            // Usamos los datos mínimos si no los tenemos
+            if (clientId) {
+              setShippingData(prev => ({ ...prev, dni: clientId.toUpperCase() }));
+              setCheckoutStep('payment'); 
+            } else {
+              setIsAuthModalOpen(true);
+            }
+          }
+        } catch (error) {
+          console.error("Error recuperando datos del cliente:", error);
+          if (clientId) setCheckoutStep('checkout');
+          else setIsAuthModalOpen(true);
+        } finally {
+          setProcessingPayment(false);
+        }
       } else {
-        setIsAuthModalOpen(true)
+        setIsAuthModalOpen(true);
       }
     } else if (checkoutStep === 'checkout') {
       if (!shippingData.firstName || !shippingData.lastName || !shippingData.email || !shippingData.address || !shippingData.dni) {

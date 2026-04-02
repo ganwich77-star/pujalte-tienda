@@ -817,34 +817,32 @@ export default function GalleryPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/80" />
         </div>
 
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-24 text-center px-6">
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-10 text-center px-6">
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="space-y-4"
+            className="space-y-2 sm:space-y-4"
           >
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20">
               <span className="w-1.5 h-1.5 rounded-full bg-[#4A7C59] animate-pulse" />
-              <span className="text-white text-[10px] font-black uppercase tracking-[0.3em]">Galería Privada</span>
+              <span className="text-white text-[8px] sm:text-[10px] font-black uppercase tracking-[0.3em]">Galería Privada</span>
             </div>
-            <h1 className="text-5xl sm:text-7xl font-black text-white uppercase tracking-tighter leading-none">
+            <h1 className="text-[32px] sm:text-7xl font-black text-white uppercase tracking-tighter leading-none">
               {client.gallerySettings?.galleryTitle || client.name}
             </h1>
             {client.gallerySettings?.gallerySubtitle && (
-              <p className="text-white/60 font-black text-xs sm:text-sm uppercase tracking-[0.2em] max-w-lg mx-auto whitespace-pre-line">
+              <p className="text-white/60 font-black text-[10px] sm:text-sm uppercase tracking-[0.2em] max-w-lg mx-auto whitespace-pre-wrap">
                 {client.gallerySettings.gallerySubtitle}
               </p>
             )}
-            <p className="text-white/80 font-medium text-base sm:text-lg tracking-tight max-w-lg mx-auto whitespace-pre-line">
-              {client.gallerySettings?.welcomeMessage || 'Bienvenido a tu selección de fotos. Elige tus favoritas y deja que la magia continúe.'}
+            <p className="text-white/80 font-medium text-[2.4vw] sm:text-base tracking-tighter sm:tracking-tight w-full sm:max-w-4xl mx-auto whitespace-nowrap">
+              Bienvenido a tu selección de fotos. Elige tus favoritas y deja que la magia continúe.
             </p>
           </motion.div>
         </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-          <div className="w-px h-12 bg-gradient-to-b from-transparent to-white/50" />
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none">
           <span className="text-white/40 text-[9px] font-black uppercase tracking-widest">Desliza para ver</span>
         </div>
       </section>
@@ -1097,24 +1095,31 @@ export default function GalleryPage() {
                       )}
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
-                  {client?.gallerySettings?.watermarkEnabled && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden select-none">
-                      { (globalConfig?.logoUrl || globalConfig?.logo) ? (
-                        <div className="relative w-[60%] aspect-video transition-opacity duration-500" style={{ opacity: (globalConfig.logoOpacity ?? 20) / 100 }}>
-                          <Image 
-                            src={globalConfig.logoUrl || globalConfig.logo} 
-                            alt="Watermark" 
-                            fill
-                            className="object-contain drop-shadow-2xl" 
-                          />
-                        </div>
-                      ) : (
-                        <p className="text-white/30 font-black text-xl uppercase tracking-[0.4em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.1)] text-center px-4">
-                          {client?.gallerySettings?.watermarkText || 'PUJALTE'}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                    {/* Watermark Protection */}
+                    {client?.gallerySettings?.watermarkEnabled && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden select-none">
+                        {(globalConfig?.logoUrl || globalConfig?.logo) ? (
+                          <div 
+                            className="relative w-[70%] h-[70%] transition-all duration-500 opacity-25 group-hover:opacity-40" 
+                          >
+                            <img 
+                              src={globalConfig?.logoUrl || globalConfig?.logo} 
+                              alt="Watermark" 
+                              className="w-full h-full object-contain filter drop-shadow-2xl" 
+                            />
+                          </div>
+                        ) : (
+                          <div className="rotate-[-30deg] flex flex-col items-center">
+                            <p className="text-white/10 font-black text-3xl uppercase tracking-[0.5em] drop-shadow-2xl text-center px-4">
+                              {client?.gallerySettings?.watermarkText || 'PUJALTE'}
+                            </p>
+                            <p className="text-white/10 font-bold text-[8px] uppercase tracking-[1em] mt-2">
+                              PROHIBIDA SU CAPTURA
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Badges de estado en Grid */}

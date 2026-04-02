@@ -42,7 +42,11 @@ import {
   Info,
   Star,
   FileImage,
-  Copy
+  Copy,
+  ChevronLeft,
+  ChevronRight,
+  Cloud,
+  CircleDollarSign
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -234,6 +238,28 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
       }
     }
   }, [previewAudio])
+
+  // Navegación por teclado para el zoom
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!zoomedPhoto || !editingCustomer?.gallerySettings?.photos) return;
+      const photos = editingCustomer.gallerySettings.photos;
+      const currentIndex = photos.findIndex((p: any) => p.url === zoomedPhoto);
+      
+      if (e.key === 'ArrowLeft') {
+        const nextIndex = (currentIndex - 1 + photos.length) % photos.length;
+        setZoomedPhoto(photos[nextIndex].url);
+      } else if (e.key === 'ArrowRight') {
+        const nextIndex = (currentIndex + 1) % photos.length;
+        setZoomedPhoto(photos[nextIndex].url);
+      } else if (e.key === 'Escape') {
+        setZoomedPhoto(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoomedPhoto, editingCustomer]);
 
   const togglePreview = (url: string, id: string) => {
     if (playingSong === id) {
@@ -1238,7 +1264,6 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                             className="w-full p-6 rounded-[2rem] text-sm font-medium border-slate-100 bg-slate-50/30 min-h-[100px] outline-none shadow-inner transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10"
                           />
                         </div>
-                        <div className="h-10 invisible" /> {/* Spacer for bottom scroll */}
                       </TabsContent>
 
                       <TabsContent value="galeria" className="m-0 space-y-3 animate-in fade-in slide-in-from-right-4 outline-none overflow-x-hidden">
@@ -1264,165 +1289,148 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                         </div>
 
                         {/* INTERRUPTORES Y CARGA EN REJILLA COMPACTA */}
-                        <div className="grid grid-cols-2 md:grid-cols-2 gap-2">
-                           {[
-                              { label: 'Marca Agua', sub: 'Protección', icon: ImageIcon, field: 'watermarkEnabled', color: 'text-blue-500', bg: 'bg-blue-50/50' },
-                              { label: 'Bloqueo Cap.', sub: 'Seguridad', icon: Lock, field: 'safetyLockEnabled', color: 'text-amber-500', bg: 'bg-amber-50/50' },
-                              { label: 'Forzar Sel.', sub: 'Favoritos', icon: Star, field: 'shopRequiresFavorite', color: 'text-orange-500', bg: 'bg-orange-50/50' },
-                              { label: 'Pago Efec.', sub: 'Recogida', icon: BadgeEuro, field: 'cashEnabled', color: 'text-green-500', bg: 'bg-green-50/50', root: true }
-                           ].map((item) => (
-                              <div key={item.label} className="bg-white border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-between shadow-sm h-12 group hover:border-[#4A7C59]/10 transition-all">
-                                <div className="flex items-center gap-2 overflow-hidden">
-                                  <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center border shrink-0", item.bg)}><item.icon className={cn("h-3.5 w-3.5", item.color)} /></div>
-                                  <div className="text-left overflow-hidden">
-                                    <p className="text-[10px] sm:text-[12px] font-black uppercase text-slate-800 leading-none truncate">{item.label}</p>
-                                    <p className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 leading-none mt-1 truncate">{item.sub}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                          <div className="md:col-span-8 grid grid-cols-2 gap-2">
+                             {[
+                                { label: 'Marca Agua', sub: 'Protección', icon: ImageIcon, field: 'watermarkEnabled', color: 'text-blue-500', bg: 'bg-blue-50/50' },
+                                { label: 'Bloqueo Cap.', sub: 'Seguridad', icon: Lock, field: 'safetyLockEnabled', color: 'text-amber-500', bg: 'bg-amber-50/50' },
+                                { label: 'Forzar Sel.', sub: 'Favoritos', icon: Star, field: 'shopRequiresFavorite', color: 'text-orange-500', bg: 'bg-orange-50/50' },
+                                { label: 'Pago Efec.', sub: 'Recogida', icon: BadgeEuro, field: 'cashEnabled', color: 'text-green-500', bg: 'bg-green-50/50', root: true }
+                             ].map((item) => (
+                                <div key={item.label} className="bg-white border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-between shadow-sm h-12 group hover:border-[#4A7C59]/10 transition-all">
+                                  <div className="flex items-center gap-2 overflow-hidden">
+                                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center border shrink-0", item.bg)}><item.icon className={cn("h-3.5 w-3.5", item.color)} /></div>
+                                    <div className="text-left overflow-hidden">
+                                      <p className="text-[10px] sm:text-[12px] font-black uppercase text-slate-800 leading-none truncate">{item.label}</p>
+                                      <p className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 leading-none mt-1 truncate">{item.sub}</p>
+                                    </div>
                                   </div>
+                                  <Switch checked={item.root ? (editingCustomer as any)[item.field] : (editingCustomer.gallerySettings as any)[item.field]} onCheckedChange={(checked) => item.root ? setEditingCustomer({ ...editingCustomer, [item.field]: checked }) : setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, [item.field]: checked } })} className="scale-[0.75] sm:scale-90 origin-right shrink-0" />
                                 </div>
-                                <Switch checked={item.root ? (editingCustomer as any)[item.field] : (editingCustomer.gallerySettings as any)[item.field]} onCheckedChange={(checked) => item.root ? setEditingCustomer({ ...editingCustomer, [item.field]: checked }) : setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, [item.field]: checked } })} className="scale-[0.75] sm:scale-90 origin-right shrink-0" />
+                             ))}
+                          </div>
+
+                          <div className="md:col-span-4">
+                            <div className="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100 h-full flex flex-col justify-between">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Music className="h-4 w-4 text-indigo-600" />
+                                  <span className="text-indigo-900 font-black uppercase tracking-widest text-[9px]">Música</span>
+                                </div>
+                                <Button 
+                                  variant="outline" size="sm" 
+                                  onClick={() => { setIsMusicPickerOpen(true); }}
+                                  className="h-6 rounded-lg text-[8px] font-black uppercase border-indigo-200 text-indigo-600 bg-white"
+                                >MOD</Button>
                               </div>
-                           ))}
-                           
-                           {/* BOTÓN CARGA INTEGRADO EN LA REJILLA EN MÓVIL */}
-                           <div onClick={() => (document.getElementById('edit-upload') as any)?.click()} className="col-span-2 md:col-span-2 mt-1 h-12 rounded-xl border-2 border-dashed border-slate-100 bg-slate-50/50 hover:bg-[#4A7C59]/5 transition-all flex items-center justify-center gap-3 cursor-pointer overflow-hidden relative">
-                              <div className="w-7 h-7 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#4A7C59] shadow-sm shrink-0">
-                                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                              </div>
-                              <p className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Añadir Fotos</p>
-                              <input id="edit-upload" type="file" multiple accept="image/*" className="hidden" onChange={handleUploadPhotos} disabled={isUploading} />
-                              {isUploading && (
-                                  <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-100"><div className="h-full bg-[#4A7C59] transition-all duration-300" style={{ width: `${(uploadStatus.current/uploadStatus.total)*100}%` }} /></div>
-                              )}
-                           </div>
+                              <p className="text-indigo-900 text-[8px] font-black uppercase truncate bg-white p-2 rounded-lg border border-indigo-100 italic">
+                                {editingCustomer?.gallerySettings?.bgMusic?.name || 'No seleccionada'}
+                              </p>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="bg-white border border-slate-100 rounded-[2rem] p-4 sm:p-5 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 shadow-sm">
+                        {/* SECCIÓN GESTIONAR FOTOS */}
+                        <div className="grid grid-cols-1 md:grid-cols-1 gap-2 pt-2">
+                          <button 
+                            onClick={() => setIsPhotosModalOpen(true)}
+                            className="w-full bg-slate-900 rounded-2xl p-5 flex items-center justify-between shadow-xl hover:bg-slate-800 transition-all group relative overflow-hidden text-left"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10 group-hover:scale-110 transition-transform">
+                                <Cloud className="h-6 w-6 text-blue-400" />
+                              </div>
+                              <div>
+                                <h4 className="text-white text-lg font-black uppercase italic tracking-tighter leading-none">Gestionar Galería</h4>
+                                <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[8px] mt-1">Fotos: <span className="text-blue-400">{editingCustomer?.gallerySettings?.photos?.length || 0} archivos</span></p>
+                              </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-white group-hover:translate-x-2 transition-transform" />
+                          </button>
+                        </div>
+
+                        {/* SUBIDA RÁPIDA */}
+                        <div className="space-y-4 pt-1">
+                          <div 
+                            onClick={() => (document.getElementById('edit-upload') as any)?.click()} 
+                            className="w-full h-14 rounded-xl border-2 border-dashed border-slate-200 hover:border-blue-500 hover:bg-blue-50/30 text-slate-400 hover:text-blue-600 transition-all group flex items-center justify-center cursor-pointer relative overflow-hidden"
+                          >
+                            <input id="edit-upload" type="file" multiple accept="image/*" className="hidden" onChange={handleUploadPhotos} disabled={isUploading} />
+                            {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />}
+                            <span className="font-black uppercase tracking-widest text-[10px]">{isUploading ? 'Subiendo...' : 'Subir archivos rápido'}</span>
+                            {isUploading && (
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-100"><div className="h-full bg-[#4A7C59] transition-all duration-300" style={{ width: `${(uploadStatus.current/uploadStatus.total)*100}%` }} /></div>
+                            )}
+                          </div>
+                          
+                          {/* REJILLA DE VALORES */}
+                          <div className="bg-white border border-slate-100 rounded-2xl p-4 grid grid-cols-4 gap-3 shadow-sm">
                               {[
                                 { label: 'Fotos Inc.', key: 'packIncluded', help: 'En Pack' },
                                 { label: 'Extra (€)', key: 'extraPrintPrice', help: 'Copia' },
                                 { label: 'Desc. (€)', key: 'price', help: 'Unid.' },
                                 { label: 'Gal. (€)', key: 'fullPackPrice', help: 'Completa' }
-                              ].map((f) => (
-                                <div key={f.key} className="space-y-1.5 sm:space-y-2">
-                                  <Label className="text-[10px] sm:text-[12px] font-black uppercase text-slate-400 block text-center truncate tracking-tight">{f.label}</Label>
+                              ].map((field) => (
+                                <div key={field.key} className="space-y-2">
+                                  <Label className="text-[10px] font-black uppercase text-slate-400 block text-center truncate tracking-tight">{field.label}</Label>
                                   <Input 
                                     type="number" 
-                                    value={f.key === 'packIncluded' ? (editingCustomer.gallerySettings?.includedPhotos ?? (editingCustomer.gallerySettings?.digitalFiles as any)?.[f.key] ?? 0) : (editingCustomer.gallerySettings?.digitalFiles as any)?.[f.key] ?? 0} 
+                                    value={field.key === 'packIncluded' ? (editingCustomer.gallerySettings?.includedPhotos ?? (editingCustomer.gallerySettings?.digitalFiles as any)?.[field.key] ?? 0) : (editingCustomer.gallerySettings?.digitalFiles as any)?.[field.key] ?? 0} 
                                     onChange={(e) => {
                                       const val = parseFloat(e.target.value) || 0;
                                       const newSettings = { ...editingCustomer.gallerySettings };
-                                      if (f.key === 'packIncluded') newSettings.includedPhotos = val;
-                                      newSettings.digitalFiles = { ...newSettings.digitalFiles, [f.key]: val };
+                                      if (field.key === 'packIncluded') newSettings.includedPhotos = val;
+                                      newSettings.digitalFiles = { ...newSettings.digitalFiles, [field.key]: val };
                                       setEditingCustomer({ ...editingCustomer, gallerySettings: newSettings });
                                     }} 
-                                    className="rounded-xl h-11 sm:h-12 px-2 font-black text-lg text-[#4A7C59] text-center bg-slate-50/50 border-none transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10" 
+                                    className="rounded-xl h-10 px-2 font-black text-sm text-[#4A7C59] text-center bg-slate-50/50 border-none transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10" 
                                   />
-                                  <p className="text-[9px] sm:text-[10px] font-black text-slate-300 uppercase text-center tracking-widest">{f.help}</p>
                                 </div>
                               ))}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className={cn("p-2 sm:p-3 rounded-xl border flex items-center justify-between h-12 shadow-sm", editingCustomer.gallerySettings?.bgMusic ? "bg-indigo-50 border-indigo-100" : "bg-white border-slate-100")}>
-                             <div className="flex items-center gap-2 overflow-hidden">
-                                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", editingCustomer.gallerySettings?.bgMusic ? "bg-indigo-600 text-white shadow-md shadow-indigo-100" : "bg-slate-50 text-indigo-400")}>
-                                  <Music className="h-4 w-4" />
-                                </div>
-                                <div className="truncate">
-                                  <p className="text-[10px] font-black uppercase text-slate-800 leading-none mb-1">Música</p>
-                                  <p className="text-[9px] font-black text-indigo-500 uppercase truncate">{(editingCustomer.gallerySettings?.bgMusic?.name || "No seleccionada")}</p>
-                                </div>
-                             </div>
-                             <Button variant="outline" size="sm" onClick={() => { setIsMusicPickerOpen(true); loadLibraryMusic(); }} className="h-6 rounded-lg px-2 text-[7px] font-black uppercase border-indigo-200 text-indigo-600 bg-white">MOD</Button>
                           </div>
-                          <div className="bg-slate-50/50 border border-slate-100 p-2 sm:p-3 rounded-xl flex items-center justify-between h-12 shadow-sm">
-                             <div className="flex items-center gap-2 overflow-hidden">
-                                <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-[#4A7C59] border border-slate-100 shadow-xs"><FileImage className="h-4 w-4" /></div>
-                                <div>
-                                  <p className="text-[10px] font-black uppercase text-slate-800 leading-none mb-1">Nube</p>
-                                  <p className="text-[9px] font-black text-[#4A7C59] uppercase">{(editingCustomer.gallerySettings?.photos?.length || 0)} fotos</p>
-                                </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                             <div className="space-y-1">
+                               <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Título de Galería</Label>
+                               <Input 
+                                 value={editingCustomer.gallerySettings?.galleryTitle || ''} 
+                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, galleryTitle: e.target.value } })} 
+                                 className="rounded-xl h-10 text-[13px] font-bold border-slate-100 px-4" 
+                               />
                              </div>
-                             <Button variant="outline" size="sm" onClick={() => setIsPhotosModalOpen(true)} className="h-6 rounded-lg px-2 text-[7px] font-black uppercase border-slate-200 text-slate-600 bg-white">GES</Button>
+                             <div className="space-y-1">
+                               <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Slug URL</Label>
+                               <Input 
+                                 value={editingCustomer.slug || ''} 
+                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} 
+                                 className="rounded-xl h-10 text-[13px] font-bold bg-slate-50 border-slate-100 px-4" 
+                               />
+                             </div>
                           </div>
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-2">
-                           <div className="space-y-1">
-                             <Label className="text-[11px] font-black uppercase text-slate-400 pl-1">Título de Galería</Label>
-                             <Input 
-                               value={editingCustomer.gallerySettings?.galleryTitle || ''} 
-                               onChange={(e) => {
-                                 const newTitle = e.target.value;
-                                 const newSlug = newTitle.toLowerCase().trim()
-                                   .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar acentos
-                                   .replace(/[^\w\s-]/g, '')
-                                   .replace(/[\s_-]+/g, '-')
-                                   .replace(/^-+|-+$/g, '');
-                                 setEditingCustomer({ 
-                                   ...editingCustomer, 
-                                   slug: newSlug,
-                                   gallerySettings: { ...editingCustomer.gallerySettings, galleryTitle: newTitle }
-                                 });
-                               }} 
-                               className="rounded-xl h-12 text-[14px] font-black border-slate-100 px-4 transition-all focus:ring-1 focus:ring-[#4A7C59]/10" 
-                             />
-                           </div>
-                           <div className="space-y-1">
-                             <Label className="text-[11px] font-black uppercase text-slate-400 pl-1">Slug de URL (Enlace)</Label>
-                             <Input 
-                               value={editingCustomer.slug || ''} 
-                               onChange={(e) => setEditingCustomer({ ...editingCustomer, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} 
-                               className="rounded-xl h-12 text-[14px] font-black bg-slate-50/50 border-slate-100 px-4 transition-all opacity-80" 
-                               placeholder="auto-generado"
-                             />
-                           </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-black uppercase text-slate-400 pl-1">Subtítulo de Galería</Label>
-                          <textarea 
-                            value={editingCustomer.gallerySettings?.gallerySubtitle || ''} 
-                            onChange={(e) => setEditingCustomer({ 
-                              ...editingCustomer, 
-                              gallerySettings: { ...editingCustomer.gallerySettings, gallerySubtitle: e.target.value } 
-                            })}
-                            className="w-full p-4 rounded-xl text-sm font-bold border-slate-100 bg-slate-50/50 min-h-[80px] outline-none transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10 scrollbar-hide"
-                            placeholder="Añade un subtítulo o descripción corta..."
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-black uppercase text-slate-400 pl-1">Enlace Directo</Label>
-                          <div className="relative group">
-                            <Input 
-                              readOnly 
-                              value={`${window.location.origin}/galeria/${editingCustomer.slug}`} 
-                              className="rounded-xl h-12 text-[13px] font-bold bg-slate-50 border-slate-100 pr-12 focus:ring-[#4A7C59]/10 select-all" 
+                          <div className="space-y-1">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Subtítulo de Galería (Saltos de línea permitidos)</Label>
+                            <textarea 
+                              value={editingCustomer.gallerySettings?.gallerySubtitle || ''} 
+                              onChange={(e) => setEditingCustomer({ 
+                                ...editingCustomer, 
+                                gallerySettings: { ...editingCustomer.gallerySettings, gallerySubtitle: e.target.value } 
+                              })}
+                              className="w-full p-4 rounded-xl text-xs font-bold border-slate-100 bg-slate-50/50 min-h-[80px] outline-none transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10 scrollbar-hide"
+                              placeholder="Escribe una dedicatoria o descripción corta..."
                             />
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => {
-                                navigator.clipboard.writeText(`${window.location.origin}/galeria/${editingCustomer.slug}`);
-                                toast({ title: '¡Copiado!', description: 'Enlace guardado en el portapapeles' });
-                              }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-[#4A7C59]/10 text-[#4A7C59]"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                            <Button variant="outline" className="flex-1 rounded-xl h-10 text-[10px] font-black uppercase tracking-widest border-slate-200" onClick={() => window.open(`/galeria/${editingCustomer.slug}?preview=true`, '_blank')}> <Eye className="h-4 w-4 mr-2" /> VISTA PREVIA </Button>
+                            <Button className="flex-1 bg-[#4A7C59]/10 hover:bg-[#4A7C59] text-[#4A7C59] hover:text-white rounded-xl h-10 text-[10px] font-black uppercase tracking-widest transition-all" onClick={() => {
+                              const url = `${window.location.origin}/galeria/${editingCustomer.slug}`;
+                              const msg = `¡Hola ${editingCustomer.name}! Ya tienes lista tu galería: ${url}`;
+                              window.open(`https://api.whatsapp.com/send?phone=${editingCustomer.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(msg)}`, '_blank');
+                            }}> <Send className="h-4 w-4 mr-2" /> WHATSAPP </Button>
                           </div>
                         </div>
-                        
-                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
-                          <Button variant="outline" className="flex-1 rounded-xl h-11 sm:h-12 text-[10px] sm:text-xs font-black uppercase tracking-widest border-slate-200 hover:bg-slate-50 shadow-sm" onClick={() => window.open(`/galeria/${editingCustomer.slug}?preview=true`, '_blank')}> <Eye className="h-4 w-4 sm:h-5 sm:w-5 mr-3" /> VISTA PREVIA </Button>
-                          <Button className="flex-1 bg-[#4A7C59]/10 hover:bg-[#4A7C59] text-[#4A7C59] hover:text-white rounded-xl h-11 sm:h-12 text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-[#4A7C59]/5 border border-[#4A7C59]/20" onClick={() => {
-                            const url = `${window.location.origin}/galeria/${editingCustomer.slug}`;
-                            const msg = `👋 ✨ ¡Hola *${editingCustomer.name}*! 👋\n\n¡Buenas noticias! ¡Ya tienes lista tu galería online! 🎞️📷\n\nEs el momento de revivir esos momentos mágicos. En el siguiente enlace podrás seleccionar tus fotos favoritas y convertirlas en recuerdos tangibles en nuestra galería:\n\n🔗 Accede aquí a vuestra galería: \n\n👉 ${url} ✨\n\nIdentifícate en la galería con estos datos: 👤 Usuario: *${editingCustomer.name.toUpperCase()}* 🔑 Contraseña: *${editingCustomer.dni}*\n\nQueremos que vuestro reportaje sea una experiencia inolvidable y que la tecnología os lo ponga muy fácil. 🚀💻\n\n¿Nos ayudas a seguir creciendo? 🌱✨\n\nEn PujalteFotografia nos apasiona saber qué piensas. Si te ha gustado nuestro trabajo y el trato recibido, nos harías un favor enorme dejando una reseña en nuestro perfil. 💬🙏\n\n¿Nos regalas 5 estrellas? ⭐⭐⭐⭐⭐ Un comentario contando vuestra experiencia sería el broche de oro perfecto para nosotros. 😜🎁\n\nPuedes hacerlo directamente aquí 👇 📍 https://g.page/r/CTswPlAvjlLXEAo/review\n\nCualquier duda, ¡escríbeme! 📲\n\n¡Mil gracias por vuestra confianza y apoyo! 🤗💖`;
-                            window.open(`https://api.whatsapp.com/send?phone=${editingCustomer.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(msg)}`, '_blank');
-                          }}> <Send className="h-4 w-4 sm:h-5 sm:w-5 mr-3" /> WHATSAPP </Button>
-                        </div>
-                        <div className="h-10 invisible" /> {/* Spacer for bottom scroll */}
+                        <div className="h-10 invisible" />
                       </TabsContent>
 
                       <TabsContent value="pedidos" className="m-0 min-h-[300px] animate-in fade-in slide-in-from-right-4 outline-none">
@@ -1721,76 +1729,76 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                 </div>
               </div>
             </DialogHeader>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3 overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
               {editingCustomer?.gallerySettings?.photos?.map((photo: any) => {
                 const isSelected = selectedPhotos.has(photo.id)
                 return (
                   <div 
                     key={photo.id} 
-                    className={cn(
-                      "relative aspect-[3/4] sm:aspect-square rounded-[1.25rem] overflow-hidden border transition-all duration-300 group/photo",
-                      isSelected 
-                        ? "border-[#4A7C59] ring-2 ring-[#4A7C59] ring-offset-2 scale-[0.98] shadow-lg" 
-                        : "border-slate-100 hover:border-[#4A7C59]/30 hover:shadow-xl hover:-translate-y-1"
-                    )}
+                    className="flex flex-col gap-2 group/photo"
                   >
-                    <img 
-                      src={photo.url} 
-                      className="w-full h-full object-cover cursor-zoom-in" 
-                      onClick={() => setZoomedPhoto(photo.url)}
-                    />
-                    
-                    {/* Botón de Selección */}
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); togglePhotoSelection(photo.id); }}
+                    <div 
+                      onClick={() => togglePhotoSelection(photo.id)}
                       className={cn(
-                        "absolute top-2 left-2 w-6 h-6 rounded-lg flex items-center justify-center transition-all z-10 border shadow-sm",
+                        "relative aspect-square rounded-2xl overflow-hidden border-2 transition-all duration-300 cursor-pointer",
                         isSelected 
-                          ? "bg-[#4A7C59] border-[#4A7C59] text-white" 
-                          : "bg-white/90 border-slate-200 text-slate-400 group-hover/photo:opacity-100 sm:opacity-0"
+                          ? "border-[#4A7C59] ring-4 ring-[#4A7C59]/10 scale-[0.95]" 
+                          : "border-slate-100 hover:border-[#4A7C59]/30 hover:shadow-lg"
                       )}
                     >
-                      <Check className={cn("h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")} />
-                    </button>
-
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col justify-end p-2 gap-2">
-                      {/* Control de Precio Individual */}
-                      <div className="flex bg-white/20 backdrop-blur-md rounded-lg p-1 items-center border border-white/30">
-                        <span className="text-[8px] font-black text-white ml-1.5 mr-auto">€</span>
-                        <input 
-                          type="number"
-                          placeholder="Propio"
-                          defaultValue={photo.price || ''}
-                          onBlur={(e) => {
-                            const val = parseFloat(e.target.value);
-                            const updatedPhotos = editingCustomer.gallerySettings.photos.map((p: any) => 
-                              p.id === photo.id ? { ...p, price: isNaN(val) ? null : val } : p
-                            );
-                            setEditingCustomer({
-                              ...editingCustomer,
-                              gallerySettings: { ...editingCustomer.gallerySettings, photos: updatedPhotos }
-                            });
-                          }}
-                          className="w-12 h-6 bg-white rounded-md text-[9px] font-black text-center text-[#4A7C59] focus:ring-0 border-none outline-none p-0"
-                        />
+                      <img 
+                        src={photo.url} 
+                        className="w-full h-full object-cover" 
+                        alt={photo.name}
+                      />
+                      
+                      {/* Checkbox de Selección Siempre Visible si está seleccionado */}
+                      <div className={cn(
+                        "absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center transition-all z-10 border shadow-md",
+                        isSelected 
+                          ? "bg-[#4A7C59] border-[#4A7C59] text-white scale-110" 
+                          : "bg-white/80 border-slate-200 text-slate-400 group-hover/photo:opacity-100 opacity-0"
+                      )}>
+                        <Check className="h-4 w-4" strokeWidth={3} />
                       </div>
 
-                      <div className="flex justify-between items-center gap-1">
+                      {/* Badge de Portada */}
+                      {photo.isCover && (
+                        <div className="absolute top-2 right-2 bg-amber-500 text-white p-1 rounded-lg shadow-lg">
+                          <Star className="h-3 w-3 fill-current" />
+                        </div>
+                      )}
+
+                      {/* Botón de Zoom (Solo Icono) */}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setZoomedPhoto(photo.url); }}
+                        className="absolute bottom-2 right-2 w-8 h-8 rounded-xl bg-white/90 backdrop-blur-md text-slate-600 flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-all hover:bg-white hover:scale-110 shadow-sm"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* Nombre del Archivo y Menú Rápido */}
+                    <div className="px-1 flex flex-col">
+                      <p className="text-[10px] font-black text-slate-500 uppercase truncate tracking-tight mb-1" title={photo.fileName || photo.name}>
+                        {photo.fileName?.split('.')[0] || photo.name}
+                      </p>
+                      
+                      <div className="flex items-center gap-1">
                         <button 
-                          onClick={(e) => { e.stopPropagation(); handleSetCover(photo.id); }} 
+                          onClick={(e) => { e.stopPropagation(); handleSetCover(photo.id); }}
                           className={cn(
-                            "flex-1 h-7 rounded-lg transition-all flex items-center justify-center gap-1.5", 
-                            photo.isCover ? "bg-[#4A7C59] text-white" : "bg-white/90 hover:bg-white text-slate-600 shadow-sm"
+                            "flex-1 h-6 rounded-lg text-[8px] font-black uppercase tracking-tighter transition-all",
+                            photo.isCover ? "bg-amber-100 text-amber-700 pointer-events-none" : "bg-slate-50 text-slate-400 hover:bg-amber-500 hover:text-white"
                           )}
                         >
-                          <Star className={cn("h-3 w-3", photo.isCover ? "fill-white" : "")} />
-                          <span className="text-[7px] font-black uppercase tracking-tighter">{photo.isCover ? 'Portada' : 'Set Portada'}</span>
+                          Portada
                         </button>
                         <button 
-                          onClick={(e) => { e.stopPropagation(); if (confirm('¿Eliminar esta foto?')) handleDeletePhoto(photo.id); }} 
-                          className="w-7 h-7 rounded-lg bg-red-500 hover:bg-red-600 text-white shadow-sm flex items-center justify-center transition-all shrink-0"
+                          onClick={(e) => { e.stopPropagation(); if(confirm('¿Eliminar esta foto?')) handleDeletePhoto(photo.id); }}
+                          className="w-6 h-6 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3 w-3" />
                         </button>
                       </div>
                     </div>
@@ -1798,34 +1806,83 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                 )
               })}
             </div>
-            <DialogFooter className="mt-6 pt-6 border-t border-slate-100">
-               <Button variant="outline" onClick={() => setIsPhotosModalOpen(false)} className="w-full rounded-[1.25rem] h-12 font-black uppercase text-[10px] tracking-widest border-slate-200 hover:bg-slate-50 transition-all">Cerrar</Button>
-            </DialogFooter>
+
+            {/* Pie del Modal con Botón Cerrar - AHORA SOLO AL FINAL (NO FLOTANTE) */}
+            <div className="p-8 pt-6 pb-12 border-t border-slate-100 mt-8">
+              <Button 
+                className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-[0.2em] shadow-xl group transition-all"
+                onClick={() => setIsPhotosModalOpen(false)}
+              >
+                He terminado de gestionar
+                <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
 
-        {/* Modal de Zoom para fotos */}
-        <Dialog open={!!zoomedPhoto} onOpenChange={() => setZoomedPhoto(null)}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none overflow-hidden flex items-center justify-center">
-            <DialogTitle className="sr-only">Vista previa de foto</DialogTitle>
-            {zoomedPhoto && (
-              <div className="relative group animate-in zoom-in-95 duration-300">
-                <img 
-                  src={zoomedPhoto} 
-                  alt="Zoom" 
-                  className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl"
-                />
-                <button 
-                  onClick={() => setZoomedPhoto(null)}
-                  className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white p-3 rounded-full transition-all"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Visor de Foto Ampliada (Zoom) - FUERA para que no dependa del modal */}
+        {zoomedPhoto && (
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4 sm:p-10 animate-in fade-in zoom-in-95 duration-300"
+            onClick={() => setZoomedPhoto(null)}
+          >
+            {editingCustomer?.gallerySettings?.photos && (() => {
+              const photos = editingCustomer.gallerySettings.photos;
+              const currentIndex = photos.findIndex((p: any) => p.url === zoomedPhoto);
+              const navigate = (dir: 'prev' | 'next', e: React.MouseEvent) => {
+                e.stopPropagation();
+                const nextIndex = dir === 'prev' 
+                  ? (currentIndex - 1 + photos.length) % photos.length 
+                  : (currentIndex + 1) % photos.length;
+                setZoomedPhoto(photos[nextIndex].url);
+              };
 
+              return (
+                <div className="relative w-full h-full flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={() => setZoomedPhoto(null)}
+                    className="absolute top-0 right-0 p-4 text-white/50 hover:text-white transition-colors z-50"
+                  >
+                    <X className="h-10 w-10" />
+                  </button>
+
+                  <div className="relative flex items-center justify-center w-full h-full max-w-5xl">
+                    <button 
+                      onClick={(e) => navigate('prev', e)}
+                      className="absolute left-0 sm:-left-20 bg-white/5 hover:bg-white/10 text-white p-5 rounded-full border border-white/10 backdrop-blur-md transition-all z-50"
+                    >
+                      <ChevronLeft className="h-10 w-10" />
+                    </button>
+
+                    <img 
+                      src={zoomedPhoto} 
+                      alt="Zoom" 
+                      className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/10 animate-in zoom-in-95 duration-300"
+                    />
+
+                    <button 
+                      onClick={(e) => navigate('next', e)}
+                      className="absolute right-0 sm:-right-20 bg-white/5 hover:bg-white/10 text-white p-5 rounded-full border border-white/10 backdrop-blur-md transition-all z-50"
+                    >
+                      <ChevronRight className="h-10 w-10" />
+                    </button>
+                  </div>
+
+                  <div className="mt-8 flex flex-col items-center">
+                    <div className="bg-white/10 backdrop-blur-xl px-8 py-4 rounded-3xl border border-white/20 shadow-2xl">
+                      <p className="text-white text-base sm:text-lg font-black uppercase tracking-[0.4em]">
+                        {photos[currentIndex]?.fileName?.split('.')[0] || 'Archivo'}
+                      </p>
+                    </div>
+                    <p className="mt-4 text-white/40 text-[11px] font-black tracking-[0.3em] uppercase">
+                      Imagen {currentIndex + 1} de {photos.length}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </div>
     </TooltipProvider>
   )
