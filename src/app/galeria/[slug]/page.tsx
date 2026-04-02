@@ -43,6 +43,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { CartSheet } from '@/components/shop/CartSheet'
+
 
 export default function GalleryPage() {
   const params = useParams()
@@ -54,6 +56,8 @@ export default function GalleryPage() {
   const [clientId, setClientId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewerNotification, setViewerNotification] = useState<string | null>(null)
+  const [isCartOpen, setIsCartOpen] = useState(false)
+
   const [error, setError] = useState<string | null>(null)
   const [digitalFilesCount, setDigitalFilesCount] = useState(0)
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null)
@@ -76,7 +80,7 @@ export default function GalleryPage() {
   const [showSummary, setShowSummary] = useState(false)
   const [summaryText, setSummaryText] = useState('')
   const [heroIndex, setHeroIndex] = useState(0)
-  const { addItem, removeItem, updateQuantity, updateItem, items: cartItems } = useCartStore()
+  const { addItem, removeItem, updateQuantity, updateItem, items: cartItems, getItemCount } = useCartStore()
   const [zoomedProduct, setZoomedProduct] = useState<any | null>(null)
   
   // Estados para Descarte de Fotos
@@ -641,10 +645,9 @@ export default function GalleryPage() {
         hasIndividualPrice: isDigital && (individualPrice !== null && individualPrice !== undefined)
       });
 
-      toast({
-        title: " ¡Añadido al carrito!",
-        description: `${product.name} ${variant ? `(${variant.name}) ` : ''}con tu foto.`,
-      });
+      // Notificación elegante en la parte inferior
+      setViewerNotification(`¡${product.name} añadido!`);
+      setTimeout(() => setViewerNotification(null), 1500);
     }
     
     setIsShopModalOpen(false)
@@ -820,7 +823,22 @@ export default function GalleryPage() {
                   <Check className="h-4 w-4" /> Confirmar Selección
                 </Button>
              )}
-          </div>
+              <div className="h-8 w-[1px] bg-slate-200 mx-1" />
+
+              <Button 
+                onClick={() => setIsCartOpen(true)}
+                variant="outline"
+                className="relative bg-white border-slate-200 text-slate-900 rounded-full h-12 px-6 font-black uppercase text-[10px] tracking-widest shadow-sm hover:border-[#4A7C59] transition-all flex gap-3"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                <span className="hidden sm:inline">Mi Carrito</span>
+                {getItemCount() > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] h-5 w-5 rounded-full flex items-center justify-center font-black animate-in fade-in zoom-in border-2 border-white">
+                    {getItemCount()}
+                  </span>
+                )}
+              </Button>
+           </div>
         </div>
       </div>
 
@@ -1898,6 +1916,24 @@ export default function GalleryPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <CartSheet isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+      {/* Notificación Global para Galería (cuando el visor no está abierto) */}
+      <AnimatePresence>
+        {viewerNotification && viewerIndex === null && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 50, x: "-50%" }}
+            className="fixed bottom-10 left-1/2 z-[150] bg-white/95 backdrop-blur-xl px-8 py-4 rounded-full shadow-2xl border-2 border-slate-100 flex items-center gap-4 min-w-[280px] justify-center"
+          >
+             <div className="h-2.5 w-2.5 rounded-full bg-[#4A7C59] animate-pulse" />
+             <span className="text-[12px] font-black uppercase tracking-widest text-slate-800 whitespace-nowrap">
+               {viewerNotification}
+             </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
