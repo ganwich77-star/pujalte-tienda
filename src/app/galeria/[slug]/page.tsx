@@ -26,7 +26,8 @@ import {
   Plus,
   Volume2,
   VolumeX,
-  EyeOff
+  EyeOff,
+  ChevronsDown
 } from 'lucide-react'
 import { db, COLLECTIONS } from '@/lib/firebase'
 import { doc, getDoc, updateDoc, serverTimestamp, query, collection, where, getDocs } from 'firebase/firestore'
@@ -1348,6 +1349,14 @@ export default function GalleryPage() {
                     exit={{ opacity: 0, x: 20 }}
                     className="space-y-4"
                   >
+                    <motion.div 
+                      animate={{ y: [0, 5, 0], opacity: [0.3, 0.6, 0.3] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      className="flex flex-col items-center gap-1 mb-6 text-[#4A7C59] pointer-events-none"
+                    >
+                      <ChevronsDown className="h-5 w-5" />
+                    </motion.div>
+
                     <div className="relative mb-6 px-1">
                       <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input 
