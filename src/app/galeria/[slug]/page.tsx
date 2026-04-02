@@ -732,116 +732,109 @@ export default function GalleryPage() {
       </section>
 
       {/* INFO BAR - PACK DETAILS */}
-      <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100 py-3 sm:py-4 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center justify-between w-full sm:w-auto gap-4 sm:gap-6">
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-100 py-1.5 sm:py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto px-1.5 sm:px-6 flex flex-row flex-wrap items-center justify-between gap-y-2">
+          <div className="flex items-center gap-2 sm:gap-6 shrink-0">
             <div className="flex flex-col">
-              <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest">Fotos Incluidas</span>
-              <span className="text-lg sm:text-xl font-black text-slate-900 leading-none">
-                {favorites.size} / <span className="text-[#4A7C59]">{Number(client.gallerySettings?.includedPhotos) === 0 ? 'ILIMITADAS' : (client.gallerySettings?.includedPhotos || 0)}</span>
-              </span>
+               <span className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Total</span>
+               <span className="text-sm font-black text-slate-900 leading-none mt-0.5">
+                 {favorites.size}/<span className="text-[#4A7C59]">{Number(client.gallerySettings?.includedPhotos) === 0 ? '∞' : (client.gallerySettings?.includedPhotos || 0)}</span>
+               </span>
             </div>
             {Number(client.gallerySettings?.includedPhotos) > 0 && favorites.size > (Number(client.gallerySettings?.includedPhotos) || 0) && (
-              <div className="flex flex-col border-l border-slate-100 pl-4 sm:pl-6">
-                <span className="text-[8px] sm:text-[9px] font-black text-orange-400 uppercase tracking-widest">Extras</span>
-                <span className="text-base sm:text-lg font-black text-orange-500 leading-none">
+              <div className="flex flex-col border-l border-slate-100 pl-2 sm:pl-6">
+                <span className="text-[7px] sm:text-[9px] font-black text-orange-400 uppercase tracking-widest leading-none">Extras</span>
+                <span className="text-xs font-black text-orange-500 leading-none mt-0.5">
                   +{Math.max(0, favorites.size - (Number(client.gallerySettings?.includedPhotos) || 0)) * (Number(client.gallerySettings?.extraPrice) || 0)}€
                 </span>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-             <div className="flex bg-slate-100 p-1 rounded-full mr-1">
+          <div className="flex items-center justify-end gap-1 sm:gap-3 shrink-0">
+             <div className="flex bg-slate-50 p-0.5 rounded-full border border-slate-100">
                 <button 
                   onClick={() => setViewMode('grid')}
                   className={cn(
-                    "p-2 rounded-full transition-all",
-                    viewMode === 'grid' ? "bg-white text-[#4A7C59] shadow-sm" : "text-slate-400 hover:text-slate-600"
+                    "p-1.5 rounded-full transition-all",
+                    viewMode === 'grid' ? "bg-white text-[#4A7C59] shadow-sm" : "text-slate-300"
                   )}
                 >
-                  <LayoutGrid className="h-4 w-4" />
+                  <LayoutGrid className="h-3 w-3" />
                 </button>
                 <button 
                   onClick={() => setViewMode('list')}
                   className={cn(
-                    "p-2 rounded-full transition-all",
-                    viewMode === 'list' ? "bg-white text-[#4A7C59] shadow-sm" : "text-slate-400 hover:text-slate-600"
+                    "p-1.5 rounded-full transition-all",
+                    viewMode === 'list' ? "bg-white text-[#4A7C59] shadow-sm" : "text-slate-300"
                   )}
                 >
-                  <List className="h-4 w-4" />
+                  <List className="h-3 w-3" />
                 </button>
              </div>
 
-             {/* Botón de Papelera / Recuperación (Cambiado para móvil) */}
-             <button
-               onClick={() => setShowRejected(!showRejected)}
-               className={cn(
-                 "flex items-center gap-2 px-3 sm:px-4 h-10 rounded-full transition-all font-black text-[9px] uppercase tracking-widest border",
-                 showRejected 
-                   ? "bg-slate-900 border-slate-900 text-white" 
-                   : rejectedPhotos.size > 0
-                     ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/20"
-                     : "bg-white border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900"
-               )}
-             >
-               {showRejected ? <ChevronLeft className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
-               <span className="hidden md:inline">{showRejected ? "Volver" : "Descartadas"}</span>
-               <span className="ml-0.5">({rejectedPhotos.size})</span>
-             </button>
-
-             <div className="h-8 w-[1px] bg-slate-200 mx-1" />
+             {/* Botón de Descartadas - Solo si hay fotos o estamos en esa vista */}
+             {(rejectedPhotos.size > 0 || showRejected) && (
+               <button
+                 onClick={() => setShowRejected(!showRejected)}
+                 className={cn(
+                   "flex items-center gap-1 px-1.5 sm:px-3 h-8 sm:h-9 rounded-lg transition-all font-black text-[8px] sm:text-[9px] uppercase tracking-tighter border shrink-0",
+                   showRejected 
+                     ? "bg-slate-900 border-slate-900 text-white" 
+                     : rejectedPhotos.size > 0
+                       ? "bg-red-50 border-red-100 text-red-500"
+                       : "bg-white border-slate-100 text-slate-300"
+                 )}
+               >
+                 <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                 <span>{showRejected ? "Volver" : "Descartadas"}</span>
+                 <span className="opacity-50">({rejectedPhotos.size})</span>
+               </button>
+             )}
 
              {showOnlyFavorites ? (
-               <>
-                <Button 
+               <button 
                   onClick={() => setShowOnlyFavorites(false)}
-                  variant="destructive"
-                  className="rounded-full px-4 sm:px-8 h-12 font-black uppercase text-[10px] sm:text-[11px] tracking-widest flex gap-2 shadow-lg shadow-red-500/20"
+                  className="bg-orange-500 text-white rounded-lg px-2 sm:px-4 h-8 sm:h-9 font-black uppercase text-[8px] sm:text-[9px] tracking-tighter flex items-center justify-center gap-1 transition-all shrink-0 shadow-sm"
                 >
-                  <X className="h-4 w-4" />
-                  <span className="hidden md:inline">Cancelar</span>
-                </Button>
-
-                <Button 
-                  onClick={handleSaveSelection}
-                  className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-full px-4 sm:px-8 h-12 font-black uppercase text-[10px] sm:text-[11px] tracking-widest shadow-lg shadow-[#4A7C59]/20 flex gap-2"
-                >
-                  <Send className="h-4 w-4" />
-                  <span className="hidden md:inline">Enviar Selección</span>
-                </Button>
-               </>
+                  <X className="h-3 w-3" />
+                  <span>Salir</span>
+                </button>
              ) : (
-                <Button 
+                <button 
                   onClick={() => {
                     if (favorites.size === 0) {
                       toast({ title: "Sin favoritos", description: "Selecciona alguna foto primero.", variant: "destructive" })
                       return
                     }
                     setShowOnlyFavorites(true)
-                    window.scrollTo({ top: 400, behavior: 'smooth' })
+                    window.scrollTo({ top: 410, behavior: 'smooth' })
                   }}
-                  className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-full px-4 sm:px-8 h-12 font-black uppercase text-[10px] sm:text-[11px] tracking-widest shadow-lg shadow-[#4A7C59]/20 flex items-center justify-center gap-2"
+                  className={cn(
+                    "rounded-lg px-1.5 sm:px-4 h-8 sm:h-9 font-black uppercase text-[8px] sm:text-[9px] tracking-tighter flex items-center justify-center gap-1 transition-all shrink-0 border relative",
+                    favorites.size > 0 
+                      ? "bg-orange-50 border-orange-100 text-orange-600" 
+                      : "bg-white border-slate-100 text-slate-200 pointer-events-none"
+                  )}
                 >
-                  <Check className="h-4 w-4" />
-                  <span className="hidden md:inline">Confirmar Selección</span>
-                </Button>
+                  <Heart className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5", favorites.size > 0 && "fill-current")} />
+                  <span>Favoritas</span>
+                  <span className="bg-current/10 px-1 rounded-sm">{favorites.size}</span>
+                </button>
              )}
-              <div className="h-8 w-[1px] bg-slate-200 mx-1" />
 
-              <Button 
+              <button 
                 onClick={() => setIsCartOpen(true)}
-                variant="outline"
-                className="relative bg-white border-slate-200 text-slate-900 rounded-full h-12 px-3 sm:px-6 font-black uppercase text-[10px] tracking-widest shadow-sm hover:border-[#4A7C59] transition-all flex items-center justify-center gap-2"
+                className="bg-slate-900 text-white rounded-lg h-8 sm:h-9 px-2 sm:px-4 font-black uppercase text-[8px] sm:text-[9px] tracking-tighter shadow-md hover:bg-black transition-all flex items-center justify-center gap-1 shrink-0"
               >
-                <ShoppingBag className="h-4 w-4" />
-                <span className="hidden md:inline">Mi Carrito</span>
+                <ShoppingBag className="h-3 w-3 text-white/90" />
+                <span>Cesta</span>
                 {getItemCount() > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] h-5 w-5 rounded-full flex items-center justify-center font-black animate-in fade-in zoom-in border-2 border-white">
+                  <span className="bg-red-500 text-white px-1 rounded-full text-[7px] animate-pulse">
                     {getItemCount()}
                   </span>
                 )}
-              </Button>
+              </button>
            </div>
         </div>
       </div>
@@ -1142,57 +1135,60 @@ export default function GalleryPage() {
                   </span>
                 </div>
               </div>
-               <div className="flex items-center gap-1 sm:gap-2">
-                 <Button 
-                   onClick={() => handleOpenShop(selectedPhoto)}
-                   className="bg-orange-500 hover:bg-orange-600 text-white rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-4 sm:px-6 relative shrink-0"
-                 >
-                   <ShoppingBag className="h-4 w-4" />
-                   <span className="hidden sm:inline">Comprar</span>
-                   {(() => {
-                     const photoCartItems = getItemsForPhoto(selectedPhoto.url);
-                     return photoCartItems.length > 0 && (
-                       <span className="absolute -top-1.5 -right-1.5 bg-[#4A7C59] text-white text-[9px] h-5 w-5 rounded-full flex items-center justify-center font-black border-2 border-slate-900 shadow-lg">
-                         {photoCartItems.length}
-                       </span>
-                     );
-                   })()}
-                 </Button>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {/* COMPRAR ESTA FOTO */}
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleOpenShop(selectedPhoto); }}
+                    className="relative w-11 h-11 flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg transition-all active:scale-95 shrink-0"
+                    title="Añadir a la cesta"
+                  >
+                    <ShoppingBag className="h-5 w-5" />
+                    {(() => {
+                      const photoCartItems = getItemsForPhoto(selectedPhoto.url);
+                      return photoCartItems.length > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-[#4A7C59] text-white text-[9px] h-5 w-5 rounded-full flex items-center justify-center font-black border-2 border-black shadow-lg">
+                          {photoCartItems.length}
+                        </span>
+                      );
+                    })()}
+                  </button>
 
-                 <Button 
-                   variant="ghost"
-                   onClick={() => toggleFavorite(selectedPhoto.id)}
-                   className={cn(
-                     "rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-3 sm:px-4 shrink-0",
-                     favorites.has(selectedPhoto.id) ? "bg-[#4A7C59] text-white underline decoration-2 underline-offset-4" : "text-white hover:bg-white/10"
-                   )}
-                 >
-                   <Heart className={cn("h-4 w-4", favorites.has(selectedPhoto.id) && "fill-current")} />
-                   <span className="hidden md:inline">{favorites.has(selectedPhoto.id) ? 'Favorita' : 'Favorita'}</span>
-                 </Button>
+                  <div className="w-[1px] h-6 bg-white/10 mx-0.5 hidden sm:block" />
 
-                 <div className="w-[1px] h-6 bg-white/20 mx-1 hidden sm:block" />
+                  {/* MARCAR FAVORITA */}
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(selectedPhoto.id); }}
+                    className={cn(
+                      "w-11 h-11 flex items-center justify-center rounded-full transition-all active:scale-95 shrink-0 border-2",
+                      favorites.has(selectedPhoto.id) 
+                        ? "bg-white text-orange-500 border-white shadow-md" 
+                        : "bg-black/20 text-white border-white/20 hover:bg-white/10"
+                    )}
+                    title="Marcar como favorita"
+                  >
+                    <Heart className={cn("h-5 w-5", favorites.has(selectedPhoto.id) && "fill-current")} />
+                  </button>
 
-                 {/* Cesta Global */}
-                 <Button 
-                   onClick={() => setIsCartOpen(true)}
-                   variant="ghost"
-                   className="rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-10 px-3 sm:px-4 text-white hover:bg-white/10 relative shrink-0"
-                 >
-                   <ShoppingBag className="h-4 w-4" />
-                   <span className="hidden md:inline">Cesta</span>
+                  {/* CESTA GLOBAL */}
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setIsCartOpen(true); }}
+                    className="relative w-11 h-11 flex items-center justify-center bg-black/20 text-white border-2 border-white/20 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0"
+                    title="Ver toda mi cesta"
+                  >
+                    <ShoppingBag className="h-5 w-5 text-white/80" />
                     {getItemCount() > 0 && (
-                      <span className="absolute top-1 right-1 sm:-top-1 sm:-right-1 bg-red-500 text-white text-[9px] h-4 w-4 rounded-full flex items-center justify-center font-black border border-black shadow-lg">
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] h-5 w-5 rounded-full flex items-center justify-center font-black border-2 border-black shadow-lg">
                         {getItemCount()}
                       </span>
                     )}
-                 </Button>
+                  </button>
 
-                 {/* Sonido integrado */}
-                 {client?.gallerySettings?.bgMusic?.url && (
+                  {/* SONIDO */}
+                  {client?.gallerySettings?.bgMusic?.url && (
                     <button
-                      onClick={toggleMusic}
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-all shrink-0"
+                      onClick={(e) => { e.stopPropagation(); toggleMusic(); }}
+                      className="w-11 h-11 flex items-center justify-center bg-black/20 text-white border-2 border-white/20 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0"
+                      title={isPlaying ? "Silenciar" : "Escuchar música"}
                     >
                       {isPlaying ? (
                         <div className="relative">
@@ -1201,8 +1197,8 @@ export default function GalleryPage() {
                         </div>
                       ) : <VolumeX className="h-5 w-5 text-white/40" />}
                     </button>
-                 )}
-               </div>
+                  )}
+                </div>
             </div>
 
             {/* Photo View */}
@@ -1737,84 +1733,72 @@ export default function GalleryPage() {
             className="fixed inset-0 z-[80] bg-black"
           >
             {/* Cabecera Visor (OVERLAY) */}
-            <div className="absolute top-0 inset-x-0 z-30 p-4 sm:p-6 flex items-center justify-between text-white bg-gradient-to-b from-black/90 via-black/40 to-transparent transition-all duration-500">
-              <div className="flex items-center gap-4">
+            <div className="absolute top-0 inset-x-0 z-30 p-2 sm:p-4 flex items-center justify-between text-white bg-gradient-to-b from-black/95 via-black/40 to-transparent transition-all duration-500">
+              <div className="flex items-center gap-1 sm:gap-4">
                 <button 
                   onClick={() => setViewerIndex(null)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/50 hover:text-white"
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </button>
-                <div className="hidden md:flex flex-col">
-                  <p className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white leading-none">
-                    {displayedPhotos[viewerIndex]?.fileName?.replace(/\.[^/.]+$/, "")}
+                <div className="flex flex-col">
+                  <p className="text-[7px] sm:text-[9px] font-black uppercase tracking-[0.2em] text-white/40 leading-none">
+                    Imagen {viewerIndex + 1} / {displayedPhotos.length}
                   </p>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">
-                    Imagen {viewerIndex + 1} de {displayedPhotos.length}
+                  <p className="hidden md:block text-[10px] font-black uppercase tracking-tighter text-white mt-1">
+                    {displayedPhotos[viewerIndex]?.fileName?.replace(/\.[^/.]+$/, "")}
                   </p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-1 sm:gap-3">
-                <Button 
-                  onClick={() => handleOpenShop(displayedPhotos[viewerIndex])}
-                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-11 px-4 sm:px-8 font-black uppercase text-[11px] tracking-widest shadow-xl flex gap-2 relative shrink-0"
-                >
-                  <ShoppingBag className="h-4 w-4" /> 
-                  <span className="hidden sm:inline">Comprar</span>
-                  {(() => {
-                    const photoCartItems = getItemsForPhoto(displayedPhotos[viewerIndex]?.url || '');
-                    return photoCartItems.length > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-[#4A7C59] text-white text-[9px] h-5 w-5 rounded-full flex items-center justify-center font-black border-2 border-slate-900 shadow-lg">
-                        {photoCartItems.length}
-                      </span>
-                    );
-                  })()}
-                </Button>
+              <div className="flex items-center gap-1.5 sm:gap-3">
+                {/* DESCARTAR EN ZOOM */}
+                {!showRejected && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleRejectAction(displayedPhotos[viewerIndex]); }}
+                    className="flex items-center gap-1.5 px-2.5 sm:px-4 h-9 sm:h-10 rounded-xl transition-all font-black text-[9px] uppercase tracking-tighter border-2 shrink-0 bg-black/20 text-white border-white/20 hover:bg-red-500 hover:border-red-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Descartar</span>
+                  </button>
+                )}
 
-                <Button 
-                  onClick={() => toggleFavorite(displayedPhotos[viewerIndex]?.id)}
-                  variant="outline"
+                {/* FAVORITAS EN ZOOM */}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); toggleFavorite(displayedPhotos[viewerIndex]?.id); }}
                   className={cn(
-                    "rounded-full h-11 px-4 sm:px-8 font-black uppercase text-[11px] tracking-widest border-2 transition-all flex gap-2 shrink-0",
+                    "flex items-center gap-1.5 px-2.5 sm:px-4 h-9 sm:h-10 rounded-xl transition-all font-black text-[9px] uppercase tracking-tighter border-2 shrink-0",
                     displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id)
-                      ? "bg-white text-orange-500 border-white shadow-lg"
-                      : "bg-transparent text-white border-white/20 hover:bg-white/10"
+                      ? "bg-orange-500 border-orange-500 text-white shadow-lg" 
+                      : "bg-black/20 text-white border-white/20 hover:bg-orange-500 hover:border-orange-500"
                   )}
                 >
-                  <Heart className={cn("h-4 w-4", displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) && "fill-current")} /> 
-                  <span className="hidden sm:inline">
-                    {displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) ? 'Favorita' : 'Favorita'}
-                  </span>
-                </Button>
+                  <Heart className={cn("h-3.5 w-3.5", displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) && "fill-current")} />
+                  <span className="sm:inline hidden">Favoritas</span>
+                  <span className="sm:hidden text-[7px]">Favs.</span>
+                  <span className="bg-current/20 px-1 rounded-sm ml-0.5">{favorites.size}</span>
+                </button>
 
-                <div className="w-[1px] h-6 bg-white/20 mx-1 hidden sm:block" />
-
-                <Button 
-                  onClick={() => setIsCartOpen(true)}
-                  variant="ghost"
-                  className="rounded-full gap-2 font-black uppercase text-[10px] tracking-widest h-11 px-3 sm:px-4 text-white hover:bg-white/10 relative shrink-0"
+                {/* CESTA EN ZOOM */}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleOpenShop(displayedPhotos[viewerIndex]); }}
+                  className="bg-slate-900 text-white border-2 border-slate-900 rounded-xl h-9 sm:h-10 px-3 sm:px-5 font-black uppercase text-[9px] tracking-tighter shadow-xl hover:bg-black hover:border-black transition-all flex items-center justify-center gap-1.5 shrink-0"
                 >
-                  <ShoppingBag className="h-4 w-4" />
-                  <span className="hidden md:inline">Cesta</span>
-                   {getItemCount() > 0 && (
-                     <span className="absolute top-1 right-1 sm:-top-1 sm:-right-1 bg-red-500 text-white text-[9px] h-4 w-4 rounded-full flex items-center justify-center font-black border border-black shadow-lg">
-                       {getItemCount()}
-                     </span>
-                   )}
-                </Button>
+                  <ShoppingBag className="h-3.5 w-3.5 text-[#4A7C59]" />
+                  <span className="sm:inline hidden">Cesta</span>
+                  <span className="sm:hidden">Cesta</span>
+                  <span className="bg-white/20 px-1 rounded-sm ml-0.5 font-bold">
+                    {getItemCount()}
+                  </span>
+                </button>
 
+                {/* SONIDO */}
                 {client?.gallerySettings?.bgMusic?.url && (
                    <button
-                     onClick={toggleMusic}
-                     className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-all shrink-0"
+                     onClick={(e) => { e.stopPropagation(); toggleMusic(); }}
+                     className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-black/20 text-white border-2 border-white/10 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0"
                    >
-                     {isPlaying ? (
-                       <div className="relative">
-                         <Volume2 className="h-5 w-5 text-blue-400" />
-                         <span className="absolute inset-[-2px] rounded-full border border-blue-400 animate-ping opacity-30" />
-                       </div>
-                     ) : <VolumeX className="h-5 w-5 text-white/40" />}
+                     {isPlaying ? <Volume2 className="h-4 w-4 text-blue-400" /> : <VolumeX className="h-4 w-4 text-white/30" />}
                    </button>
                 )}
               </div>
