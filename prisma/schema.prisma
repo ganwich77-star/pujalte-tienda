@@ -89,10 +89,12 @@ model Order {
   paymentStatus String      @default("pending")
   paymentId     String?
   customFields  String?     @db.LongText
+  clientId      String?     @db.VarChar(100)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
 
+  @@index([clientId])
   @@map("order")
 }
 

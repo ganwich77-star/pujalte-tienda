@@ -26,7 +26,11 @@ export interface CartItem {
 }
 
 interface CartStore {
-  items: CartItem[]
+  allCarts: Record<string, CartItem[]> // Almacena carritos por slug: { "julia": [...], "nora": [...] }
+  currentSlug: string | null
+  items: CartItem[] // Siempre contiene los items del slug actual para compatibilidad
+  
+  setSlug: (slug: string) => void
   addItem: (item: CartItem) => void
   removeItem: (id: string, variantId?: string, notes?: string) => void
   updateQuantity: (id: string, quantity: number, variantId?: string, notes?: string) => void
@@ -81,79 +85,122 @@ const getItemKey = (id: string, variantId?: string, notes?: string) => {
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
+      allCarts: {},
+      currentSlug: null,
       items: [],
       
+      setSlug: (slug: string) => set((state) => {
+        const lowerSlug = slug.toLowerCase();
+        // Si ya estamos en este slug, no hacemos nada
+        if (state.currentSlug === lowerSlug) return {};
+
+        // Cargamos el carrito de este slug desde allCarts o creamos uno nuevo
+        return {
+          currentSlug: lowerSlug,
+          items: state.allCarts[lowerSlug] || []
+        };
+      }),
+
       addItem: (item) => set((state) => {
-        const itemKey = getItemKey(item.id, item.variantId, item.notes)
-        const existingItem = state.items.find((i) => {
+        if (!state.currentSlug) return {}; // No debería pasar si setSlug se llama en la página
+        
+        const currentItems = [...(state.allCarts[state.currentSlug] || [])];
+        const itemKey = getItemKey(item.id, item.variantId, item.notes);
+        
+        const existingItemIndex = currentItems.findIndex((i) => {
           const existingKey = getItemKey(i.id, i.variantId, i.notes)
           return existingKey === itemKey
-        })
-        
-        if (existingItem) {
+        });
+
+        let newItems;
+        if (existingItemIndex > -1) {
+          const existingItem = currentItems[existingItemIndex];
           const newQty = existingItem.quantity + item.quantity;
           const newUnitPrice = calculateUnitPrice(newQty, existingItem);
           
-          return {
-            items: state.items.map((i) => {
-              const existingKey = getItemKey(i.id, i.variantId, i.notes)
-              return existingKey === itemKey 
-                ? { ...i, quantity: newQty, price: newUnitPrice }
-                : i
-            })
-          }
+          newItems = currentItems.map((i, idx) => 
+            idx === existingItemIndex 
+              ? { ...i, quantity: newQty, price: newUnitPrice }
+              : i
+          );
+        } else {
+          const initialUnitPrice = calculateUnitPrice(item.quantity, item);
+          newItems = [...currentItems, { ...item, price: initialUnitPrice }];
         }
 
-        // Para nuevos items, nos aseguramos de que el precio inicial esté bien calculado
-        const initialUnitPrice = calculateUnitPrice(item.quantity, item);
-        return { items: [...state.items, { ...item, price: initialUnitPrice }] }
+        return {
+          items: newItems,
+          allCarts: { ...state.allCarts, [state.currentSlug]: newItems }
+        };
       }),
       
       removeItem: (id, variantId, notes) => set((state) => {
-        const itemKey = getItemKey(id, variantId, notes)
+        if (!state.currentSlug) return {};
+        const currentItems = state.allCarts[state.currentSlug] || [];
+        const itemKey = getItemKey(id, variantId, notes);
+        
+        const newItems = currentItems.filter((i) => {
+          const existingKey = getItemKey(i.id, i.variantId, i.notes)
+          return existingKey !== itemKey
+        });
+
         return {
-          items: state.items.filter((i) => {
-            const existingKey = getItemKey(i.id, i.variantId, i.notes)
-            return existingKey !== itemKey
-          })
-        }
+          items: newItems,
+          allCarts: { ...state.allCarts, [state.currentSlug]: newItems }
+        };
       }),
       
       updateQuantity: (id, quantity, variantId, notes) => set((state) => {
-        const itemKey = getItemKey(id, variantId, notes)
+        if (!state.currentSlug) return {};
+        const currentItems = state.allCarts[state.currentSlug] || [];
+        const itemKey = getItemKey(id, variantId, notes);
         
+        let newItems;
         if (quantity <= 0) {
-          return {
-            items: state.items.filter((i) => {
-              const existingKey = getItemKey(i.id, i.variantId, i.notes)
-              return existingKey !== itemKey
-            })
-          }
-        }
-        
-        return {
-          items: state.items.map((i) => {
+          newItems = currentItems.filter((i) => {
+            const existingKey = getItemKey(i.id, i.variantId, i.notes)
+            return existingKey !== itemKey
+          });
+        } else {
+          newItems = currentItems.map((i) => {
             const existingKey = getItemKey(i.id, i.variantId, i.notes)
             if (existingKey === itemKey) {
                const newUnitPrice = calculateUnitPrice(quantity, i);
                return { ...i, quantity, price: newUnitPrice };
             }
             return i;
-          })
+          });
         }
+
+        return {
+          items: newItems,
+          allCarts: { ...state.allCarts, [state.currentSlug]: newItems }
+        };
       }),
       
       updateItem: (id, variantId, oldNotes, updates) => set((state) => {
-        const oldKey = getItemKey(id, variantId, oldNotes)
+        if (!state.currentSlug) return {};
+        const currentItems = state.allCarts[state.currentSlug] || [];
+        const oldKey = getItemKey(id, variantId, oldNotes);
+        
+        const newItems = currentItems.map((i) => {
+          const existingKey = getItemKey(i.id, i.variantId, i.notes)
+          return existingKey === oldKey ? { ...i, ...updates } : i
+        });
+
         return {
-          items: state.items.map((i) => {
-            const existingKey = getItemKey(i.id, i.variantId, i.notes)
-            return existingKey === oldKey ? { ...i, ...updates } : i
-          })
-        }
+          items: newItems,
+          allCarts: { ...state.allCarts, [state.currentSlug]: newItems }
+        };
       }),
       
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set((state) => {
+        if (!state.currentSlug) return { items: [] };
+        return {
+          items: [],
+          allCarts: { ...state.allCarts, [state.currentSlug]: [] }
+        };
+      }),
       
       getTotal: () => {
         const state = get()
@@ -166,7 +213,7 @@ export const useCartStore = create<CartStore>()(
       }
     }),
     {
-      name: 'cart-storage'
+      name: 'cart-storage-v2' // Cambiamos el nombre para invalidar la caché antigua mezclada
     }
   )
 )

@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: paymentMethod,
         paymentId: trackingNumber, 
         notes: finalNotes,
+        clientId: data.clientId || null, // Guardamos el slug o ID de la galería
         items: {
           create: items.map((item: any) => ({
             productId: item.productId || item.id,

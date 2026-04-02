@@ -53,7 +53,7 @@ import {
 import { useConfig } from '@/hooks/use-config'
 import { toast } from 'sonner'
 
-export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+export function CartSheet({ isOpen, onClose, clientId }: { isOpen: boolean, onClose: () => void, clientId?: string | null }) {
   const { items, removeItem, updateQuantity, clearCart, getTotal, getItemCount, updateItem } = useCartStore()
   const { isLoggedIn, user: loggedUser } = useUserStore()
   const { config } = useConfig()
@@ -204,7 +204,8 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
         paymentMethod: paymentMethod, // 'card' o 'bizum'
         customFields: {
           dni: shippingData.dni
-        }
+        },
+        clientId: clientId
       }
 
       const response = await fetch('/api/checkout', {
@@ -244,7 +245,8 @@ export function CartSheet({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
         customer: shippingData,
         total: getTotal(),
         paymentMethod: 'CASH',
-        status: 'PENDING'
+        status: 'PENDING',
+        clientId: clientId // Enviamos el slug o id de la galería
       }
 
       const response = await fetch('/api/orders', {

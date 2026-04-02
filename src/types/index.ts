@@ -81,6 +81,7 @@ export interface Order {
   items: OrderItem[]
   createdAt: string
   customFields?: Record<string, string>
+  clientId?: string | null
 }
 
 export interface FormField {

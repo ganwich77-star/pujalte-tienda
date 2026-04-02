@@ -157,7 +157,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
   const exportToCSV = () => {
     // Definimos las cabeceras
     const headers = [
-      'Seguimiento', 'Artículo', 'Observaciones', 'ID Pedido', 'Fecha', 'Cliente', 'Teléfono', 'Email', 
+      'Seguimiento', 'Galería', 'Artículo', 'Observaciones', 'ID Pedido', 'Fecha', 'Cliente', 'Teléfono', 'Email', 
       'Dirección', 'Variante', 'Cantidad', 'Precio Unit.', 'Total Linea', 
       'Estado', 'Método Pago', 'Notas Generales'
     ]
@@ -165,6 +165,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
     const rows = orders.flatMap(order => 
       order.items.map(item => [
         order.trackingNumber || '-',
+        order.clientId || '-', // Aquí incluimos la galería
         item.productName,
         (item.note || '').replace(/;/g, ' '), // Observaciones juntas al artículo
         order.id,
@@ -291,7 +292,14 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
 
                   <div className="space-y-1">
                     <h4 className="font-black text-sm text-slate-900">{order.customerName}</h4>
-                    <p className="text-[11px] font-bold text-slate-400">{order.customerPhone}</p>
+                    <div className="flex items-center gap-2">
+                       <p className="text-[11px] font-bold text-slate-400">{order.customerPhone}</p>
+                       {order.clientId && (
+                         <Badge variant="outline" className="text-[8px] font-black uppercase text-blue-500 border-blue-100 px-1 py-0 h-4 min-h-0 bg-blue-50/50">
+                           {order.clientId}
+                         </Badge>
+                       )}
+                    </div>
                   </div>
 
                   <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
@@ -455,6 +463,11 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                   <TableHead 
                     className="py-4 sm:py-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-slate-400"
                   >
+                    Galería
+                  </TableHead>
+                  <TableHead 
+                    className="py-4 sm:py-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-slate-400"
+                  >
                     Artículos
                   </TableHead>
                   <TableHead 
@@ -513,6 +526,13 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                           <p className="font-black text-[12px] text-slate-900 tracking-tight leading-tight truncate max-w-[140px]">{order.customerName}</p>
                           <p className="text-[9px] font-bold text-slate-400 tracking-wider font-mono uppercase">{order.customerPhone}</p>
                         </div>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        {order.clientId && (
+                          <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-blue-100 font-black text-[8px] uppercase px-2 py-0.5 rounded-lg truncate max-w-[120px] block text-center">
+                            {order.clientId}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="py-2">
                         <div className="flex flex-col gap-0.5 max-w-[180px]">

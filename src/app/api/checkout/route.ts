@@ -14,16 +14,17 @@ export async function POST(request: NextRequest) {
       items, 
       paymentMethod,
       customFields,
+      clientId,
       gateway = 'paycomet'
     } = body
-
-    // 1. Calcular total
+    
+    // ... Calcular total ...
     const total = items.reduce((sum: number, item: any) => sum + (parseFloat(String(item.price)) * item.quantity), 0)
 
     // 2. Generar número de seguimiento
     const trackingNumber = `PUJ-26-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // 3. Crear el pedido en MySQL mediante Prisma
+    // ... Crear el pedido ...
     const order = await db.order.create({
       data: {
         customerName: customerName || "Cliente sin nombre",
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
         paymentId: trackingNumber,
         notes: notes || "",
         customFields: JSON.stringify(customFields || {}),
+        clientId: clientId || null,
         items: {
           create: items.map((item: any) => ({
             productId: item.productId || item.id,

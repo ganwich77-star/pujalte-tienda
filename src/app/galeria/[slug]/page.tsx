@@ -80,9 +80,16 @@ export default function GalleryPage() {
   const [showSummary, setShowSummary] = useState(false)
   const [summaryText, setSummaryText] = useState('')
   const [heroIndex, setHeroIndex] = useState(0)
-  const { addItem, removeItem, updateQuantity, updateItem, items: cartItems, getItemCount } = useCartStore()
+  const { setSlug, addItem, removeItem, updateQuantity, updateItem, items: cartItems, getItemCount } = useCartStore()
   const [zoomedProduct, setZoomedProduct] = useState<any | null>(null)
   
+  // Vincular el carrito al slug actual
+  useEffect(() => {
+    if (slug) {
+      setSlug(slug);
+    }
+  }, [slug]);
+
   // Estados para Descarte de Fotos
   const [rejectedPhotos, setRejectedPhotos] = useState<Set<string>>(new Set())
   const [showRejected, setShowRejected] = useState(false)
@@ -2004,7 +2011,7 @@ export default function GalleryPage() {
           </div>
         </DialogContent>
       </Dialog>
-      <CartSheet isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <CartSheet isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} clientId={clientId || slug} />
 
       {/* Global Notification at the bottom */}
       <AnimatePresence>
