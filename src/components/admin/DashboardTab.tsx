@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BarChart3, Package, Settings, ShoppingCart, TrendingUp, ChevronRight } from 'lucide-react'
+import { BarChart3, Package, Settings, ShoppingCart, TrendingUp, ChevronRight, CheckCircle2, Camera } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
@@ -16,9 +16,11 @@ interface DashboardTabProps {
   categories: Category[]
   products: Product[]
   formatPrice: (price: number) => string
+  firebaseClients?: Record<string, any>
+  setActiveTab?: (tab: string) => void
 }
 
-export function DashboardTab({ stats, orders, categories, products, formatPrice }: DashboardTabProps) {
+export function DashboardTab({ stats, orders, categories, products, formatPrice, firebaseClients = {}, setActiveTab }: DashboardTabProps) {
   const [chartType, setChartType] = useState<'status' | 'payment' | 'category'>('status')
   const [isRecentOrdersOpen, setIsRecentOrdersOpen] = useState(false)
 
@@ -54,8 +56,78 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice 
     }
   }
 
+  // Sistema de Alertas
+  const alerts = useMemo(() => {
+    const clients = Object.values(firebaseClients || {})
+    return [
+      {
+        id: 'orders',
+        title: 'Pedidos Pendientes',
+        count: orders.filter(o => o.status === 'pending').length,
+        icon: ShoppingCart,
+        color: 'bg-amber-500',
+        tab: 'orders',
+        description: 'esperan gestión'
+      },
+      {
+        id: 'selections',
+        title: 'Selecciones OK',
+        count: clients.filter(c => c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0).length,
+        icon: CheckCircle2,
+        color: 'bg-emerald-500',
+        tab: 'galleries',
+        description: 'por revisar ahora'
+      },
+      {
+        id: 'empty',
+        title: 'Galerías Vacías',
+        count: clients.filter(c => (c.gallerySettings?.photos?.length || 0) === 0).length,
+        icon: Camera,
+        color: 'bg-blue-500',
+        tab: 'customers',
+        description: 'sin fotos subidas'
+      }
+    ].filter(a => a.count > 0)
+  }, [orders, firebaseClients])
+
   return (
     <div className="space-y-6">
+      {/* Centro de Alertas Rápidas */}
+      {alerts.length > 0 && (
+        <div className="bg-slate-900 rounded-[2.5rem] p-6 text-white overflow-hidden relative group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#4A7C59]/10 rounded-full blur-3xl -mr-32 -mt-32" />
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
+              <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-red-400">Acción Requerida</span>
+            </div>
+            <h3 className="text-sm font-black uppercase tracking-widest opacity-40">Centro de Control</h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
+            {alerts.map((alert) => (
+              <button
+                key={alert.id}
+                onClick={() => (setActiveTab as any)?.(alert.tab, alert.id === 'orders' ? 'pending' : (alert.id === 'empty' ? 'empty' : (alert.id === 'selections' ? 'confirmed' : 'all')))}
+                className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all text-left group/alert"
+              >
+                <div className={`h-12 w-12 rounded-2xl ${alert.color} flex items-center justify-center text-white shadow-lg`}>
+                  <alert.icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xl font-black tabular-nums leading-none flex items-center gap-2">
+                    {alert.count}
+                    <ChevronRight className="h-4 w-4 opacity-0 group-hover/alert:opacity-100 group-hover/alert:translate-x-1 transition-all" />
+                  </p>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-90 mt-1">{alert.title}</p>
+                  <p className="text-[8px] font-bold uppercase tracking-widest opacity-30">{alert.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Stat Cards - Compacted for mobile */}
         <Card className="rounded-2xl sm:rounded-[2rem] border-slate-100 shadow-sm overflow-hidden relative">

@@ -26,16 +26,28 @@ interface OrdersTabProps {
   onUpdateStatus: (id: string, status: string) => void
   onUpdateOrder: (order: Order) => void
   onDeleteOrder: (id: string) => void
+  initialFilter?: string
 }
 
-export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, onDeleteOrder }: OrdersTabProps) {
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Order | 'date' | 'total', direction: 'asc' | 'desc' } | null>(null)
+export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, onDeleteOrder, initialFilter = 'all' }: OrdersTabProps) {
+  const [statusFilter, setStatusFilter] = useState(initialFilter)
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Order | 'date' | 'total', direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' })
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [dniSearch, setDniSearch] = useState('')
   const [foundClients, setFoundClients] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
+
+  useEffect(() => {
+    if (initialFilter) {
+      setStatusFilter(initialFilter)
+    }
+  }, [initialFilter])
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(o => statusFilter === 'all' || o.status === statusFilter)
+  }, [orders, statusFilter])
 
   const handleSearchClients = async (val: string) => {
     setDniSearch(val)
@@ -84,7 +96,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
   }, [isEditDialogOpen])
 
   const sortedOrders = useMemo(() => {
-    let sortableOrders = [...orders]
+    let sortableOrders = [...filteredOrders]
     if (sortConfig !== null) {
       sortableOrders.sort((a, b) => {
         let aVal: any = a[sortConfig.key as keyof Order]
@@ -249,6 +261,18 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
             <Download className="h-4 w-4 sm:h-5 sm:w-5" />
             Exportar CSV
           </Button>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-10 sm:h-12 w-full sm:w-[180px] rounded-xl sm:rounded-2xl border-slate-200 font-bold text-slate-600 bg-white shadow-sm focus:ring-[#4A7C59]/10">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl border-slate-100 shadow-xl overflow-hidden">
+              <SelectItem value="all" className="font-bold uppercase text-[10px] py-3 cursor-pointer">Todos</SelectItem>
+              <SelectItem value="pending" className="font-bold uppercase text-[10px] py-3 cursor-pointer text-amber-600">Pendientes</SelectItem>
+              <SelectItem value="completed" className="font-bold uppercase text-[10px] py-3 cursor-pointer text-emerald-600">Pagados / OK</SelectItem>
+              <SelectItem value="cancelled" className="font-bold uppercase text-[10px] py-3 cursor-pointer text-red-600">Cancelados</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
       <CardContent className="p-0">

@@ -46,13 +46,31 @@ import {
   ChevronLeft,
   ChevronRight,
   Cloud,
-  CircleDollarSign
+  CircleDollarSign,
+  Package,
+  Settings2,
+  ChevronDown
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { db, storage, COLLECTIONS } from '@/lib/firebase'
+import { 
+  collection, 
+  getDocs, 
+  addDoc,
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  setDoc,
+  query,
+  orderBy,
+  where,
+  serverTimestamp 
+} from 'firebase/firestore'
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
 import { 
   Dialog, 
   DialogContent, 
@@ -73,33 +91,22 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { motion, AnimatePresence } from 'framer-motion'
+import { Filter } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { Order } from '@/types'
-import { db, COLLECTIONS } from '@/lib/firebase'
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  deleteDoc, 
-  updateDoc,
-  query,
-  orderBy,
-  where,
-  setDoc,
-  serverTimestamp
-} from 'firebase/firestore'
-import { 
-  uploadBytesResumable, 
-  getDownloadURL,
-  ref
-} from 'firebase/storage'
-import { storage } from '@/lib/firebase'
-
 interface CustomersTabProps {
   orders: Order[]
   formatPrice: (price: number) => string
   customerIdToEdit?: string | null
+  initialFilter?: string
 }
 
 const resizeImage = (file: File, maxSide: number = 1500): Promise<File> => {
@@ -134,8 +141,15 @@ const resizeImage = (file: File, maxSide: number = 1500): Promise<File> => {
   });
 };
 
-export function CustomersTab({ orders, formatPrice, customerIdToEdit }: CustomersTabProps) {
+export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFilter = 'all' }: CustomersTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [actionFilter, setActionFilter] = useState(initialFilter) // all, pending_action, empty, confirmed
+
+  useEffect(() => {
+    if (initialFilter) {
+      setActionFilter(initialFilter)
+    }
+  }, [initialFilter])
   const [editingCustomer, setEditingCustomer] = useState<any>(null)
   const [deletingCustomer, setDeletingCustomer] = useState<any>(null)
   const [updating, setUpdating] = useState(false)
@@ -143,6 +157,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
   const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false)
+  const [isGalleryConfigOpen, setIsGalleryConfigOpen] = useState(false)
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     dni: '',
@@ -172,6 +187,57 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
   const [librarySongs, setLibrarySongs] = useState<any[]>([])
   const [musicSearch, setMusicSearch] = useState('')
   const [selectedMusicCategory, setSelectedMusicCategory] = useState('ALL')
+  const [isMusicUploading, setIsMusicUploading] = useState(false)
+  const [musicUploadProgress, setMusicUploadProgress] = useState(0)
+
+  const handleQuickMusicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.includes('audio')) {
+      toast({ title: 'Archivo no válido', description: 'Por favor, selecciona un fichero de música.', variant: 'destructive' })
+      return
+    }
+
+    try {
+      setIsMusicUploading(true)
+      setMusicUploadProgress(0)
+
+      const storageRef = ref(storage, `library/music/${Date.now()}_${file.name}`)
+      const uploadTask = uploadBytesResumable(storageRef, file)
+
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+          setMusicUploadProgress(progress)
+        },
+        (error) => {
+          console.error('Error subiendo música:', error)
+          setIsMusicUploading(false)
+          toast({ title: 'Error en la subida', variant: 'destructive' })
+        },
+        async () => {
+          const url = await getDownloadURL(uploadTask.snapshot.ref)
+          
+          const newSongDoc = await addDoc(collection(db, 'comuniones2026_music'), {
+            name: file.name.replace(/\.[^/.]+$/, ""),
+            fileName: file.name,
+            url,
+            createdAt: serverTimestamp(),
+            size: file.size,
+            category: 'ALL'
+          })
+
+          toast({ title: '¡Música añadida!', description: 'Ya está disponible en vuestra fonoteca.' })
+          loadLibraryMusic() // Recargar la lista
+          setIsMusicUploading(false)
+        }
+      )
+    } catch (error) {
+      console.error('Error:', error)
+      setIsMusicUploading(false)
+    }
+  }
   const [customTags, setCustomTags] = useState<any[]>([])
   const [playingSong, setPlayingSong] = useState<string | null>(null)
   const [previewAudio] = useState(new Audio())
@@ -228,6 +294,13 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
       setLibrarySongs(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     } catch (e) { console.error('Error loading library:', e) }
   }
+
+  // Cargar música cuando se abre el selector
+  useEffect(() => {
+    if (isMusicPickerOpen) {
+      loadLibraryMusic()
+    }
+  }, [isMusicPickerOpen])
 
   // Limpiar audio al desmontar o cerrar picker
   useEffect(() => {
@@ -774,6 +847,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
       
       // Buscar coincidencia en nuestra lista de Firebase
       let matchKey: string | null = null;
+      const orderSlug = (order.clientId || '').toLowerCase().trim();
       
       // 1. Prioridad por DNI (ID o campo dni)
       if (dni && customerMap.has(dni)) {
@@ -784,7 +858,10 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
           const custDni = (cust.dni || '').trim().toUpperCase();
           const custEmail = (cust.email || '').toLowerCase().trim();
           const custPhone = (cust.phone || '').trim();
+          const custSlug = (cust.slug || '').toLowerCase().trim();
 
+          // CRUCIAL: Añadimos coincidencia por SLUG para casos como el de Vero Martinez
+          if (orderSlug && custSlug === orderSlug) { matchKey = key; break; }
           if (dni && custDni === dni) { matchKey = key; break; }
           if (email && custEmail === email) { matchKey = key; break; }
           if (phone && custPhone === phone) { matchKey = key; break; }
@@ -832,12 +909,23 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
     }
   }, [customerIdToEdit, customers])
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone.includes(searchQuery) ||
-    c.dni.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredCustomers = customers.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         c.phone.includes(searchQuery) ||
+                         c.dni.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (!matchesSearch) return false;
+
+    const isConfirmed = c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0;
+    const isEmpty = !c.gallerySettings?.photos || c.gallerySettings.photos.length === 0;
+
+    if (actionFilter === 'pending_action') return isConfirmed || isEmpty;
+    if (actionFilter === 'empty') return isEmpty;
+    if (actionFilter === 'confirmed') return isConfirmed;
+    
+    return true;
+  })
 
   const stats = useMemo(() => ({
     total: customers.length,
@@ -869,24 +957,40 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
             <UserPlus className="h-4 w-4" /> <span className="inline">Añadir Cliente</span>
           </Button>
 
-          <div className="relative group flex-1 sm:w-64">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors" />
-            <Input
-              placeholder="Buscar cliente..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-11 h-10 sm:h-12 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 dark:bg-slate-900 dark:border-white/5 dark:text-white shadow-inner focus-visible:bg-white dark:focus-visible:bg-slate-800 focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 transition-all font-medium text-sm"
-            />
+          <div className="flex items-center gap-3 w-full sm:w-auto flex-1 sm:flex-none">
+            <div className="relative group flex-1 sm:w-64">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-[#4A7C59] transition-colors" />
+              <Input
+                placeholder="Buscar cliente..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-11 h-10 sm:h-12 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 dark:bg-slate-900 dark:border-white/5 dark:text-white shadow-inner focus-visible:bg-white dark:focus-visible:bg-slate-800 focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 transition-all font-medium text-sm"
+              />
+            </div>
+            
+            <Select value={actionFilter} onValueChange={setActionFilter}>
+              <SelectTrigger className="w-auto h-10 sm:h-12 px-4 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 dark:bg-slate-900 font-bold text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all gap-2">
+                <Filter className="h-4 w-4 text-[#4A7C59]" />
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
+                <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest py-3">Todos los clientes</SelectItem>
+                <SelectItem value="pending_action" className="text-[10px] font-bold uppercase tracking-widest py-3 text-orange-500">Acción Requerida</SelectItem>
+                <SelectItem value="confirmed" className="text-[10px] font-bold uppercase tracking-widest py-3 text-emerald-500">Solo Confirmadas</SelectItem>
+                <SelectItem value="empty" className="text-[10px] font-bold uppercase tracking-widest py-3 text-rose-500">Solo Sin Fotos</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {selectedIds.size > 0 && (
+              <Button 
+                variant="destructive" 
+                onClick={handleBulkDelete}
+                className="h-10 sm:h-12 rounded-xl sm:rounded-2xl px-4 flex items-center gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-100 transition-all"
+              >
+                <Trash2 className="h-4 w-4" /> <span className="hidden sm:inline">Borrar ({selectedIds.size})</span>
+              </Button>
+            )}
           </div>
-          {selectedIds.size > 0 && (
-            <Button 
-              variant="destructive" 
-              onClick={handleBulkDelete}
-              className="h-10 sm:h-12 rounded-xl sm:rounded-2xl px-4 flex items-center gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-100"
-            >
-              <Trash2 className="h-4 w-4" /> <span className="hidden sm:inline">Borrar ({selectedIds.size})</span>
-            </Button>
-          )}
         </div>
       </div>
 
@@ -932,9 +1036,17 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{customer.dni || 'SIN DNI'}</span>
                   </div>
                 </div>
-                {customer.cashEnabled && (
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 font-black text-[8px] px-2 py-0.5 rounded-full uppercase">EFECTIVO OK</Badge>
-                )}
+                <div className="flex flex-col items-end gap-1">
+                  {customer.cashEnabled && (
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 font-black text-[8px] px-2 py-0.5 rounded-full uppercase">EFECTIVO OK</Badge>
+                  )}
+                  {customer.gallerySettings?.selectionConfirmed && customer.gallerySettings?.lastSelection?.length > 0 && (
+                    <Badge className="bg-emerald-500 text-white border-none font-black text-[8px] px-2 py-0.5 rounded-full uppercase animate-pulse">Confirmada</Badge>
+                  )}
+                  {(!customer.gallerySettings?.photos || customer.gallerySettings.photos.length === 0) && (
+                    <Badge className="bg-red-500 text-white border-none font-black text-[8px] px-2 py-0.5 rounded-full uppercase animate-pulse">Sin Fotos</Badge>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
@@ -1076,7 +1188,15 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                         </div>
                         <div className="min-w-0 transition-all group-hover:translate-x-1">
                           <p className="font-black text-sm sm:text-[15px] text-slate-900 tracking-tight leading-none uppercase truncate">{customer.name}</p>
-                          <p className="text-[10px] sm:text-[12px] font-bold text-slate-400 uppercase tracking-tight truncate mt-1.5 opacity-70">{customer.dni || 'SIN DNI'}</p>
+                          <p className="text-[10px] sm:text-[12px] font-bold text-slate-400 uppercase tracking-tight truncate mt-1.5 opacity-70 flex items-center gap-2">
+                            {customer.dni || 'SIN DNI'}
+                            {customer.gallerySettings?.selectionConfirmed && customer.gallerySettings?.lastSelection?.length > 0 && (
+                              <Badge className="bg-emerald-500 text-white border-none font-black text-[8px] px-2 py-0.5 rounded-full uppercase scale-90 h-4 animate-pulse">Confirmada</Badge>
+                            )}
+                            {(!customer.gallerySettings?.photos || customer.gallerySettings.photos.length === 0) && (
+                              <Badge className="bg-red-500 text-white border-none font-black text-[8px] px-2 py-0.5 rounded-full uppercase scale-90 h-4 animate-pulse">Sin Fotos</Badge>
+                            )}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -1090,10 +1210,20 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-4 sm:py-5 text-center">
-                      <Badge variant="outline" className="bg-white border-slate-100 font-black text-[9px] h-5 min-w-[20px] px-1 justify-center">
-                        {customer.orders.length}
-                      </Badge>
+                    <td className="p-3 text-center">
+                      {customer.orders.length > 0 ? (
+                        <button 
+                          onClick={() => {
+                            setEditingCustomer({...customer, originalId: customer.id});
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-orange-500 border border-orange-100 font-black text-[10px] uppercase tracking-wider hover:bg-orange-500 hover:text-white hover:shadow-lg hover:shadow-orange-200 transition-all active:scale-95 group"
+                        >
+                          <ShoppingBag className="h-3 w-3 group-hover:scale-110 transition-transform" />
+                          #{customer.orders.length}
+                        </button>
+                      ) : (
+                        <span className="text-slate-200 font-black text-[10px] uppercase tracking-widest">#0</span>
+                      )}
                     </td>
                     <td className="px-4 sm:px-5 py-4 sm:py-5 overflow-hidden">
                       <p className="font-black text-sm sm:text-[16px] text-[#4A7C59] tracking-tight leading-none">{formatPrice(customer.totalSpent)}</p>
@@ -1266,178 +1396,340 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                         </div>
                       </TabsContent>
 
-                      <TabsContent value="galeria" className="m-0 space-y-3 animate-in fade-in slide-in-from-right-4 outline-none overflow-x-hidden">
-                        {/* SELECTOR DE MODOS COMPACTO */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-6">
+                      <TabsContent value="galeria" className="m-0 space-y-5 animate-in fade-in slide-in-from-right-4 outline-none pb-8">
+                        {/* SELECTOR DE MODOS */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
                           {[
-                            { id: 'solo-fotos', label: 'VISITA', icon: Camera, desc: 'Solo visualizar fotos' },
+                            { id: 'solo-fotos', label: 'VISITA', icon: Camera, desc: 'Solo visualizar' },
                             { id: 'dual', label: 'GALERÍA', icon: ShoppingBag, desc: 'Selección y Tienda' },
-                            { id: 'archivos', label: 'DESCARGA', icon: Download, desc: 'Entrega de archivos' }
+                            { id: 'archivos', label: 'DESCARGA', icon: Download, desc: 'Entrega archivos' }
                           ].map((mode) => (
                             <button 
                               key={mode.id} 
                               onClick={() => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, mode: mode.id, enabled: mode.id !== 'solo-fotos' } } })}
-                              className={cn("flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border-2 transition-all gap-1 sm:gap-2", (editingCustomer.gallerySettings?.digitalFiles?.mode === mode.id || (!editingCustomer.gallerySettings?.digitalFiles?.mode && mode.id === 'dual')) ? "bg-[#4A7C59] border-[#4A7C59] text-white shadow-lg shadow-[#4A7C59]/20" : "bg-white border-slate-100 text-slate-400 hover:border-[#4A7C59]/30")}
+                              className={cn("flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all gap-1", (editingCustomer.gallerySettings?.digitalFiles?.mode === mode.id || (!editingCustomer.gallerySettings?.digitalFiles?.mode && mode.id === 'dual')) ? "bg-[#4A7C59] border-[#4A7C59] text-white shadow-md" : "bg-white border-slate-100 text-slate-400 hover:border-slate-200")}
                             >
-                              <mode.icon className="h-5 w-5 sm:h-6 sm:w-6" />
-                              <span className="text-[10px] sm:text-[11px] font-black tracking-widest leading-none">{mode.label}</span>
-                              <span className={cn("text-[7px] sm:text-[8px] font-bold uppercase tracking-tight opacity-70", (editingCustomer.gallerySettings?.digitalFiles?.mode === mode.id || (!editingCustomer.gallerySettings?.digitalFiles?.mode && mode.id === 'dual')) ? "text-white" : "text-slate-400")}>
-                                {mode.desc}
-                              </span>
+                              <mode.icon className="h-5 w-5" />
+                              <span className="text-[10px] font-black tracking-widest">{mode.label}</span>
+                              <span className={cn("text-[7px] font-bold opacity-70", (editingCustomer.gallerySettings?.digitalFiles?.mode === mode.id || (!editingCustomer.gallerySettings?.digitalFiles?.mode && mode.id === 'dual')) ? "text-white" : "text-slate-400")}>{mode.desc}</span>
                             </button>
                           ))}
                         </div>
 
-                        {/* INTERRUPTORES Y CARGA EN REJILLA COMPACTA */}
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                        {/* CONFIGURACIÓN Y MÚSICA */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                           <div className="md:col-span-8 grid grid-cols-2 gap-2">
                              {[
-                                { label: 'Marca Agua', sub: 'Protección', icon: ImageIcon, field: 'watermarkEnabled', color: 'text-blue-500', bg: 'bg-blue-50/50' },
-                                { label: 'Bloqueo Cap.', sub: 'Seguridad', icon: Lock, field: 'safetyLockEnabled', color: 'text-amber-500', bg: 'bg-amber-50/50' },
-                                { label: 'Forzar Sel.', sub: 'Favoritos', icon: Star, field: 'shopRequiresFavorite', color: 'text-orange-500', bg: 'bg-orange-50/50' },
-                                { label: 'Pago Efec.', sub: 'Recogida', icon: BadgeEuro, field: 'cashEnabled', color: 'text-green-500', bg: 'bg-green-50/50', root: true }
+                                { label: 'Marca Agua', icon: ImageIcon, field: 'watermarkEnabled', color: 'text-blue-500', bg: 'bg-blue-50' },
+                                { label: 'Bloqueo Cap.', icon: Lock, field: 'safetyLockEnabled', color: 'text-amber-500', bg: 'bg-amber-50' },
+                                { label: 'Forzar Sel.', icon: Star, field: 'shopRequiresFavorite', color: 'text-orange-500', bg: 'bg-orange-50' },
+                                { label: 'Pago Efec.', icon: BadgeEuro, field: 'cashEnabled', color: 'text-green-500', bg: 'bg-green-50', root: true }
                              ].map((item) => (
-                                <div key={item.label} className="bg-white border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-between shadow-sm h-12 group hover:border-[#4A7C59]/10 transition-all">
-                                  <div className="flex items-center gap-2 overflow-hidden">
+                                <div key={item.label} className="bg-white border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-between shadow-sm h-11">
+                                  <div className="flex items-center gap-2">
                                     <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center border shrink-0", item.bg)}><item.icon className={cn("h-3.5 w-3.5", item.color)} /></div>
-                                    <div className="text-left overflow-hidden">
-                                      <p className="text-[10px] sm:text-[12px] font-black uppercase text-slate-800 leading-none truncate">{item.label}</p>
-                                      <p className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 leading-none mt-1 truncate">{item.sub}</p>
-                                    </div>
+                                    <p className="text-[10px] font-black uppercase text-slate-800">{item.label}</p>
                                   </div>
-                                  <Switch checked={item.root ? (editingCustomer as any)[item.field] : (editingCustomer.gallerySettings as any)[item.field]} onCheckedChange={(checked) => item.root ? setEditingCustomer({ ...editingCustomer, [item.field]: checked }) : setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, [item.field]: checked } })} className="scale-[0.75] sm:scale-90 origin-right shrink-0" />
+                                  <Switch checked={item.root ? (editingCustomer as any)[item.field] : (editingCustomer.gallerySettings as any)[item.field]} onCheckedChange={(checked) => item.root ? setEditingCustomer({ ...editingCustomer, [item.field]: checked }) : setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, [item.field]: checked } })} className="scale-75" />
                                 </div>
                              ))}
                           </div>
-
-                          <div className="md:col-span-4">
-                            <div className="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100 h-full flex flex-col justify-between">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <Music className="h-4 w-4 text-indigo-600" />
-                                  <span className="text-indigo-900 font-black uppercase tracking-widest text-[9px]">Música</span>
-                                </div>
-                                <Button 
-                                  variant="outline" size="sm" 
-                                  onClick={() => { setIsMusicPickerOpen(true); }}
-                                  className="h-6 rounded-lg text-[8px] font-black uppercase border-indigo-200 text-indigo-600 bg-white"
-                                >MOD</Button>
-                              </div>
-                              <p className="text-indigo-900 text-[8px] font-black uppercase truncate bg-white p-2 rounded-lg border border-indigo-100 italic">
-                                {editingCustomer?.gallerySettings?.bgMusic?.name || 'No seleccionada'}
-                              </p>
+                          <div className="md:col-span-4 rounded-xl bg-indigo-50/50 border border-indigo-100 p-3 flex flex-col justify-between">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2"><Music className="h-3.5 w-3.5 text-indigo-600" /><span className="text-indigo-900 font-black uppercase text-[9px]">Música</span></div>
+                              <Button variant="outline" size="sm" onClick={() => setIsMusicPickerOpen(true)} className="h-5 rounded-lg text-[7px] font-black bg-white px-2">MOD</Button>
                             </div>
+                            <p className="text-indigo-900 text-[8px] font-black uppercase truncate italic">{editingCustomer?.gallerySettings?.bgMusic?.name || 'No music'}</p>
                           </div>
                         </div>
 
-                        {/* SECCIÓN GESTIONAR FOTOS */}
-                        <div className="grid grid-cols-1 md:grid-cols-1 gap-2 pt-2">
-                          <button 
-                            onClick={() => setIsPhotosModalOpen(true)}
-                            className="w-full bg-slate-900 rounded-2xl p-5 flex items-center justify-between shadow-xl hover:bg-slate-800 transition-all group relative overflow-hidden text-left"
-                          >
+                        {/* GESTIÓN DE FOTOS */}
+                        <div className="space-y-3">
+                          <button onClick={() => setIsPhotosModalOpen(true)} className="w-full bg-slate-900 rounded-2xl p-4 flex items-center justify-between shadow-lg hover:bg-slate-800 transition-all text-left">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10 group-hover:scale-110 transition-transform">
-                                <Cloud className="h-6 w-6 text-blue-400" />
-                              </div>
+                              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10"><Cloud className="h-5 w-5 text-blue-400" /></div>
                               <div>
-                                <h4 className="text-white text-lg font-black uppercase italic tracking-tighter leading-none">Gestionar Galería</h4>
-                                <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[8px] mt-1">Fotos: <span className="text-blue-400">{editingCustomer?.gallerySettings?.photos?.length || 0} archivos</span></p>
+                                <h4 className="text-white text-base font-black uppercase italic tracking-tighter leading-none">Gestionar Galería</h4>
+                                <p className="text-slate-400 font-bold uppercase text-[7px] mt-1">Fotos: <span className="text-blue-400">{editingCustomer?.gallerySettings?.photos?.length || 0} archivos</span></p>
                               </div>
                             </div>
-                            <ChevronRight className="h-5 w-5 text-white group-hover:translate-x-2 transition-transform" />
+                            <ChevronRight className="h-4 w-4 text-white" />
                           </button>
+                        <div className="space-y-4">
+                           <button 
+                             onClick={() => setIsGalleryConfigOpen(!isGalleryConfigOpen)}
+                             className="flex items-center justify-between w-full p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-slate-100 transition-all group shadow-sm"
+                           >
+                              <div className="flex items-center gap-3">
+                                 <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center border border-slate-100 shadow-sm transition-all group-hover:scale-105 group-hover:rotate-6">
+                                    <Settings2 className={`h-4 w-4 transition-all ${isGalleryConfigOpen ? 'text-[#4A7C59]' : 'text-slate-400'}`} />
+                                 </div>
+                                 <div className="text-left">
+                                    <h4 className="text-[10px] font-black uppercase text-slate-800 tracking-widest leading-none">Opciones de Galería</h4>
+                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{isGalleryConfigOpen ? 'Haz clic para plegar' : 'Configuración de precios y textos'}</p>
+                                 </div>
+                              </div>
+                              <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all ${isGalleryConfigOpen ? 'bg-[#4A7C59]/10 text-[#4A7C59]' : 'bg-white text-slate-400'}`}>
+                                 <ChevronDown className={`h-4 w-4 transition-transform duration-500 ${isGalleryConfigOpen ? 'rotate-180' : ''}`} />
+                              </div>
+                           </button>
+
+                           <AnimatePresence>
+                             {isGalleryConfigOpen && (
+                               <motion.div
+                                 initial={{ height: 0, opacity: 0 }}
+                                 animate={{ height: 'auto', opacity: 1 }}
+                                 exit={{ height: 0, opacity: 0 }}
+                                 transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                                 className="overflow-hidden"
+                               >
+                                  <div className="space-y-5 pt-2 pb-1">
+                                     <div onClick={() => (document.getElementById('edit-upload') as any)?.click()} className="w-full h-14 rounded-2xl border-2 border-dashed border-slate-200 hover:border-[#4A7C59] hover:bg-[#4A7C59]/5 text-slate-400 flex items-center justify-center cursor-pointer relative overflow-hidden transition-all group">
+                                       <input id="edit-upload" type="file" multiple accept="image/*" className="hidden" onChange={handleUploadPhotos} disabled={isUploading} />
+                                       <div className="flex items-center gap-3">
+                                          {isUploading ? <Loader2 className="h-5 w-5 animate-spin text-[#4A7C59]" /> : <Upload className="h-5 w-5 group-hover:scale-110 transition-transform" />}
+                                          <span className="font-black uppercase tracking-widest text-[10px]">{isUploading ? 'Subiendo...' : 'Subir archivos rápido'}</span>
+                                       </div>
+                                       {isUploading && <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-100"><div className="h-full bg-[#4A7C59] transition-all duration-300" style={{ width: `${(uploadStatus.current/uploadStatus.total)*100}%` }} /></div>}
+                                     </div>
+
+                                     <div className="space-y-4">
+                                       <div className="bg-white border border-slate-100 rounded-[1.5rem] p-4 grid grid-cols-4 gap-3 shadow-sm">
+                                          {[
+                                            { label: 'Fotos Incluidas', key: 'packIncluded' },
+                                            { label: 'Foto Extra', key: 'extraPrintPrice', euro: true },
+                                            { label: 'Archivo', key: 'price', euro: true },
+                                            { label: 'Galeria completa', key: 'fullPackPrice', euro: true }
+                                          ].map((f) => (
+                                            <div key={f.key} className="space-y-1">
+                                              <Label className="text-[9px] font-black uppercase text-slate-400 block text-center truncate px-1">{f.label}</Label>
+                                              <div className="relative">
+                                                <Input 
+                                                  type="number" 
+                                                  value={f.key === 'packIncluded' ? (editingCustomer.gallerySettings?.includedPhotos ?? (editingCustomer.gallerySettings?.digitalFiles as any)?.[f.key] ?? 0) : (editingCustomer.gallerySettings?.digitalFiles as any)?.[f.key] ?? 0} 
+                                                  onChange={(e) => {
+                                                    const v = parseFloat(e.target.value) || 0;
+                                                    const s = { ...editingCustomer.gallerySettings };
+                                                    if (f.key === 'packIncluded') s.includedPhotos = v;
+                                                    s.digitalFiles = { ...s.digitalFiles, [f.key]: v };
+                                                    setEditingCustomer({ ...editingCustomer, gallerySettings: s });
+                                                  }} 
+                                                  className="rounded-xl h-10 px-2 font-black text-xs text-[#4A7C59] text-center border-slate-100 bg-slate-50 focus:bg-white" 
+                                                />
+                                                {f.euro && <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">€</span>}
+                                              </div>
+                                            </div>
+                                          ))}
+                                       </div>
+
+                                       <div className="grid grid-cols-2 gap-3">
+                                          <div className="space-y-1">
+                                            <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Título de Galería</Label>
+                                            <Input value={editingCustomer.gallerySettings?.galleryTitle || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, galleryTitle: e.target.value } })} className="rounded-[1.25rem] h-11 text-[13px] font-bold border-slate-100 px-4 bg-white focus:bg-white transition-all shadow-sm" />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Slug URL</Label>
+                                            <Input value={editingCustomer.slug || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} className="rounded-[1.25rem] h-11 text-[13px] font-bold bg-slate-50 border-slate-100 px-4 text-slate-500 shadow-sm" />
+                                          </div>
+                                       </div>
+
+                                       <div className="space-y-1">
+                                         <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Subtítulo (Dedicatoria)</Label>
+                                         <textarea 
+                                           value={editingCustomer.gallerySettings?.gallerySubtitle || ''} 
+                                           onChange={(e) => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, gallerySubtitle: e.target.value } })}
+                                           className="w-full p-4 rounded-[1.5rem] text-xs font-bold border-slate-100 bg-slate-50/50 min-h-[80px] outline-none focus:bg-white focus:border-slate-200 transition-all scrollbar-hide shadow-sm"
+                                           placeholder="Escribre algo bonito para el cliente..."
+                                         />
+                                       </div>
+                                     </div>
+                                  </div>
+                               </motion.div>
+                             )}
+                           </AnimatePresence>
                         </div>
 
-                        {/* SUBIDA RÁPIDA */}
-                        <div className="space-y-4 pt-1">
-                          <div 
-                            onClick={() => (document.getElementById('edit-upload') as any)?.click()} 
-                            className="w-full h-14 rounded-xl border-2 border-dashed border-slate-200 hover:border-blue-500 hover:bg-blue-50/30 text-slate-400 hover:text-blue-600 transition-all group flex items-center justify-center cursor-pointer relative overflow-hidden"
-                          >
-                            <input id="edit-upload" type="file" multiple accept="image/*" className="hidden" onChange={handleUploadPhotos} disabled={isUploading} />
-                            {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />}
-                            <span className="font-black uppercase tracking-widest text-[10px]">{isUploading ? 'Subiendo...' : 'Subir archivos rápido'}</span>
-                            {isUploading && (
-                                <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-100"><div className="h-full bg-[#4A7C59] transition-all duration-300" style={{ width: `${(uploadStatus.current/uploadStatus.total)*100}%` }} /></div>
-                            )}
-                          </div>
+                          {/* PANEL DE ARCHIVOS SELECCIONADOS */}
+                          {((editingCustomer.orders && editingCustomer.orders.length > 0) || (editingCustomer.gallerySettings?.selectionConfirmed && editingCustomer.gallerySettings?.lastSelection?.length > 0)) && (
+                            <div className="bg-emerald-50 border border-emerald-100 rounded-[2rem] p-5 space-y-4 animate-in fade-in slide-in-from-top-4">
+                               <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                     <div className="h-9 w-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg"><CheckCircle2 className="h-5 w-5" /></div>
+                                     <div><h4 className="text-sm font-black text-slate-800 uppercase leading-none">Selección Confirmada</h4><p className="text-[9px] font-bold text-emerald-600 mt-1 uppercase tracking-widest">Nombres limpios para Lightroom</p></div>
+                                  </div>
+                                  <Button size="sm" onClick={() => {
+                                    let names: string[] = [];
+                                    
+                                    // 1. Obtener nombres de pedidos
+                                    if (editingCustomer.orders) {
+                                      names = [...names, ...editingCustomer.orders.flatMap((o: any) => o.items.flatMap((i: any) => (i.note || '').split(/[,; \n]+/).map((s: string) => s.trim().replace(/\.[^/.]+$/, "")).filter((s: string) => s.length > 0)))];
+                                    }
+                                    
+                                    // 2. Obtener nombres de la selección directa (Caso Vero Martinez)
+                                    if (editingCustomer.gallerySettings?.selectionConfirmed && editingCustomer.gallerySettings?.lastSelection && editingCustomer.gallerySettings?.photos) {
+                                      const selectedIds = new Set(editingCustomer.gallerySettings.lastSelection);
+                                      const directNames = editingCustomer.gallerySettings.photos
+                                        .filter((p: any) => selectedIds.has(p.id))
+                                        .map((p: any) => p.name || p.fileName?.replace(/\.[^/.]+$/, "") || "");
+                                      names = [...names, ...directNames];
+                                    }
+                                    
+                                    const uniqueNames = [...new Set(names.filter(n => n.length > 0))];
+                                    navigator.clipboard.writeText(uniqueNames.join(", "));
+                                    toast({ title: '¡Copiado!', description: `¡Copiados ${uniqueNames.length} nombres para Lightroom!` });
+                                  }} className="rounded-xl bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-500 hover:text-white font-black text-[10px] h-8 shadow-sm"><Copy className="h-3 w-3 mr-2" /> COPIAR LISTA</Button>
+                               </div>
+                               <div className="bg-white/80 rounded-2xl p-4 border border-emerald-100 max-h-[120px] overflow-y-auto custom-scrollbar">
+                                  <p className="text-[10px] font-bold text-emerald-800 leading-relaxed font-mono break-all line-clamp-4">
+                                     {(() => {
+                                        let names: string[] = [];
+                                        
+                                        // 1. Pedidos
+                                        if (editingCustomer.orders) {
+                                          names = [...names, ...editingCustomer.orders.flatMap((o: any) => o.items.flatMap((i: any) => (i.note || '').split(/[,; \n]+/).map((s: string) => s.trim().replace(/\.[^/.]+$/, "")).filter((s: string) => s.length > 0)))];
+                                        }
+                                        
+                                        // 2. Selección directa (Caso Vero Martinez)
+                                        if (editingCustomer.gallerySettings?.selectionConfirmed && editingCustomer.gallerySettings?.lastSelection && editingCustomer.gallerySettings?.photos) {
+                                          const selectedIds = new Set(editingCustomer.gallerySettings.lastSelection);
+                                          const directNames = editingCustomer.gallerySettings.photos
+                                            .filter((p: any) => selectedIds.has(p.id))
+                                            .map((p: any) => p.name || p.fileName?.replace(/\.[^/.]+$/, "") || "");
+                                          names = [...names, ...directNames];
+                                        }
+                                        
+                                        return [...new Set(names.filter(n => n.length > 0))].join(", ") || "Esperando selección...";
+                                     })()}
+                                  </p>
+                               </div>
+                               {editingCustomer.orders && (
+                                   <div className="space-y-2 pt-1">
+                                      {editingCustomer.orders.map((o: any) => {
+                                         const hasNote = o.notes && o.notes.trim();
+                                         const extraProducts = o.items.filter((i: any) => i.productName && !i.productName.toLowerCase().includes('foto'));
+                                         
+                                         if (!hasNote && extraProducts.length === 0) return null;
+                                         
+                                         return (
+                                            <div key={o.id} className="p-3 bg-white/50 rounded-[1.25rem] border border-emerald-100/50 text-[10px] space-y-2 shadow-sm">
+                                               {hasNote && (
+                                                  <div className="space-y-1">
+                                                     <div className="flex items-center gap-1.5 text-blue-600 font-black uppercase text-[8px] tracking-widest pl-1">
+                                                        <MessageSquare className="h-3 w-3" /> NOTA DEL PEDIDO
+                                                     </div>
+                                                     <div className="text-slate-600 font-bold leading-relaxed bg-blue-50/50 p-2.5 rounded-xl italic">
+                                                        "{o.notes}"
+                                                     </div>
+                                                  </div>
+                                               )}
+                                               {extraProducts.length > 0 && (
+                                                  <div className="space-y-1.5 mt-2">
+                                                     <div className="flex items-center gap-1.5 text-orange-600 font-black uppercase text-[8px] tracking-widest pl-1">
+                                                        <Package className="h-3 w-3" /> PRODUCTOS ADICIONALES
+                                                     </div>
+                                                     <div className="flex flex-wrap gap-1.5">
+                                                        {extraProducts.map((i: any, idx: number) => (
+                                                           <Badge key={idx} variant="outline" className="bg-orange-50/80 text-orange-700 border-orange-100 text-[9px] font-black py-1 px-3 rounded-lg shadow-sm">
+                                                              {i.quantity}x {i.productName} {i.variantName ? `· ${i.variantName}` : ''}
+                                                           </Badge>
+                                                        ))}
+                                                     </div>
+                                                  </div>
+                                               )}
+                                            </div>
+                                         );
+                                      })}
+                                   </div>
+                                )}
+                            </div>
+                          )}
                           
-                          {/* REJILLA DE VALORES */}
-                          <div className="bg-white border border-slate-100 rounded-2xl p-4 grid grid-cols-4 gap-3 shadow-sm">
-                              {[
-                                { label: 'Fotos Inc.', key: 'packIncluded', help: 'En Pack' },
-                                { label: 'Extra (€)', key: 'extraPrintPrice', help: 'Copia' },
-                                { label: 'Desc. (€)', key: 'price', help: 'Unid.' },
-                                { label: 'Gal. (€)', key: 'fullPackPrice', help: 'Completa' }
-                              ].map((field) => (
-                                <div key={field.key} className="space-y-2">
-                                  <Label className="text-[10px] font-black uppercase text-slate-400 block text-center truncate tracking-tight">{field.label}</Label>
-                                  <Input 
-                                    type="number" 
-                                    value={field.key === 'packIncluded' ? (editingCustomer.gallerySettings?.includedPhotos ?? (editingCustomer.gallerySettings?.digitalFiles as any)?.[field.key] ?? 0) : (editingCustomer.gallerySettings?.digitalFiles as any)?.[field.key] ?? 0} 
-                                    onChange={(e) => {
-                                      const val = parseFloat(e.target.value) || 0;
-                                      const newSettings = { ...editingCustomer.gallerySettings };
-                                      if (field.key === 'packIncluded') newSettings.includedPhotos = val;
-                                      newSettings.digitalFiles = { ...newSettings.digitalFiles, [field.key]: val };
-                                      setEditingCustomer({ ...editingCustomer, gallerySettings: newSettings });
-                                    }} 
-                                    className="rounded-xl h-10 px-2 font-black text-sm text-[#4A7C59] text-center bg-slate-50/50 border-none transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10" 
-                                  />
-                                </div>
-                              ))}
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                             <div className="space-y-1">
-                               <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Título de Galería</Label>
-                               <Input 
-                                 value={editingCustomer.gallerySettings?.galleryTitle || ''} 
-                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, galleryTitle: e.target.value } })} 
-                                 className="rounded-xl h-10 text-[13px] font-bold border-slate-100 px-4" 
-                               />
-                             </div>
-                             <div className="space-y-1">
-                               <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Slug URL</Label>
-                               <Input 
-                                 value={editingCustomer.slug || ''} 
-                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} 
-                                 className="rounded-xl h-10 text-[13px] font-bold bg-slate-50 border-slate-100 px-4" 
-                               />
-                             </div>
-                          </div>
-
-                          <div className="space-y-1">
-                            <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Subtítulo de Galería (Saltos de línea permitidos)</Label>
-                            <textarea 
-                              value={editingCustomer.gallerySettings?.gallerySubtitle || ''} 
-                              onChange={(e) => setEditingCustomer({ 
-                                ...editingCustomer, 
-                                gallerySettings: { ...editingCustomer.gallerySettings, gallerySubtitle: e.target.value } 
-                              })}
-                              className="w-full p-4 rounded-xl text-xs font-bold border-slate-100 bg-slate-50/50 min-h-[80px] outline-none transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10 scrollbar-hide"
-                              placeholder="Escribe una dedicatoria o descripción corta..."
-                            />
-                          </div>
-
                           <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                            <Button variant="outline" className="flex-1 rounded-xl h-10 text-[10px] font-black uppercase tracking-widest border-slate-200" onClick={() => window.open(`/galeria/${editingCustomer.slug}?preview=true`, '_blank')}> <Eye className="h-4 w-4 mr-2" /> VISTA PREVIA </Button>
-                            <Button className="flex-1 bg-[#4A7C59]/10 hover:bg-[#4A7C59] text-[#4A7C59] hover:text-white rounded-xl h-10 text-[10px] font-black uppercase tracking-widest transition-all" onClick={() => {
-                              const url = `${window.location.origin}/galeria/${editingCustomer.slug}`;
-                              const msg = `¡Hola ${editingCustomer.name}! Ya tienes lista tu galería: ${url}`;
-                              window.open(`https://api.whatsapp.com/send?phone=${editingCustomer.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(msg)}`, '_blank');
-                            }}> <Send className="h-4 w-4 mr-2" /> WHATSAPP </Button>
+                             <Button variant="outline" className="flex-1 rounded-xl h-11 text-[10px] font-black uppercase border-slate-200" onClick={() => window.open(`/galeria/${editingCustomer.slug}?preview=true`, '_blank')}><Eye className="h-4 w-4 mr-2" /> VISTA PREVIA</Button>
+                             <Button className="flex-1 bg-[#4A7C59]/10 hover:bg-[#4A7C59] text-[#4A7C59] hover:text-white rounded-xl h-11 text-[10px] font-black uppercase transition-all" onClick={() => {
+                               const u = `${window.location.origin}/galeria/${editingCustomer.slug}`;
+                               const m = `¡Hola ${editingCustomer.name}! Ya tienes tu galería: ${u}`;
+                               window.open(`https://api.whatsapp.com/send?phone=${editingCustomer.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(m)}`, '_blank');
+                             }}><Send className="h-4 w-4 mr-2" /> WHATSAPP</Button>
                           </div>
                         </div>
-                        <div className="h-10 invisible" />
                       </TabsContent>
 
-                      <TabsContent value="pedidos" className="m-0 min-h-[300px] animate-in fade-in slide-in-from-right-4 outline-none">
-                        <div className="flex flex-col items-center justify-center py-20 text-slate-300">
-                          <History className="h-10 w-10 mb-4 opacity-20" />
-                          <p className="text-[9px] font-black uppercase tracking-widest">Historial de Pedidos</p>
-                        </div>
+                      <TabsContent value="pedidos" className="m-0 min-h-[400px] animate-in fade-in slide-in-from-right-4 outline-none pb-8">
+                        {editingCustomer.orders && editingCustomer.orders.length > 0 ? (
+                          <div className="space-y-4 pt-2">
+                             <div className="flex items-center justify-between mb-2">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4A7C59]">REGISTRO DE SELECCIONES</p>
+                                <Badge className="bg-[#4A7C59]/10 text-[#4A7C59] border-none font-black px-3 py-1 rounded-full text-[10px]">
+                                   {editingCustomer.orders.length} TOTAL
+                                </Badge>
+                             </div>
+                             
+                             <div className="grid gap-3">
+                                {editingCustomer.orders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((order: any, idx: number) => {
+                                   const orderDate = new Date(order.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+                                   const orderNum = editingCustomer.orders.length - idx;
+                                   
+                                   return (
+                                     <div key={order.id} className="bg-slate-50/50 rounded-2xl border border-slate-100 p-5 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all group">
+                                        <div className="flex items-center justify-between mb-4">
+                                           <div className="flex items-center gap-3">
+                                              <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-[#4A7C59] font-black text-sm shadow-sm">
+                                                #{orderNum}
+                                              </div>
+                                              <div>
+                                                <p className="text-[13px] font-black text-slate-900 uppercase">Selección Confirmada</p>
+                                                <p className="text-[10px] font-bold text-slate-400 capitalize">{orderDate}</p>
+                                              </div>
+                                           </div>
+                                           <Badge variant="outline" className="border-[#4A7C59]/20 text-[#4A7C59] font-black text-[9px] uppercase px-2 py-0.5 rounded-lg bg-white">
+                                              {order.status === 'delivered' ? 'ENTREGADO' : 'PROCESANDO'}
+                                           </Badge>
+                                        </div>
+                                        
+                                        <div className="space-y-1 bg-white/50 rounded-xl p-3 border border-slate-50">
+                                           {order.items.map((item: any, i: number) => (
+                                              <div key={i} className="flex flex-col gap-1">
+                                                 <div className="flex justify-between items-center text-[11px] font-bold text-slate-600">
+                                                    <span>{item.productName} {item.variantName ? `(${item.variantName})` : ''}</span>
+                                                    <span className="text-[#4A7C59]">x{item.quantity}</span>
+                                                 </div>
+                                                 {item.note && (
+                                                   <p className="text-[9px] text-slate-400 italic bg-white p-1.5 rounded-lg border border-slate-50 mt-1">
+                                                      "{item.note}"
+                                                   </p>
+                                                 )}
+                                              </div>
+                                           ))}
+                                        </div>
+                                        
+                                        <div className="mt-4 flex items-center justify-between pt-4 border-t border-dashed border-slate-100 px-1">
+                                           <div className="flex flex-col">
+                                              <span className="text-[8px] font-black uppercase text-slate-300 tracking-widest">Total Inversión</span>
+                                              <span className="text-sm font-black text-slate-900">{formatPrice(order.total)}</span>
+                                           </div>
+                                           <Button 
+                                              variant="ghost" size="sm" 
+                                              onClick={() => {
+                                                setEditingCustomer(null);
+                                                toast({ title: 'Detalle de Pedido', description: 'Cerrando ficha de cliente para ir a Pedidos...' });
+                                              }}
+                                              className="h-8 rounded-lg text-[9px] font-black uppercase text-slate-400 hover:text-[#4A7C59] hover:bg-[#4A7C59]/5"
+                                           >
+                                              VER EN PEDIDOS <ChevronRight className="ml-1 h-3 w-3" />
+                                           </Button>
+                                        </div>
+                                     </div>
+                                   )
+                                })}
+                             </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-20 text-slate-300">
+                            <History className="h-10 w-10 mb-4 opacity-20" />
+                            <p className="text-[9px] font-black uppercase tracking-widest">Sin registros de selección todavía</p>
+                          </div>
+                        )}
                       </TabsContent>
                     </>
                   )}
@@ -1473,12 +1765,12 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                           }
                         }
 
-                        const oldKey = (editingCustomer.originalId || editingCustomer.id).toString().toUpperCase()
-                        const newKey = (editingCustomer.dni || editingCustomer.email).toString().toUpperCase()
+                        const oldKey = (editingCustomer.id || editingCustomer.originalId).toString().toUpperCase()
+                        const newKey = (editingCustomer.slug || editingCustomer.email).toLowerCase().trim() // CAMBIO: Ahora el ID único es el SLUG para permitir multigaleria
                         const data = {
                           name: editingCustomer.name,
-                          dni: (editingCustomer.dni || '').toUpperCase(),
-                          email: (editingCustomer.email || '').toLowerCase(),
+                          dni: (editingCustomer.dni || '').toUpperCase().trim(),
+                          email: (editingCustomer.email || '').toLowerCase().trim(),
                           phone: editingCustomer.phone || '',
                           slug: finalSlug,
                           gallerySettings: editingCustomer.gallerySettings || {},
@@ -1610,14 +1902,35 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
               </DialogHeader>
 
               <div className="p-6 pt-0 pb-4 border-b border-slate-100 space-y-4">
-                <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
-                  <Input 
-                    placeholder="Buscar en la biblioteca..."
-                    value={musicSearch}
-                    onChange={(e) => setMusicSearch(e.target.value)}
-                    className="pl-11 h-10 rounded-2xl bg-slate-50 border-none focus-visible:bg-white shadow-inner transition-all text-xs font-bold"
-                  />
+                <div className="flex items-center gap-2">
+                  <div className="relative group flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                    <Input 
+                      placeholder="Buscar en la biblioteca..."
+                      value={musicSearch}
+                      onChange={(e) => setMusicSearch(e.target.value)}
+                      className="pl-11 h-10 rounded-2xl bg-slate-50 border-none focus-visible:bg-white shadow-inner transition-all text-xs font-bold"
+                    />
+                  </div>
+                  
+                  <label className={cn(
+                    "flex items-center gap-2 px-4 h-10 rounded-2xl cursor-pointer transition-all font-black text-[9px] uppercase tracking-widest shadow-lg shrink-0",
+                    isMusicUploading ? "bg-slate-100 text-slate-400" : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200"
+                  )}>
+                    {isMusicUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
+                    {isMusicUploading ? `${Math.round(musicUploadProgress)}%` : 'Añadir'}
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="audio/*" 
+                      onChange={handleQuickMusicUpload}
+                      disabled={isMusicUploading}
+                    />
+                  </label>
                 </div>
 
                 <div className="flex items-center gap-1 overflow-x-auto pb-1 mt-2 scrollbar-hide">

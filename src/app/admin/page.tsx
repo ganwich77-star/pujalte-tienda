@@ -49,6 +49,12 @@ export default function AdminPage() {
   })
 
   useEffect(() => {
+    // SISTEMA DE RECONOCIMIENTO MAESTRO (PARA FAUSTINO)
+    const fastAccess = localStorage.getItem('pujalte_fast_access')
+    if (fastAccess === 'true') {
+      setIsAdmin(true)
+    }
+
     async function init() {
       try {
         const [pRes, catRes, confRes, ordRes] = await Promise.all([
@@ -136,6 +142,8 @@ export default function AdminPage() {
     const targetPassword = config.adminPassword || 'admin123'
     if (password === targetPassword) {
       setIsAdmin(true)
+      // Si el login es manual pero exitoso, también le damos la 'llave maestra'
+      localStorage.setItem('pujalte_fast_access', 'true')
     } else {
       console.log('Login fallido localmente. Intenta con "admin123" si no has configurado local-db.')
       setLoginError(true); 
@@ -302,7 +310,10 @@ export default function AdminPage() {
           customOptions: null,
           supplierId: null
         })}
-        onLogout={() => setIsAdmin(false)}
+        onLogout={() => {
+          localStorage.removeItem('pujalte_fast_access')
+          setIsAdmin(false)
+        }}
         onViewStore={() => window.location.href = '/'}
       />
     </div>

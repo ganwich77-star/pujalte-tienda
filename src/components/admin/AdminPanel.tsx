@@ -113,11 +113,17 @@ export function AdminPanel(props: AdminPanelProps) {
   } = props
 
   const [activeTab, setActiveTab] = useState('galleries')
+  const [activeFilter, setActiveFilter] = useState<string>('all')
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [isLandingExpanded, setIsLandingExpanded] = useState(false)
   const [suppliers, setSuppliers] = useState<any[]>([])
   const [firebaseClients, setFirebaseClients] = useState<Record<string, any>>({})
   const [customerIdToEdit, setCustomerIdToEdit] = useState<string | null>(null)
+
+  const navigateWithFilter = (tab: string, filter: string = 'all') => {
+    setActiveTab(tab)
+    setActiveFilter(filter)
+  }
 
   useEffect(() => {
     const savedMode = localStorage.getItem('pujalte_admin_dark_mode') === 'true'
@@ -206,6 +212,14 @@ export function AdminPanel(props: AdminPanelProps) {
     { id: 'l-config', label: 'L. General', icon: Type },
   ]
 
+  const alertsCount = useMemo(() => {
+    const pendingOrders = orders.filter(o => o.status === 'pending').length
+    const clients = Object.values(firebaseClients || {})
+    const confirmedSelections = clients.filter(c => c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0).length
+    const emptyGalleries = clients.filter(c => (c.gallerySettings?.photos?.length || 0) === 0).length
+    return pendingOrders + confirmedSelections + emptyGalleries
+  }, [orders, firebaseClients])
+
   const bottomItems = [
     { id: 'upload', label: 'Importar', icon: Upload },
     { id: 'checkout', label: 'Formulario', icon: ClipboardList },
@@ -214,7 +228,7 @@ export function AdminPanel(props: AdminPanelProps) {
 
   return (
     <div className={cn(
-      "min-h-screen transition-colors duration-500",
+      "min-h-screen transition-colors duration-500 overflow-x-hidden",
       isDarkMode ? "dark bg-[#020617]" : "bg-slate-50"
     )}>
     <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-10 max-w-7xl">
@@ -270,6 +284,11 @@ export function AdminPanel(props: AdminPanelProps) {
                   <item.icon className="h-3 w-3 lg:h-4 lg:h-4" />
                 </div>
                 <span className="uppercase tracking-tight">{item.label}</span>
+                {item.id === 'dashboard' && alertsCount > 0 && (
+                  <span className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-red-500 text-[8px] sm:text-[10px] font-black text-white ml-2 animate-pulse shadow-lg shadow-red-500/20">
+                    {alertsCount}
+                  </span>
+                )}
                 {activeTab === item.id && (
                   <ChevronRight className="h-4 w-4 ml-auto hidden lg:block text-[#4A7C59]/40" />
                 )}
@@ -325,7 +344,7 @@ export function AdminPanel(props: AdminPanelProps) {
                       key={item.id}
                       initial={{ x: -10, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
-                      onClick={() => setActiveTab(item.id)}
+                      onClick={() => navigateWithFilter(item.id, 'all')}
                       className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black tracking-tight transition-all lg:w-full whitespace-nowrap min-w-fit ${
                         activeTab === item.id
                         ? 'bg-white text-[#4A7C59] shadow-sm border border-[#4A7C59]/10'
@@ -349,7 +368,7 @@ export function AdminPanel(props: AdminPanelProps) {
                 key={item.id}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => navigateWithFilter(item.id, 'all')}
                 className={`flex items-center gap-2.5 sm:gap-4 px-3.5 sm:px-5 py-2 sm:py-3.5 rounded-xl sm:rounded-[1.25rem] text-[10px] sm:text-xs font-black transition-all whitespace-nowrap min-w-fit lg:w-full relative overflow-hidden group/btn ${
                   activeTab === item.id
                   ? 'bg-white text-[#4A7C59] shadow-[0_10px_25px_-5px_rgba(74,124,89,0.15)] border border-[#4A7C59]/10'
@@ -416,6 +435,8 @@ export function AdminPanel(props: AdminPanelProps) {
                   categories={categories}
                   products={products}
                   formatPrice={formatPrice}
+                  firebaseClients={firebaseClients}
+                  setActiveTab={navigateWithFilter}
                 />
               )}
 
@@ -464,6 +485,7 @@ export function AdminPanel(props: AdminPanelProps) {
                   onUpdateStatus={onUpdateStatus}
                   onUpdateOrder={props.onUpdateOrder}
                   onDeleteOrder={onDeleteOrder}
+                  initialFilter={activeTab === 'orders' ? activeFilter : 'all'}
                 />
               )}
 
@@ -472,6 +494,7 @@ export function AdminPanel(props: AdminPanelProps) {
                   orders={enrichedOrders}
                   formatPrice={formatPrice}
                   customerIdToEdit={customerIdToEdit}
+                  initialFilter={activeTab === 'customers' ? activeFilter : 'all'}
                 />
               )}
 
@@ -486,6 +509,7 @@ export function AdminPanel(props: AdminPanelProps) {
                     setCustomerIdToEdit(key)
                     setActiveTab('customers')
                   }} 
+                  initialFilter={activeTab === 'galleries' ? activeFilter : 'all'}
                 />
               )}
 

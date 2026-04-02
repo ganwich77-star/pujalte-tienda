@@ -16,7 +16,9 @@ import {
   MoreVertical,
   History,
   Edit3,
-  Plus
+  Filter,
+  Plus,
+  ChevronDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,18 +37,34 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { motion, AnimatePresence } from 'framer-motion'
 import { db, COLLECTIONS } from '@/lib/firebase'
 import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore'
 import { toast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 interface GalleriesTabProps {
   onEditCustomerGallery: (customer: any) => void
+  initialFilter?: string
 }
 
-export function GalleriesTab({ onEditCustomerGallery }: GalleriesTabProps) {
+export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: GalleriesTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [actionFilter, setActionFilter] = useState(initialFilter)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (initialFilter) {
+      setActionFilter(initialFilter)
+    }
+  }, [initialFilter])
   const [customers, setCustomers] = useState<any[]>([])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [deletingGallery, setDeletingGallery] = useState<any>(null)
@@ -76,14 +94,23 @@ export function GalleriesTab({ onEditCustomerGallery }: GalleriesTabProps) {
     loadCustomers()
   }, [])
 
-  // Ahora solo mostramos aquellos que TIENEN fotos (las galerías se crean al subir fotos)
   const customersWithGallery = customers.filter(c => (c.gallerySettings?.photos?.length || 0) > 0)
+  const filteredGalleries = customers.filter(c => {
+    const matchesSearch = c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         c.dni?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         c.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (!matchesSearch) return false;
 
-  const filteredGalleries = customersWithGallery.filter(c => 
-    c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.dni?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+    const isConfirmed = c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0;
+    const isEmpty = !c.gallerySettings?.photos || c.gallerySettings.photos.length === 0;
+
+    if (actionFilter === 'pending_action') return isConfirmed || isEmpty;
+    if (actionFilter === 'empty') return isEmpty;
+    if (actionFilter === 'confirmed') return isConfirmed;
+    
+    return true;
+  })
 
   const handleDeleteGallery = async () => {
     if (!deletingGallery) return
@@ -134,15 +161,28 @@ export function GalleriesTab({ onEditCustomerGallery }: GalleriesTabProps) {
             </button>
           </div>
 
-          <div className="relative group flex-1 sm:w-80">
+          <div className="relative group flex-1 md:w-64 min-w-[150px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
             <Input
-              placeholder="Buscar por cliente o DNI..."
+              placeholder="Buscar..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-11 h-10 sm:h-12 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 shadow-inner focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-blue-500/10 transition-all font-medium text-sm"
             />
           </div>
+
+          <Select value={actionFilter} onValueChange={setActionFilter}>
+            <SelectTrigger className="w-auto h-10 sm:h-12 px-4 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 font-bold text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all gap-2">
+              <Filter className="h-4 w-4 text-blue-500" />
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
+              <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest py-3">Todos</SelectItem>
+              <SelectItem value="pending_action" className="text-[10px] font-bold uppercase tracking-widest py-3 text-orange-500 font-black">Acción Pendiente</SelectItem>
+              <SelectItem value="confirmed" className="text-[10px] font-bold uppercase tracking-widest py-3 text-emerald-500 font-black">Confirmadas</SelectItem>
+              <SelectItem value="empty" className="text-[10px] font-bold uppercase tracking-widest py-3 text-rose-500 font-black">Sin Fotos</SelectItem>
+            </SelectContent>
+          </Select>
 
           <Button 
             onClick={() => setIsSelectCustomerModalOpen(true)}
@@ -167,7 +207,7 @@ export function GalleriesTab({ onEditCustomerGallery }: GalleriesTabProps) {
       </div>
 
       {/* Grid / List de Galerías */}
-      <div className="px-4 sm:px-0">
+      <div className="px-2 sm:px-0">
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center space-y-4">
             <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
@@ -189,17 +229,36 @@ export function GalleriesTab({ onEditCustomerGallery }: GalleriesTabProps) {
                     className="group relative bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all overflow-hidden flex flex-col"
                   >
                     {/* Preview Image */}
-                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-                      <img 
-                        src={coverPhoto} 
-                        alt={customer.name} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                      />
+                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-50">
+                      {coverPhoto ? (
+                        <img 
+                          src={coverPhoto} 
+                          alt={customer.name} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-50/50 to-slate-200/30 text-slate-300">
+                          <Camera className="h-12 w-12 mb-2 opacity-20 group-hover:scale-110 transition-transform duration-500" />
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30">Pendiente de Subida</p>
+                        </div>
+                      )}
                       
                       <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-                        <Badge className="h-6 px-3 rounded-full font-black text-[10px] uppercase tracking-widest border-none shadow-lg bg-blue-500 text-white">
-                          {photoCount} FOTOS
-                        </Badge>
+                        <div className="flex gap-2">
+                          <Badge className="h-6 px-3 rounded-full font-black text-[10px] uppercase tracking-widest border-none shadow-lg bg-blue-500 text-white">
+                            {photoCount} FOTOS
+                          </Badge>
+                          {photoCount === 0 && (
+                            <Badge className="h-6 px-3 rounded-full font-black text-[10px] uppercase tracking-widest border-none shadow-lg bg-red-500 text-white animate-pulse">
+                              <AlertCircle className="h-3 w-3 mr-1" /> SIN FOTOS
+                            </Badge>
+                          )}
+                          {((customer.orders && customer.orders.length > 0) || (customer.gallerySettings?.selectionConfirmed && customer.gallerySettings?.lastSelection?.length > 0)) && (
+                            <Badge className="h-6 px-3 rounded-full font-black text-[10px] uppercase tracking-widest border-none shadow-lg bg-emerald-500 text-white animate-pulse">
+                              <CheckCircle2 className="h-3 w-3 mr-1" /> CONFIRMADA
+                            </Badge>
+                          )}
+                        </div>
                         
                         <div className="flex gap-2">
                            <DropdownMenu>
@@ -334,22 +393,26 @@ Cualquier duda, ¡escríbeme! 📲
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50">
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Reportaje</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Fotos</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ult. Cambio</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acciones</th>
+                    <th className="px-2 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Reportaje</th>
+                    <th className="px-1 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Fotos</th>
+                    <th className="px-2 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:table-cell">Ult. Cambio</th>
+                    <th className="px-2 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right pr-4">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filteredGalleries.map((customer) => (
                     <tr key={customer.id} className="hover:bg-slate-50/50 transition-colors group/row">
-                      <td className="px-6 py-4">
+                      <td className="px-2 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden relative">
-                             <img 
-                              src={customer.gallerySettings?.photos?.find((p: any) => p.isCover)?.url || customer.gallerySettings?.photos?.[0]?.url} 
-                              className="w-full h-full object-cover" 
-                             />
+                          <div className="w-10 h-10 rounded-xl bg-slate-50 overflow-hidden relative flex items-center justify-center border border-slate-100">
+                             {(customer.gallerySettings?.photos?.length || 0) > 0 ? (
+                               <img 
+                                 src={customer.gallerySettings?.photos?.find((p: any) => p.isCover)?.url || customer.gallerySettings?.photos?.[0]?.url} 
+                                 className="w-full h-full object-cover" 
+                               />
+                             ) : (
+                               <Camera className="h-4 w-4 text-slate-300 opacity-50" />
+                             )}
                           </div>
                           <div>
                             <p className="text-sm font-bold text-slate-900 uppercase">{customer.name}</p>
@@ -357,17 +420,29 @@ Cualquier duda, ¡escríbeme! 📲
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <Badge variant="outline" className="bg-blue-50/50 text-blue-600 border-blue-100 font-black text-[10px] uppercase">
-                          {customer.gallerySettings?.photos?.length || 0} Fotos
-                        </Badge>
+                      <td className="px-2 py-4">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-blue-500 text-white border-none font-black text-[10px] uppercase px-3 py-1 rounded-full shadow-sm">
+                            {customer.gallerySettings?.photos?.length || 0} FOTOS
+                          </Badge>
+                          {(customer.gallerySettings?.photos?.length || 0) === 0 && (
+                            <Badge className="bg-red-500 text-white border-none font-black text-[10px] uppercase px-3 py-1 rounded-full animate-pulse flex items-center gap-1 shadow-sm">
+                              <AlertCircle className="h-3 w-3" /> SIN FOTOS
+                            </Badge>
+                          )}
+                          {((customer.orders && customer.orders.length > 0) || (customer.gallerySettings?.selectionConfirmed && customer.gallerySettings?.lastSelection?.length > 0)) && (
+                            <Badge className="bg-emerald-500 text-white border-none font-black text-[10px] uppercase px-3 py-1 rounded-full animate-pulse flex items-center gap-1 shadow-sm">
+                              <CheckCircle2 className="h-3 w-3" /> CONFIRMADA
+                            </Badge>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-2 py-4 hidden sm:table-cell text-center">
                         <p className="text-[10px] font-black text-slate-400 uppercase">
                           {customer.updatedAt?.toDate ? customer.updatedAt.toDate().toLocaleDateString() : 'N/A'}
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                            <button 
                               onClick={() => onEditCustomerGallery(customer)}
@@ -510,6 +585,3 @@ Cualquier duda, ¡escríbeme! 📲
   )
 }
 
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ')
-}
