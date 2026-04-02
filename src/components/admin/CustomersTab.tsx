@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { 
+  Check,
+  X,
   Users, 
   Search, 
   Mail, 
@@ -38,7 +40,8 @@ import {
   Play,
   Download,
   Info,
-  Star
+  Star,
+  FileImage
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -112,11 +115,14 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
     gallerySettings: {
       galleryTitle: '',
       shopRequiresFavorite: false,
+      safetyLockEnabled: true,
+      watermarkEnabled: true,
       digitalFiles: {
-        enabled: false,
-        price: 0,
+        enabled: true,
+        price: 15,
+        extraPrintPrice: 5,
         packIncluded: 0,
-        extraPrice: 0
+        fullPackPrice: 0
       }
     },
     slug: ''
@@ -132,8 +138,12 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
   const [playingSong, setPlayingSong] = useState<string | null>(null)
   const [previewAudio] = useState(new Audio())
   const [uploadStatus, setUploadStatus] = useState({ current: 0, total: 0 })
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set())
+  const [isCancelUploadRequested, setIsCancelUploadRequested] = useState(false)
+  const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null)
   const router = useRouter()
   const initialEditProcessed = useRef(false)
+  const uploadControllerRef = useRef<boolean>(false)
 
   // Cargar datos de clientes desde Firebase (tiene DNI, cashEnabled actualizados)
   useEffect(() => {
@@ -202,8 +212,11 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
     }
   }
 
-  const handleSelectFromLibrary = (song: any) => {
+  const handleSelectFromLibrary = async (song: any) => {
+    if (!editingCustomer) return
     const musicData = { url: song.url, name: song.name, libraryId: song.id }
+    
+    const prevVersion = { ...editingCustomer }
     setEditingCustomer({
       ...editingCustomer,
       gallerySettings: {
@@ -211,10 +224,24 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
         bgMusic: musicData
       }
     })
+
+    try {
+      const clientKey = editingCustomer.id || (editingCustomer.dni || editingCustomer.email || editingCustomer.phone).trim().toUpperCase()
+      const clientRef = doc(db, COLLECTIONS.CLIENTS, clientKey)
+      await updateDoc(clientRef, {
+        'gallerySettings.bgMusic': musicData,
+        'updatedAt': new Date().toISOString()
+      })
+      toast({ title: 'Canción seleccionada', description: 'Banda sonora asignada desde la fonoteca.' })
+    } catch (error) {
+      console.error('Error persistiendo música:', error)
+      setEditingCustomer(prevVersion)
+      toast({ title: 'Error', description: 'No se pudo guardar la selección de música.', variant: 'destructive' })
+    }
+
     setIsMusicPickerOpen(false)
     previewAudio.pause()
     setPlayingSong(null)
-    toast({ title: 'Canción seleccionada', description: 'Banda sonora asignada desde la fonoteca.' })
   }
 
   const handleAddCustomer = async () => {
@@ -271,11 +298,14 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
         gallerySettings: { 
           galleryTitle: '',
           shopRequiresFavorite: false,
+          safetyLockEnabled: true,
+          watermarkEnabled: true,
           digitalFiles: {
-            enabled: false,
-            price: 0,
+            enabled: true,
+            price: 15,
+            extraPrintPrice: 5,
             packIncluded: 0,
-            extraPrice: 0
+            fullPackPrice: 0
           }
         },
         slug: ''
@@ -373,46 +403,57 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
 
   // LOGICA DE GALERIA
   const handleUploadPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || !editingCustomer) return
+    const filesArray = Array.from(e.target.files || [])
+    if (filesArray.length === 0 || !editingCustomer) return
 
     const clientKey = editingCustomer.id || (editingCustomer.dni || editingCustomer.email || editingCustomer.phone).trim().toUpperCase()
     setIsUploading(true)
-    setUploadStatus({ current: 0, total: files.length })
+    setIsCancelUploadRequested(false)
+    uploadControllerRef.current = false
+    setUploadStatus({ current: 0, total: filesArray.length })
     
-    const newPhotos: any[] = [...(editingCustomer.gallerySettings?.photos || [])]
-    const uploadPromises = Array.from(files).map(async (file) => {
-      const storageRef = ref(storage, `clients/${clientKey}/gallery/${file.name}`)
-      const uploadTask = uploadBytesResumable(storageRef, file)
-
-      return new Promise((resolve, reject) => {
-        uploadTask.on('state_changed', 
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-            setUploadProgress(prev => ({ ...prev, [file.name]: progress }))
-          }, 
-          (error) => reject(error), 
-          async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
-            const photoData = {
-              id: Math.random().toString(36).substr(2, 9),
-              url: downloadURL,
-              name: file.name.split('.')[0],
-              fileName: file.name,
-              createdAt: new Date().toISOString(),
-              isCover: newPhotos.length === 0 // Primera foto es portada por defecto
-            }
-            newPhotos.push(photoData)
-            setUploadStatus(prev => ({ ...prev, current: prev.current + 1 }))
-            resolve(photoData)
-          }
-        )
-      })
-    })
-
+    const addedPhotos: any[] = []
+    
     try {
-      await Promise.all(uploadPromises)
+      // Subida secuencial para evitar bloqueos del navegador con muchos archivos (p.j. 93 fotos)
+      for (let i = 0; i < filesArray.length; i++) {
+        // Verificar si se ha solicitado cancelar
+        if (uploadControllerRef.current) {
+          toast({ title: 'Subida cancelada', description: `Se han subido ${addedPhotos.length} fotos antes de cancelar.` })
+          break
+        }
+
+        const file = filesArray[i]
+        const storageRef = ref(storage, `clients/${clientKey}/gallery/${file.name}`)
+        
+        await new Promise((resolve, reject) => {
+          const uploadTask = uploadBytesResumable(storageRef, file)
+          
+          uploadTask.on('state_changed', 
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+              setUploadProgress(prev => ({ ...prev, [file.name]: progress }))
+            }, 
+            (error) => reject(error), 
+            async () => {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
+              const photoData = {
+                id: Math.random().toString(36).substr(2, 9),
+                url: downloadURL,
+                name: file.name.split('.')[0],
+                fileName: file.name,
+                createdAt: new Date().toISOString(),
+                isCover: (editingCustomer.gallerySettings?.photos?.length || 0) === 0 && i === 0 && addedPhotos.length === 0
+              }
+              addedPhotos.push(photoData)
+              setUploadStatus(prev => ({ ...prev, current: i + 1 }))
+              resolve(photoData)
+            }
+          )
+        })
+      }
       
+      const newPhotos = [...(editingCustomer.gallerySettings?.photos || []), ...addedPhotos]
       const clientRef = doc(db, COLLECTIONS.CLIENTS, clientKey)
       await updateDoc(clientRef, {
         gallerySettings: {
@@ -430,13 +471,61 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
         }
       })
       
-      toast({ title: 'Fotos subidas', description: `${files.length} fotos añadidas a la galería.` })
+      if (!uploadControllerRef.current) {
+        toast({ title: 'Subida finalizada', description: `${addedPhotos.length} fotos añadidas correctamente.` })
+      }
     } catch (error) {
       console.error('Error subiendo fotos:', error)
       toast({ title: 'Error', description: 'No se pudieron subir algunas fotos.', variant: 'destructive' })
     } finally {
       setIsUploading(false)
       setUploadProgress({})
+      uploadControllerRef.current = false
+    }
+  }
+
+  const handleCancelUpload = () => {
+    uploadControllerRef.current = true
+    setIsCancelUploadRequested(true)
+  }
+
+  const togglePhotoSelection = (photoId: string) => {
+    const next = new Set(selectedPhotos)
+    if (next.has(photoId)) next.delete(photoId)
+    else next.add(photoId)
+    setSelectedPhotos(next)
+  }
+
+  const handleSelectAllPhotos = () => {
+    if (!editingCustomer?.gallerySettings?.photos) return
+    if (selectedPhotos.size === editingCustomer.gallerySettings.photos.length) {
+      setSelectedPhotos(new Set())
+    } else {
+      setSelectedPhotos(new Set(editingCustomer.gallerySettings.photos.map((p: any) => p.id)))
+    }
+  }
+
+  const handleDeleteSelectedPhotos = async () => {
+    if (!editingCustomer || selectedPhotos.size === 0) return
+    if (!confirm(`¿Seguro que quieres eliminar ${selectedPhotos.size} fotos?`)) return
+
+    const photos = editingCustomer.gallerySettings.photos.filter((p: any) => !selectedPhotos.has(p.id))
+    const clientKey = editingCustomer.id || (editingCustomer.dni || editingCustomer.email || editingCustomer.phone).trim().toUpperCase()
+    
+    try {
+      await updateDoc(doc(db, COLLECTIONS.CLIENTS, clientKey), {
+        'gallerySettings.photos': photos,
+        'gallerySettings.updatedAt': new Date().toISOString()
+      })
+
+      setEditingCustomer({
+        ...editingCustomer,
+        gallerySettings: { ...editingCustomer.gallerySettings, photos }
+      })
+      setSelectedPhotos(new Set())
+      toast({ title: 'Fotos eliminadas', description: `Se han borrado ${selectedPhotos.size} fotos correctamente.` })
+    } catch (e) {
+      toast({ title: 'Error', description: 'No se pudieron eliminar las fotos.', variant: 'destructive' })
     }
   }
 
@@ -907,19 +996,19 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                         <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[#4A7C59] font-black text-xs">
                           {customer.name.charAt(0)}
                         </div>
-                        <div className="min-w-0 pr-2">
-                          <p className="font-black text-xs sm:text-[13px] text-slate-900 tracking-tight leading-none uppercase truncate">{customer.name}</p>
-                          <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate mt-1 opacity-70">{customer.dni || 'SIN DNI'}</p>
+                        <div className="min-w-0 transition-all group-hover:translate-x-1">
+                          <p className="font-black text-sm sm:text-[15px] text-slate-900 tracking-tight leading-none uppercase truncate">{customer.name}</p>
+                          <p className="text-[10px] sm:text-[12px] font-bold text-slate-400 uppercase tracking-tight truncate mt-1.5 opacity-70">{customer.dni || 'SIN DNI'}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 sm:px-5 py-4 sm:py-5 overflow-hidden">
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-300 truncate group-hover:text-slate-500 transition-colors">
-                          <Mail className="h-2.5 w-2.5 flex-shrink-0" /> <span className="truncate">{customer.email}</span>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 truncate group-hover:text-slate-600 transition-colors">
+                          <Mail className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{customer.email}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-300 truncate group-hover:text-slate-500 transition-colors">
-                          <Phone className="h-2.5 w-2.5 flex-shrink-0" /> <span className="truncate">{customer.phone}</span>
+                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 truncate group-hover:text-slate-600 transition-colors">
+                          <Phone className="h-3 w-3 flex-shrink-0" /> <span className="truncate">{customer.phone}</span>
                         </div>
                       </div>
                     </td>
@@ -929,8 +1018,8 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                       </Badge>
                     </td>
                     <td className="px-4 sm:px-5 py-4 sm:py-5 overflow-hidden">
-                      <p className="font-black text-xs sm:text-[14px] text-[#4A7C59] tracking-tighter leading-none">{formatPrice(customer.totalSpent)}</p>
-                      <p className="text-[8px] sm:text-[9px] font-bold text-slate-300 mt-1 uppercase tracking-tighter opacity-60">Avg: {formatPrice(customer.totalSpent / Math.max(1, customer.orders.length))}</p>
+                      <p className="font-black text-sm sm:text-[16px] text-[#4A7C59] tracking-tight leading-none">{formatPrice(customer.totalSpent)}</p>
+                      <p className="text-[10px] sm:text-[11px] font-bold text-slate-300 mt-1.5 uppercase tracking-tight opacity-60">Avg: {formatPrice(customer.totalSpent / Math.max(1, customer.orders.length))}</p>
                     </td>
                     <td className="px-4 sm:px-5 py-4 sm:py-5 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1 sm:gap-1.5">
@@ -1032,7 +1121,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
         </div>
         {filteredCustomers.length === 0 && (
           <div className="py-20 text-center space-y-4">
-            <div className="w-20 h-20 bg-white dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto shadow-sm border border-slate-50 dark:border-white/5 transition-colors">
+<div className="w-20 h-20 bg-white dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto shadow-sm border border-slate-50 dark:border-white/5 transition-colors">
               <Users className="h-8 w-8 text-slate-200 dark:text-slate-700" />
             </div>
             <div>
@@ -1045,457 +1134,182 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
 
         {/* Modal de Edición */}
         <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && setEditingCustomer(null)}>
-          <DialogContent className="w-[95vw] sm:max-w-[950px] min-h-[90vh] h-[90vh] overflow-hidden rounded-[2.5rem] p-0 flex flex-col shadow-2xl border-none">
-            <div className="p-6 sm:p-10 flex flex-col h-full">
-              <DialogHeader className="mb-8">
-                <DialogTitle className="text-3xl font-black tracking-tight text-slate-800">Gestionar Cliente</DialogTitle>
-                <DialogDescription className="text-sm font-medium text-slate-400">
-                  Configura los accesos, la galería y los pedidos de forma avanzada.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                {editingCustomer && (
-                  <Tabs defaultValue={customerIdToEdit ? "galeria" : "datos"} className="w-full">
-                    <TabsList className="grid grid-cols-3 mb-8 bg-slate-100/50 p-1.5 rounded-[1.25rem] h-12">
-                      <TabsTrigger value="datos" className="rounded-xl font-black text-[10px] uppercase tracking-widest gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
-                        <UserPlus className="h-4 w-4" /> Datos
-                      </TabsTrigger>
-                      <TabsTrigger value="galeria" className="rounded-xl font-black text-[10px] uppercase tracking-widest gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
-                        <Camera className="h-4 w-4" /> Galería
-                      </TabsTrigger>
-                      <TabsTrigger value="pedidos" className="rounded-xl font-black text-[10px] uppercase tracking-widest gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
-                        <History className="h-4 w-4" /> Pedidos
-                      </TabsTrigger>
+          <DialogContent className="w-[95vw] sm:max-w-[950px] max-h-[92vh] overflow-hidden rounded-[2rem] p-0 flex flex-col shadow-2xl border-none">
+            <div className="flex flex-col h-full bg-white">
+              <Tabs defaultValue={customerIdToEdit ? "galeria" : "datos"} className="flex flex-col h-full">
+                <DialogHeader className="p-8 pb-4 border-b border-slate-50">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <DialogTitle className="text-3xl font-black tracking-tight text-slate-800">Gestionar Cliente</DialogTitle>
+                      <DialogDescription className="text-xs font-black text-slate-400 uppercase tracking-[0.15em]">Panel de Control Avanzado</DialogDescription>
+                    </div>
+                    <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-12 w-fit gap-1">
+                      <TabsTrigger value="datos" className="rounded-xl px-6 font-black text-[11px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full">DATOS</TabsTrigger>
+                      <TabsTrigger value="galeria" className="rounded-xl px-6 font-black text-[11px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full">GALERÍA</TabsTrigger>
+                      <TabsTrigger value="pedidos" className="rounded-xl px-6 font-black text-[11px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full">PEDIDOS</TabsTrigger>
                     </TabsList>
-                    
-                    <div className="min-h-[500px]">
-                      <TabsContent value="datos" className="space-y-8 outline-none pb-10">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">Nombre Completo</Label>
-                            <Input 
-                              value={editingCustomer.name} 
-                              onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
-                              className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 focus:bg-white transition-all shadow-inner"
-                              placeholder="Ej: María García Pérez"
-                            />
+                  </div>
+                </DialogHeader>
+
+                <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+                  {editingCustomer && (
+                    <>
+                      <TabsContent value="datos" className="m-0 space-y-6 animate-in fade-in slide-in-from-left-4 outline-none">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                          <div className="space-y-2 transition-all">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] pl-1">Nombre Completo</Label>
+                            <Input value={editingCustomer.name} onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })} className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 px-5" />
                           </div>
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">DNI / Identificación</Label>
-                            <Input 
-                              value={editingCustomer.dni || ''} 
-                              onChange={(e) => setEditingCustomer({...editingCustomer, dni: e.target.value})}
-                              className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 focus:bg-white transition-all shadow-inner"
-                              placeholder="12345678X"
-                            />
+                          <div className="space-y-2 transition-all">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">DNI / Identificación</Label>
+                            <Input value={editingCustomer.dni || ''} onChange={(e) => setEditingCustomer({...editingCustomer, dni: e.target.value})} className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 px-5" />
+                          </div>
+                          <div className="space-y-2 transition-all">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Correo Electrónico</Label>
+                            <Input value={editingCustomer.email} onChange={(e) => setEditingCustomer({...editingCustomer, email: e.target.value})} className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 px-5" />
+                          </div>
+                          <div className="space-y-2 transition-all">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Teléfono Contacto</Label>
+                            <Input value={editingCustomer.phone || ''} onChange={(e) => setEditingCustomer({...editingCustomer, phone: e.target.value})} className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 px-5" />
                           </div>
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Correo Electrónico</Label>
-                            <Input 
-                              value={editingCustomer.email} 
-                              onChange={(e) => setEditingCustomer({...editingCustomer, email: e.target.value})}
-                              className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 focus:bg-white transition-all shadow-inner"
-                              placeholder="cliente@ejemplo.com"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Teléfono Contacto</Label>
-                            <Input 
-                              value={editingCustomer.phone || ''} 
-                              onChange={(e) => setEditingCustomer({...editingCustomer, phone: e.target.value})}
-                              className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 focus:bg-white transition-all shadow-inner"
-                              placeholder="+34 600 000 000"
-                            />
-                          </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Mensaje de Bienvenida</Label>
+                          <textarea 
+                            value={editingCustomer.gallerySettings?.welcomeMessage || ''} 
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, welcomeMessage: e.target.value }})}
+                            className="w-full p-6 rounded-[2rem] text-sm font-medium border-slate-100 bg-slate-50/30 min-h-[100px] outline-none shadow-inner transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10"
+                          />
                         </div>
                       </TabsContent>
 
-                      <TabsContent value="galeria" className="space-y-10 outline-none pb-12 px-1">
-                        {/* MODO DE GALERÍA */}
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] mb-4">Modo de Exhibición</p>
-                          <div className="grid grid-cols-3 gap-4">
-                            {[
-                              { value: 'photos', icon: ImageIcon, label: 'Solo Fotos', sub: 'Sin Archivos' },
-                              { value: 'both', icon: ShoppingBag, label: 'Dual', sub: 'Físico + Digital' },
-                              { value: 'digital', icon: Download, label: 'Archivos', sub: 'Solo Digital' },
-                            ].map((mode) => {
-                              const current = editingCustomer.gallerySettings?.galleryMode || 'photos'
-                              const isActive = current === mode.value
-                              return (
-                                <button
-                                  key={mode.value}
-                                  onClick={() => setEditingCustomer({
-                                    ...editingCustomer,
-                                    gallerySettings: { ...editingCustomer.gallerySettings, galleryMode: mode.value }
-                                  })}
-                                  className={cn(
-                                    "flex flex-col items-center gap-2 p-4 sm:p-5 rounded-[1.75rem] border transition-all text-center group",
-                                    isActive
-                                      ? "bg-[#4A7C59] border-[#4A7C59] text-white shadow-xl shadow-[#4A7C59]/20 scale-[1.03]"
-                                      : "bg-slate-50/50 border-slate-100 text-slate-500 hover:bg-white hover:shadow-lg hover:border-slate-200"
-                                  )}
-                                >
-                                  <mode.icon className={cn("h-5 w-5 mb-1 group-hover:scale-125 transition-transform duration-500", isActive ? "text-white" : "text-slate-400")} />
-                                  <div className="space-y-0.5">
-                                    <span className={cn("text-[10px] font-black uppercase block leading-none tracking-tight", isActive ? "text-white" : "text-slate-800")}>{mode.label}</span>
-                                    <span className={cn("text-[7px] font-black uppercase block leading-none tracking-tighter", isActive ? "text-white/70" : "text-slate-400")}>{mode.sub}</span>
-                                  </div>
-                                </button>
-                              )
-                            })}
-                          </div>
+                      <TabsContent value="galeria" className="m-0 space-y-6 animate-in fade-in slide-in-from-right-4 outline-none pt-2">
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { id: 'solo-fotos', label: 'Solo Fotos', sub: 'Visita', icon: Camera, color: 'text-blue-500' },
+                            { id: 'dual', label: 'Modo Dual', sub: 'Tienda Completa', icon: ShoppingBag, color: 'text-green-500' },
+                            { id: 'archivos', label: 'Digital', sub: 'Solo Descarga', icon: Download, color: 'text-purple-500' }
+                          ].map((mode) => {
+                            const isActive = (editingCustomer.gallerySettings?.digitalFiles?.mode || 'dual') === mode.id
+                            return (
+                              <button key={mode.id} onClick={() => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, mode: mode.id, enabled: mode.id !== 'solo-fotos' } } })}
+                                className={cn("flex flex-col items-center justify-center p-4 rounded-2xl border transition-all h-20 shadow-sm", isActive ? "bg-[#4A7C59] border-[#4A7C59] text-white shadow-lg shadow-[#4A7C59]/20" : "bg-white border-slate-100 hover:border-slate-300")}>
+                                <mode.icon className={cn("h-6 w-6 mb-1.5", isActive ? "text-white" : mode.color)} />
+                                <p className="text-[11px] font-black uppercase tracking-tight leading-none">{mode.label}</p>
+                                <p className={cn("text-[8px] font-bold uppercase mt-1", isActive ? "text-white/60" : "text-slate-400")}>{mode.sub}</p>
+                              </button>
+                            )
+                          })}
                         </div>
 
-                        {/* GRID DE CONTROLES CÓMODO Y ESPACIADO */}
-                        <div className="flex flex-col lg:flex-row gap-8 items-stretch">
-                          {/* BLOQUE DE SWITCHES (IZQUIERDA) */}
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* MARCA AGUA */}
-                            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 flex items-center justify-between shadow-sm hover:shadow-xl hover:border-[#4A7C59]/20 transition-all group min-h-[85px] w-full">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-blue-50/50 border border-blue-100/50 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all duration-500">
-                                  <ImageIcon className="h-6 w-6" />
+                        <div className="flex gap-4 items-stretch">
+                          <div className="flex-1 grid grid-cols-2 gap-3">
+                             {[
+                                { label: 'Marca Agua', sub: 'Protección', icon: ImageIcon, field: 'watermarkEnabled', color: 'text-blue-500', bg: 'bg-blue-50/50' },
+                                { label: 'Bloqueo Cap.', sub: 'Seguridad', icon: Lock, field: 'safetyLockEnabled', color: 'text-amber-500', bg: 'bg-amber-50/50' },
+                                { label: 'Forzar Sel.', sub: 'Favoritos', icon: Star, field: 'shopRequiresFavorite', color: 'text-orange-500', bg: 'bg-orange-50/50' },
+                                { label: 'Pago Efec.', sub: 'Recogida', icon: BadgeEuro, field: 'cashEnabled', color: 'text-green-500', bg: 'bg-green-50/50', root: true }
+                             ].map((item) => (
+                                <div key={item.label} className="bg-white border border-slate-100 rounded-2xl px-5 py-4 flex items-center justify-between shadow-sm h-16 group hover:border-[#4A7C59]/10 transition-all">
+                                  <div className="flex items-center gap-3">
+                                    <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center border transition-transform group-hover:scale-110", item.bg)}><item.icon className={cn("h-4.5 w-4.5", item.color)} /></div>
+                                    <div className="text-left">
+                                      <p className="text-[10px] font-black uppercase text-slate-800 leading-tight tracking-tight">{item.label}</p>
+                                      <p className="text-[8px] font-black uppercase text-slate-400 leading-tight mt-0.5">{item.sub}</p>
+                                    </div>
+                                  </div>
+                                  <Switch checked={item.root ? (editingCustomer as any)[item.field] : (editingCustomer.gallerySettings as any)[item.field]} onCheckedChange={(checked) => item.root ? setEditingCustomer({ ...editingCustomer, [item.field]: checked }) : setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, [item.field]: checked } })} className="scale-100" />
                                 </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-[11px] font-black uppercase tracking-tight text-slate-800">Marca Agua</p>
-                                  <p className="text-[9px] font-bold uppercase tracking-widest text-blue-400/80">Protección</p>
-                                </div>
-                              </div>
-                              <Switch 
-                                checked={editingCustomer.gallerySettings?.watermark ?? false}
-                                onCheckedChange={(checked) => setEditingCustomer({
-                                  ...editingCustomer,
-                                  gallerySettings: { ...editingCustomer.gallerySettings, watermark: checked }
-                                })}
-                                className="shrink-0"
-                              />
-                            </div>
-
-                            {/* BLOQUEO CAPTURAS */}
-                            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 flex items-center justify-between shadow-sm hover:shadow-xl hover:border-[#4A7C59]/20 transition-all group min-h-[85px] w-full">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-amber-50/50 border border-amber-100/50 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">
-                                  <Lock className="h-6 w-6" />
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-[11px] font-black uppercase tracking-tight text-slate-800">Bloqueo Cap.</p>
-                                  <p className="text-[9px] font-bold uppercase tracking-widest text-amber-500/60">Capturas</p>
-                                </div>
-                              </div>
-                              <Switch 
-                                checked={editingCustomer.gallerySettings?.preventScreenshot ?? false}
-                                onCheckedChange={(checked) => setEditingCustomer({
-                                  ...editingCustomer,
-                                  gallerySettings: { ...editingCustomer.gallerySettings, preventScreenshot: checked }
-                                })}
-                                className="shrink-0"
-                              />
-                            </div>
-
-                            {/* FORZADO DE GALERÍA / FAVORITOS */}
-                            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 flex items-center justify-between shadow-sm hover:shadow-xl hover:border-[#4A7C59]/20 transition-all group min-h-[85px] w-full">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-orange-50/50 border border-orange-100/50 flex items-center justify-center text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all duration-500">
-                                  <Star className="h-6 w-6" />
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-[11px] font-black uppercase tracking-tight text-slate-800">Forzar Sel.</p>
-                                  <p className="text-[9px] font-bold uppercase tracking-widest text-orange-400">Favoritos</p>
-                                </div>
-                              </div>
-                              <Switch 
-                                checked={editingCustomer.gallerySettings?.shopRequiresFavorite ?? false}
-                                onCheckedChange={(checked) => setEditingCustomer({
-                                  ...editingCustomer,
-                                  gallerySettings: { ...editingCustomer.gallerySettings, shopRequiresFavorite: checked }
-                                })}
-                                className="shrink-0"
-                              />
-                            </div>
-
-                            {/* PAGO EFECTIVO */}
-                            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 flex items-center justify-between shadow-sm hover:shadow-xl hover:border-[#4A7C59]/20 transition-all group min-h-[85px] w-full">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-green-50/50 border border-green-200/50 flex items-center justify-center text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all duration-500">
-                                  <BadgeEuro className="h-6 w-6" />
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-[11px] font-black uppercase tracking-tight text-slate-800">Pago Efec.</p>
-                                  <p className="text-[9px] font-bold uppercase tracking-widest text-green-500/60">Recogida</p>
-                                </div>
-                              </div>
-                              <Switch 
-                                checked={editingCustomer.cashEnabled ?? false}
-                                onCheckedChange={(checked) => setEditingCustomer({ ...editingCustomer, cashEnabled: checked })}
-                                className="shrink-0"
-                              />
-                            </div>
+                             ))}
                           </div>
-
-
-                          {/* ZONA DE SUBIDA (DERECHA) */}
-                          <div className="sm:w-44 lg:w-52 relative group rounded-[1.75rem] border-2 border-dashed border-slate-100 hover:border-[#4A7C59]/40 transition-all bg-slate-50/20 hover:bg-[#4A7C59]/5 flex items-center justify-center">
-                            <label className="flex flex-col items-center justify-center h-full w-full py-8 cursor-pointer">
-                              <div className="w-12 h-12 rounded-full bg-white border border-slate-50 flex items-center justify-center text-[#4A7C59] shadow-lg shadow-green-900/5 mb-4 group-hover:scale-110 transition-transform">
+                          <div onClick={() => (document.getElementById('edit-upload') as any)?.click()} className="w-44 relative group h-auto rounded-[2rem] border-2 border-dashed border-slate-100 bg-slate-50/30 hover:bg-[#4A7C59]/5 transition-all flex flex-col items-center justify-center p-6 cursor-pointer">
+                              <div className="w-12 h-12 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#4A7C59] shadow-md mb-2 group-hover:scale-110 transition-transform">
                                 {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
                               </div>
-                              <div className="text-center px-4">
-                                <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">Cargar Fotos</p>
-                                <p className="text-[8px] font-black text-slate-400 mt-1 uppercase tracking-widest leading-none">Arrastra o haz clic</p>
-                              </div>
-                              <input 
-                                type="file" 
-                                multiple 
-                                accept="image/*" 
-                                className="hidden" 
-                                onChange={handleUploadPhotos}
-                                disabled={isUploading}
-                              />
-                            </label>
-                            {isUploading && (
-                              <div className="absolute inset-0 bg-white/95 backdrop-blur-md rounded-[1.75rem] flex flex-col items-center justify-center p-6 z-10 animate-in fade-in zoom-in-95 duration-500 shadow-2xl">
-                                <p className="text-[10px] font-black text-[#4A7C59] uppercase mb-3">Procesando {uploadStatus.current}/{uploadStatus.total}</p>
-                                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                  <motion.div 
-                                    className="h-full bg-[#4A7C59]"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${(uploadStatus.current/uploadStatus.total)*100}%` }}
-                                  />
+                              <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Cargar Fotos</p>
+                              <input id="edit-upload" type="file" multiple accept="image/*" className="hidden" onChange={handleUploadPhotos} disabled={isUploading} />
+                              {isUploading && (
+                                  <div className="absolute inset-x-3 bottom-6 bg-white/95 rounded-2xl flex flex-col items-center justify-center p-4 shadow-xl border border-slate-100">
+                                    <p className="text-[10px] font-black text-[#4A7C59] uppercase mb-2">{uploadStatus.current}/{uploadStatus.total}</p>
+                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-[#4A7C59] transition-all duration-300" style={{ width: `${(uploadStatus.current/uploadStatus.total)*100}%` }} /></div>
+                                  </div>
+                              )}
+                          </div>
+                        </div>
+
+                        <div className="bg-white border border-slate-100 rounded-[2rem] p-5 grid grid-cols-4 gap-4 shadow-sm">
+                              {[
+                                { label: 'Fotos Inc.', key: 'packIncluded', help: 'En Pack' },
+                                { label: 'Extra (€)', key: 'extraPrintPrice', help: 'Copia' },
+                                { label: 'Desc. (€)', key: 'price', help: 'Unid.' },
+                                { label: 'Gal. (€)', key: 'fullPackPrice', help: 'Completa' }
+                              ].map((f) => (
+                                <div key={f.key} className="space-y-2">
+                                  <Label className="text-[9px] font-black uppercase text-slate-400 block text-center truncate tracking-tight">{f.label}</Label>
+                                  <Input type="number" value={(editingCustomer.gallerySettings?.digitalFiles as any)?.[f.key] ?? 0} onChange={(e) => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, [f.key]: parseFloat(e.target.value) || 0 } } })} className="rounded-xl h-11 px-2 font-bold text-sm text-[#4A7C59] text-center bg-slate-50/50 border-none transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10" />
+                                  <p className="text-[8px] font-bold text-slate-300 uppercase text-center tracking-widest">{f.help}</p>
                                 </div>
-                                <p className="text-[8px] font-black text-slate-400 mt-2 uppercase tracking-tighter">No cierres esta ventana</p>
-                              </div>
-                            )}
-                          </div>
+                              ))}
                         </div>
 
-                        {/* FOTOS INCLUIDAS Y PRECIO EXTRA */}
-                        <div className="grid grid-cols-2 gap-6 pt-2 border-t border-slate-50">
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Fotos Incluidas (Pack)</Label>
-                            <Input 
-                              type="number"
-                              value={editingCustomer.gallerySettings?.digitalFiles?.packIncluded || 0}
-                              onChange={(e) => setEditingCustomer({
-                                ...editingCustomer,
-                                gallerySettings: { ...editingCustomer.gallerySettings, digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, packIncluded: parseInt(e.target.value) || 0 } }
-                              })}
-                              className="rounded-2xl h-12 font-black text-sm text-[#4A7C59] border-slate-100 bg-slate-50/10 focus:bg-white shadow-inner"
-                              placeholder="Ej: 15"
-                            />
-                            <p className="text-[8px] font-bold text-slate-300 uppercase italic">0 = Selección ilimitada gratuita</p>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Coste Foto Extra (€)</Label>
-                            <Input 
-                              type="number"
-                              value={editingCustomer.gallerySettings?.digitalFiles?.price || 15}
-                              onChange={(e) => setEditingCustomer({
-                                ...editingCustomer,
-                                gallerySettings: { ...editingCustomer.gallerySettings, digitalFiles: { ...editingCustomer.gallerySettings?.digitalFiles, price: parseFloat(e.target.value) || 0 } }
-                              })}
-                              className="rounded-2xl h-12 font-black text-sm text-[#4A7C59] border-slate-100 bg-slate-50/10 focus:bg-white shadow-inner"
-                              placeholder="Ej: 12"
-                            />
-                             <p className="text-[8px] font-bold text-slate-300 uppercase italic">Precio por unidad adicional fuera del pack</p>
-                          </div>
-                        </div>
-
-                        {/* LISTA DE FOTOS Y BANDA SONORA (FILA COMBINADA) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            {/* BANDASONORA MINI */}
-                            <div className={cn(
-                              "p-6 rounded-[2rem] border transition-all flex flex-col justify-between group h-32",
-                              editingCustomer.gallerySettings?.bgMusic 
-                                ? "bg-indigo-50/30 border-indigo-100" 
-                                : "bg-slate-50/20 border-slate-50"
-                            )}>
-                              <div className="flex items-center justify-between">
-                                <div className={cn(
-                                  "w-10 h-10 rounded-2xl flex items-center justify-center transition-all shadow-sm border",
-                                  editingCustomer.gallerySettings?.bgMusic ? "bg-indigo-600 text-white border-indigo-500" : "bg-white text-indigo-400 border-slate-100"
-                                )}>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className={cn("p-4 rounded-2xl border flex items-center justify-between h-16 shadow-sm", editingCustomer.gallerySettings?.bgMusic ? "bg-indigo-50 border-indigo-100" : "bg-white border-slate-100")}>
+                             <div className="flex items-center gap-3 overflow-hidden">
+                                <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", editingCustomer.gallerySettings?.bgMusic ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-50 text-indigo-400")}>
                                   <Music className="h-5 w-5" />
                                 </div>
-                                {editingCustomer.gallerySettings?.bgMusic && (
-                                  <button onClick={handleDeleteMusic} className="text-red-400 hover:text-red-600 p-2 hover:bg-white rounded-xl shadow-sm border border-transparent hover:border-red-50 transition-all">
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
-                                )}
-                              </div>
-                              <div className="flex items-center justify-between gap-4">
-                                <div className="overflow-hidden">
-                                  <h3 className="text-[9px] font-black uppercase text-slate-800 tracking-wider">Música de Fondo</h3>
-                                  <p className="text-[8px] font-bold text-indigo-600/70 uppercase truncate">
-                                    {editingCustomer.gallerySettings?.bgMusic ? editingCustomer.gallerySettings.bgMusic.name : "Sin música asignada"}
-                                  </p>
+                                <div className="truncate">
+                                  <p className="text-[10px] font-black uppercase text-slate-800 leading-none mb-1.5 px-0.5">Música</p>
+                                  <p className="text-[9px] font-black text-indigo-500 uppercase truncate px-0.5">{(editingCustomer.gallerySettings?.bgMusic?.name || "Sin asignar")}</p>
                                 </div>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="h-8 px-4 rounded-xl text-[8px] font-black uppercase tracking-widest border-slate-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm shrink-0"
-                                  onClick={() => { setIsMusicPickerOpen(true); loadLibraryMusic(); }}
-                                >
-                                  {editingCustomer.gallerySettings?.bgMusic ? "Cambiar" : "Añadir"}
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* RESUMEN FOTOS */}
-                            <div className="p-6 rounded-[2rem] border border-slate-50 bg-slate-50/10 flex flex-col justify-between h-32">
-                              <div className="flex -space-x-3">
-                                 {editingCustomer.gallerySettings?.photos?.slice(0, 5).map((p: any) => (
-                                  <div key={p.id} className="w-11 h-11 rounded-full border-2 border-white overflow-hidden bg-slate-100 shadow-md">
-                                    <img src={p.url} className="w-full h-full object-cover" />
-                                  </div>
-                                ))}
-                                {(editingCustomer.gallerySettings?.photos?.length || 0) > 5 && (
-                                  <div className="w-11 h-11 rounded-full border-2 border-white bg-[#4A7C59] flex items-center justify-center text-[10px] font-black text-white shadow-md">
-                                    +{(editingCustomer.gallerySettings?.photos?.length || 0) - 5}
-                                  </div>
-                                )}
-                                {(!editingCustomer.gallerySettings?.photos || editingCustomer.gallerySettings?.photos.length === 0) && (
-                                  <div className="w-11 h-11 rounded-full border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300">
-                                    <ImageIcon className="h-5 w-5" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-center justify-between">
+                             </div>
+                             <Button variant="outline" size="sm" onClick={() => { setIsMusicPickerOpen(true); loadLibraryMusic(); }} className="h-8 rounded-xl px-4 text-[9px] font-black uppercase border-indigo-200 text-indigo-600 bg-white hover:bg-indigo-600 hover:text-white transition-all shadow-sm">MODIFICAR</Button>
+                          </div>
+                          <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-2xl flex items-center justify-between h-16 shadow-sm">
+                             <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#4A7C59] border border-slate-100 shadow-sm"><FileImage className="h-5 w-5" /></div>
                                 <div>
-                                  <h4 className="text-[9px] font-black uppercase text-slate-800 tracking-wider">Total Archivos</h4>
-                                  <p className="text-[8px] font-bold text-slate-400 uppercase">{editingCustomer.gallerySettings?.photos?.length || 0} fotos cargadas</p>
+                                  <p className="text-[10px] font-black uppercase text-slate-800 leading-none mb-1.5 px-0.5">Nube</p>
+                                  <p className="text-[9px] font-black text-[#4A7C59] uppercase px-0.5">{(editingCustomer.gallerySettings?.photos?.length || 0)} fotos</p>
                                 </div>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => setIsPhotosModalOpen(true)}
-                                  disabled={!editingCustomer.gallerySettings?.photos?.length}
-                                  className="h-8 px-4 rounded-xl text-[8px] font-black uppercase tracking-widest border-slate-100 hover:bg-[#4A7C59] hover:text-white transition-all shadow-sm"
-                                >
-                                  Gestionar
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-
-                        {/* CONFIGURACIÓN TEXTOS (URL Y MENSAJE) */}
-                        <div className="space-y-8 pt-6 border-t border-slate-50">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                              <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">Título de Galería</Label>
-                              <Input 
-                                value={editingCustomer.gallerySettings?.galleryTitle || ''} 
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  const generatedSlug = val.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-                                  setEditingCustomer({
-                                    ...editingCustomer,
-                                    gallerySettings: { ...editingCustomer.gallerySettings, galleryTitle: val },
-                                    slug: generatedSlug || editingCustomer.slug
-                                  });
-                                }}
-                                placeholder="Pj: Newborn Nora"
-                                className="rounded-2xl h-12 text-sm font-bold bg-slate-50/50 border-slate-100 focus:bg-white shadow-inner"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-[10px] font-black uppercase tracking-widest text-orange-400">Slug / URL Privada</Label>
-                              <div className="relative">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">/galeria/</div>
-                                <Input 
-                                  value={editingCustomer.slug || ''} 
-                                  onChange={(e) => setEditingCustomer({ ...editingCustomer, slug: e.target.value })}
-                                  className="rounded-2xl h-12 pl-16 text-sm font-bold bg-orange-50/20 border-orange-100/50 text-orange-600 focus:bg-white shadow-inner"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mensaje de Bienvenida Personalizado</Label>
-                            <textarea 
-                              value={editingCustomer.gallerySettings?.welcomeMessage || ''} 
-                              onChange={(e) => setEditingCustomer({
-                                ...editingCustomer,
-                                gallerySettings: { ...editingCustomer.gallerySettings, welcomeMessage: e.target.value }
-                              })}
-                              className="w-full p-5 rounded-[2rem] text-sm font-medium border-slate-100 bg-slate-50/30 focus:bg-white transition-all border outline-none min-h-[120px] custom-scrollbar shadow-inner"
-                              placeholder="Escribe algo especial para la familia..."
-                            />
+                             </div>
+                             <Button variant="outline" size="sm" onClick={() => setIsPhotosModalOpen(true)} className="h-8 rounded-xl px-4 text-[9px] font-black uppercase border-slate-200 text-slate-600 bg-white hover:bg-slate-900 hover:text-white transition-all shadow-sm">GESTIONAR</Button>
                           </div>
                         </div>
 
-                        {/* ACCIONES FINALES ESTILO PREMIUM */}
-                        <div className="flex flex-col sm:flex-row gap-4 pt-10 border-t border-slate-50">
-                          <Button 
-                            variant="outline" 
-                            className="flex-1 rounded-[1.5rem] h-14 font-black text-[12px] uppercase tracking-[0.15em] border-slate-100 hover:bg-slate-50 group hover:scale-[1.02] transition-all"
-                            onClick={() => {
-                              const slug = editingCustomer.slug || 'preview';
-                              window.open(`/galeria/${slug}?preview=true`, '_blank');
-                            }}
-                          >
-                            <Eye className="h-5 w-5 mr-3 text-slate-400 group-hover:text-[#4A7C59] transition-colors" /> Vista Previa
-                          </Button>
-                          <Button 
-                            className="flex-1 bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-[1.5rem] h-14 font-black text-[12px] uppercase tracking-[0.15em] shadow-2xl shadow-green-900/10 group hover:scale-[1.02] transition-all"
-                            onClick={() => {
-                              const slug = editingCustomer.slug;
-                              const url = `${window.location.origin}/galeria/${slug}`;
-                              const msg = `🎨 ¡Hola *${editingCustomer.name}*! 👋\n\nYa tenemos lista tu galería: *${editingCustomer.gallerySettings?.galleryTitle || 'Sesión Fotográfica'}*\n\n🔗 Accede aquí: ${url}\n👤 Usuario: *${editingCustomer.name.split(' ')[0].toUpperCase()}*\n🔑 Contraseña: *${editingCustomer.dni}*\n\n¡Espero que disfrutes reviviendo estos momentos! 🌿✨`;
-                              window.open(`https://api.whatsapp.com/send?phone=${editingCustomer.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(msg)}`, '_blank');
-                            }}
-                          >
-                            <Send className="h-5 w-5 mr-3 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /> Enviar Galería
-                          </Button>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="space-y-2">
+                             <Label className="text-[10px] font-black uppercase text-slate-400 pl-2">Título Galería</Label>
+                             <Input value={editingCustomer.gallerySettings?.galleryTitle || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, galleryTitle: e.target.value }})} className="rounded-2xl h-12 text-sm font-black border-slate-100 px-5 transition-all focus:ring-2 focus:ring-[#4A7C59]/10" />
+                           </div>
+                           <div className="space-y-2">
+                             <Label className="text-[10px] font-black uppercase text-slate-400 pl-2">URL (Slug)</Label>
+                             <Input value={editingCustomer.slug || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} className="rounded-2xl h-12 text-sm font-black border-slate-100 px-5 transition-all focus:ring-2 focus:ring-[#4A7C59]/10" />
+                           </div>
+                        </div>
+                        
+                        <div className="flex gap-4 pt-2">
+                          <Button variant="outline" className="flex-1 rounded-2xl h-14 text-xs font-black uppercase tracking-[0.2em] border-slate-200 hover:bg-slate-50 shadow-sm" onClick={() => window.open(`/galeria/${editingCustomer.slug}?preview=true`, '_blank')}> <Eye className="h-5 w-5 mr-3" /> VISTA PREVIA </Button>
+                          <Button className="flex-1 bg-[#4A7C59]/10 hover:bg-[#4A7C59] text-[#4A7C59] hover:text-white rounded-2xl h-14 text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-[#4A7C59]/5 border border-[#4A7C59]/20" onClick={() => {
+                            const url = `${window.location.origin}/galeria/${editingCustomer.slug}`;
+                            const msg = `🎨 ¡Hola *${editingCustomer.name}*! 👋\n\nYa tenemos lista tu galería: *${editingCustomer.gallerySettings?.galleryTitle || 'Sesión Fotográfica'}*\n\n🔗 Accede aquí: ${url}\n👤 Usuario: *${editingCustomer.name.split(' ')[0].toUpperCase()}*\n🔑 Contraseña: *${editingCustomer.dni}*`;
+                            window.open(`https://api.whatsapp.com/send?phone=${editingCustomer.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(msg)}`, '_blank');
+                          }}> <Send className="h-5 w-5 mr-3" /> ENVIAR WHATSAPP </Button>
                         </div>
                       </TabsContent>
 
-                      <TabsContent value="pedidos" className="outline-none space-y-6">
-                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                          {editingCustomer.orders && editingCustomer.orders.length > 0 ? (
-                            editingCustomer.orders.slice().reverse().map((order: any, i: number) => (
-                              <div key={i} className="p-5 rounded-[1.5rem] border border-slate-100 bg-white shadow-sm flex items-center justify-between hover:border-orange-200 transition-all">
-                                <div className="flex items-center gap-4">
-                                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center border border-orange-100">
-                                    <ShoppingBag className="h-5 w-5" />
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] font-black text-slate-800 uppercase tracking-tight">Pedido #{order.id?.slice(-6)}</p>
-                                    <p className="text-[8px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Fecha desconocida'}</p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-black text-sm text-[#4A7C59]">{formatPrice(order.total)}</p>
-                                  <p className="text-[7px] font-bold text-slate-300 uppercase">Impuestos incl.</p>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="bg-slate-50/50 rounded-[2rem] border border-slate-100 p-10 flex flex-col items-center justify-center text-center space-y-4">
-                              <div className="w-16 h-16 rounded-[1.5rem] bg-white flex items-center justify-center text-slate-300 shadow-sm border border-slate-50">
-                                <History className="h-8 w-8" />
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Sin Pedidos</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Aún no hay transacciones registradas</p>
-                              </div>
-                            </div>
-                          )}
+                      <TabsContent value="pedidos" className="m-0 min-h-[300px] animate-in fade-in slide-in-from-right-4 outline-none">
+                        <div className="flex flex-col items-center justify-center py-20 text-slate-300">
+                          <History className="h-10 w-10 mb-4 opacity-20" />
+                          <p className="text-[9px] font-black uppercase tracking-widest">Historial de Pedidos</p>
                         </div>
                       </TabsContent>
-                    </div>
-                  </Tabs>
-                )}
-              </div>
+                    </>
+                  )}
+                </div>
 
-              <DialogFooter className="mt-8 pt-6 border-t border-slate-100 flex-row justify-end items-center bg-white px-1">
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setEditingCustomer(null)} className="rounded-2xl text-xs font-bold h-12 uppercase tracking-widest">Cancelar</Button>
+                <DialogFooter className="p-8 border-t border-slate-50 bg-slate-50/20 sm:justify-between flex items-center gap-6">
+                  <Button variant="ghost" onClick={() => setEditingCustomer(null)} className="rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] h-14 px-10 text-slate-400 hover:text-slate-600">Cancelar</Button>
                   <Button 
                     onClick={async () => {
                       if (!editingCustomer.name || !editingCustomer.email) {
@@ -1531,14 +1345,14 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
                       } finally {
                         setUpdating(false)
                       }
-                    }}
+                    }} 
                     disabled={updating}
-                    className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-2xl px-6 text-xs font-black h-12 uppercase tracking-widest shadow-lg shadow-green-100"
+                    className="bg-[#4A7C59] hover:bg-[#3d664a] text-white rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] h-14 px-14 shadow-xl shadow-green-900/10 min-w-[240px]"
                   >
-                    {updating ? 'Guardando...' : 'Guardar'}
+                    {updating ? <Loader2 className="h-5 w-5 animate-spin" /> : "Guardar Cambios"}
                   </Button>
-                </div>
-              </DialogFooter>
+                </DialogFooter>
+              </Tabs>
             </div>
           </DialogContent>
         </Dialog>
@@ -1621,54 +1435,247 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit }: Customer
         </Dialog>
 
         {/* Otros Modales (Música, Fotos) se mantienen simplificados para asegurar integridad */}
-        <Dialog open={isMusicPickerOpen} onOpenChange={setIsMusicPickerOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-[400px] rounded-[2.5rem] p-6">
-             <DialogHeader><DialogTitle>Seleccionar Música</DialogTitle></DialogHeader>
-             <div className="py-4 text-center text-slate-400 text-xs font-bold uppercase">Fonoteca próximamente integrada</div>
-             <Button onClick={() => setIsMusicPickerOpen(false)} className="w-full rounded-xl">Cerrar</Button>
+        <Dialog open={isMusicPickerOpen} onOpenChange={(open) => {
+            if (!open) {
+                previewAudio.pause()
+                previewAudio.src = ''
+                setPlayingSong(null)
+            }
+            setIsMusicPickerOpen(open)
+        }}>
+          <DialogContent className="w-[95vw] sm:max-w-[450px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+            <div className="bg-white/80 backdrop-blur-2xl">
+              <div className="p-6 pb-4 border-b border-slate-100 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Fonoteca</h3>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Banda sonora personalizada</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100">
+                    <Music2 className="text-white h-5 w-5" />
+                  </div>
+                </div>
+
+                <div className="relative group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                  <Input 
+                    placeholder="Buscar en la biblioteca..."
+                    value={musicSearch}
+                    onChange={(e) => setMusicSearch(e.target.value)}
+                    className="pl-11 h-10 rounded-2xl bg-slate-50 border-none focus-visible:bg-white shadow-inner transition-all text-xs font-bold"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 mt-2 scrollbar-hide">
+                  <button
+                    onClick={() => setSelectedMusicCategory('ALL')}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                      selectedMusicCategory === 'ALL' ? "bg-blue-600 text-white shadow-lg" : "bg-slate-100 text-slate-400"
+                    )}
+                  >
+                    Todas
+                  </button>
+                  {customTags.map(tag => (
+                    <button
+                      key={tag.id}
+                      onClick={() => setSelectedMusicCategory(tag.id)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                        selectedMusicCategory === tag.id ? "bg-blue-600 text-white shadow-lg" : "bg-slate-100 text-slate-400"
+                      )}
+                    >
+                      {tag.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="max-h-[400px] overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                {librarySongs
+                  .filter(s => {
+                    const matchesSearch = (s.name || '').toLowerCase().includes(musicSearch.toLowerCase())
+                    const matchesCategory = selectedMusicCategory === 'ALL' || s.category === selectedMusicCategory
+                    return matchesSearch && matchesCategory
+                  })
+                  .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                  .map((song) => (
+                  <div 
+                    key={song.id} 
+                    className="flex items-center justify-between p-3 rounded-[1.5rem] hover:bg-blue-50/50 group/song transition-all cursor-pointer"
+                    onClick={() => handleSelectFromLibrary(song)}
+                  >
+                    <div className="flex items-center gap-4 min-w-0 pr-2">
+                      <div 
+                        className="relative flex-shrink-0 cursor-pointer" 
+                        onClick={(e) => { e.stopPropagation(); togglePreview(song.url, song.id); }}
+                      >
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                          playingSong === song.id 
+                            ? "bg-blue-600 text-white shadow-lg shadow-blue-200" 
+                            : "bg-slate-100 text-slate-400 hover:bg-blue-500 hover:text-white"
+                        )}>
+                          {playingSong === song.id ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-current" />}
+                        </div>
+                      </div>
+                      <div className="truncate">
+                        <h4 className="text-[11px] font-black text-slate-800 truncate leading-tight uppercase tracking-tight">{song.name}</h4>
+                        <p className="text-[8px] font-bold text-slate-400 mt-0.5">Música Original</p>
+                      </div>
+                    </div>
+                    
+                    <div className="opacity-0 group-hover/song:opacity-100 transition-opacity pr-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                         <Plus className="h-4 w-4" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {librarySongs.length === 0 && (
+                  <div className="py-20 text-center space-y-3">
+                    <Disc className="h-10 w-10 text-slate-100 mx-auto animate-spin" />
+                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No hay música en la fonoteca</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-4 border-t border-slate-100 flex justify-end">
+                 <Button variant="ghost" onClick={() => setIsMusicPickerOpen(false)} className="rounded-xl font-bold text-slate-400 mt-0">Cerrar</Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
         <Dialog open={isPhotosModalOpen} onOpenChange={setIsPhotosModalOpen}>
           <DialogContent className="sm:max-w-[90vw] lg:max-w-[75vw] w-full p-8 rounded-[2.5rem] border-none shadow-2xl flex flex-col h-[85vh]">
-            <div className="flex items-center justify-between mb-8">
-              <div>
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+              <div className="w-full sm:w-auto">
                 <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Fotos de Galería</h3>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Gestiona los archivos y la foto de portada</p>
               </div>
-              <div className="bg-slate-100 px-4 py-2 rounded-2xl">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{editingCustomer?.gallerySettings?.photos?.length || 0} Archivos</p>
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                {selectedPhotos.size > 0 && (
+                  <Button 
+                    onClick={handleDeleteSelectedPhotos}
+                    className="h-10 px-4 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black text-[9px] uppercase tracking-widest shadow-lg shadow-red-900/10 transition-all animate-in slide-in-from-right-4"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" /> Eliminar ({selectedPhotos.size})
+                  </Button>
+                )}
+                <Button 
+                  variant="outline"
+                  onClick={handleSelectAllPhotos}
+                  className="h-10 px-4 rounded-xl border-slate-100 bg-white font-black text-[9px] uppercase tracking-widest hover:bg-slate-50 transition-all whitespace-nowrap"
+                >
+                  {selectedPhotos.size === (editingCustomer?.gallerySettings?.photos?.length || 0) ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                </Button>
+                <div className="bg-slate-100 px-4 py-2 rounded-xl border border-slate-200/50">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">{editingCustomer?.gallerySettings?.photos?.length || 0} Archivos</p>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
-              {editingCustomer?.gallerySettings?.photos?.map((photo: any) => (
-                <div key={photo.id} className="relative aspect-square rounded-[1.5rem] overflow-hidden border border-slate-100 group/photo hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-                  <img src={photo.url} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col justify-between p-2">
-                    <div className="flex justify-between items-start">
-                      <button 
-                        onClick={() => handleSetCover(photo.id)} 
-                        className={cn(
-                          "p-2 rounded-xl transition-all", 
-                          photo.isCover ? "bg-[#4A7C59] text-white" : "bg-white/90 hover:bg-white text-slate-600 shadow-lg"
-                        )}
-                      >
-                        <Star className={cn("h-4 w-4", photo.isCover ? "fill-white" : "")} />
-                      </button>
-                      <button 
-                        onClick={() => handleDeletePhoto(photo.id)} 
-                        className="p-2 rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg transition-all"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3 overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
+              {editingCustomer?.gallerySettings?.photos?.map((photo: any) => {
+                const isSelected = selectedPhotos.has(photo.id)
+                return (
+                  <div 
+                    key={photo.id} 
+                    className={cn(
+                      "relative aspect-[3/4] sm:aspect-square rounded-[1.25rem] overflow-hidden border transition-all duration-300 group/photo",
+                      isSelected 
+                        ? "border-[#4A7C59] ring-2 ring-[#4A7C59] ring-offset-2 scale-[0.98] shadow-lg" 
+                        : "border-slate-100 hover:border-[#4A7C59]/30 hover:shadow-xl hover:-translate-y-1"
+                    )}
+                  >
+                    <img 
+                      src={photo.url} 
+                      className="w-full h-full object-cover cursor-zoom-in" 
+                      onClick={() => setZoomedPhoto(photo.url)}
+                    />
+                    
+                    {/* Botón de Selección */}
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); togglePhotoSelection(photo.id); }}
+                      className={cn(
+                        "absolute top-2 left-2 w-6 h-6 rounded-lg flex items-center justify-center transition-all z-10 border shadow-sm",
+                        isSelected 
+                          ? "bg-[#4A7C59] border-[#4A7C59] text-white" 
+                          : "bg-white/90 border-slate-200 text-slate-400 group-hover/photo:opacity-100 sm:opacity-0"
+                      )}
+                    >
+                      <Check className={cn("h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")} />
+                    </button>
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col justify-end p-2 gap-2">
+                      {/* Control de Precio Individual */}
+                      <div className="flex bg-white/20 backdrop-blur-md rounded-lg p-1 items-center border border-white/30">
+                        <span className="text-[8px] font-black text-white ml-1.5 mr-auto">€</span>
+                        <input 
+                          type="number"
+                          placeholder="Propio"
+                          defaultValue={photo.price || ''}
+                          onBlur={(e) => {
+                            const val = parseFloat(e.target.value);
+                            const updatedPhotos = editingCustomer.gallerySettings.photos.map((p: any) => 
+                              p.id === photo.id ? { ...p, price: isNaN(val) ? null : val } : p
+                            );
+                            setEditingCustomer({
+                              ...editingCustomer,
+                              gallerySettings: { ...editingCustomer.gallerySettings, photos: updatedPhotos }
+                            });
+                          }}
+                          className="w-12 h-6 bg-white rounded-md text-[9px] font-black text-center text-[#4A7C59] focus:ring-0 border-none outline-none p-0"
+                        />
+                      </div>
+
+                      <div className="flex justify-between items-center gap-1">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleSetCover(photo.id); }} 
+                          className={cn(
+                            "flex-1 h-7 rounded-lg transition-all flex items-center justify-center gap-1.5", 
+                            photo.isCover ? "bg-[#4A7C59] text-white" : "bg-white/90 hover:bg-white text-slate-600 shadow-sm"
+                          )}
+                        >
+                          <Star className={cn("h-3 w-3", photo.isCover ? "fill-white" : "")} />
+                          <span className="text-[7px] font-black uppercase tracking-tighter">{photo.isCover ? 'Portada' : 'Set Portada'}</span>
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); if (confirm('¿Eliminar esta foto?')) handleDeletePhoto(photo.id); }} 
+                          className="w-7 h-7 rounded-lg bg-red-500 hover:bg-red-600 text-white shadow-sm flex items-center justify-center transition-all shrink-0"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
             <DialogFooter className="mt-6 pt-6 border-t border-slate-100">
                <Button variant="outline" onClick={() => setIsPhotosModalOpen(false)} className="w-full rounded-[1.25rem] h-12 font-black uppercase text-[10px] tracking-widest border-slate-200 hover:bg-slate-50 transition-all">Cerrar</Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Zoom para fotos */}
+        <Dialog open={!!zoomedPhoto} onOpenChange={() => setZoomedPhoto(null)}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none overflow-hidden flex items-center justify-center">
+            {zoomedPhoto && (
+              <div className="relative group animate-in zoom-in-95 duration-300">
+                <img 
+                  src={zoomedPhoto} 
+                  alt="Zoom" 
+                  className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl"
+                />
+                <button 
+                  onClick={() => setZoomedPhoto(null)}
+                  className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white p-3 rounded-full transition-all"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 

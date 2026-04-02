@@ -50,6 +50,7 @@ export default function GalleryPage() {
   const slug = params.slug as string
   
   const [client, setClient] = useState<any>(null)
+  const [clientId, setClientId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [digitalFilesCount, setDigitalFilesCount] = useState(0)
@@ -153,6 +154,7 @@ export default function GalleryPage() {
 
         if (docSnap.exists()) {
           clientData = docSnap.data();
+          setClientId(docSnap.id);
         } else {
           // 2. Si no existe como ID, buscamos por el campo 'slug'
           const q = query(collection(db, COLLECTIONS.CLIENTS), where("slug", "==", slug.toLowerCase()))
@@ -160,6 +162,7 @@ export default function GalleryPage() {
           
           if (!querySnapshot.empty) {
             clientData = querySnapshot.docs[0].data();
+            setClientId(querySnapshot.docs[0].id);
           }
         }
 
@@ -304,12 +307,15 @@ export default function GalleryPage() {
       setRejectedPhotos(newRejected);
       
       try {
-        const docRef = doc(db, COLLECTIONS.CLIENTS, slug.toUpperCase());
+        const docRef = doc(db, COLLECTIONS.CLIENTS, clientId || slug.toUpperCase());
         await updateDoc(docRef, {
           'gallerySettings.rejectedPhotos': Array.from(newRejected)
         });
         toast({ title: "Foto restaurada", description: "La foto vuelve a estar disponible en tu galería." });
-      } catch (e) { console.error(e); }
+      } catch (e) { 
+        console.error("Error al restaurar:", e);
+        toast({ title: "Error al actualizar", description: "No se pudo guardar el cambio en el servidor.", variant: "destructive" });
+      }
       return;
     }
 
@@ -333,13 +339,16 @@ export default function GalleryPage() {
     }
     
     try {
-      const docRef = doc(db, COLLECTIONS.CLIENTS, slug.toUpperCase());
+      const docRef = doc(db, COLLECTIONS.CLIENTS, clientId || slug.toUpperCase());
       await updateDoc(docRef, {
         'gallerySettings.rejectedPhotos': Array.from(newRejected),
         'gallerySettings.lastSelection': Array.from(favorites)
       });
       toast({ title: "Foto movida", description: "Se ha guardado en tu zona de descartes." });
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error("Error al descartar:", e);
+      toast({ title: "Error al guardar", description: "No se pudo sincronizar el descarte.", variant: "destructive" });
+    }
     
     setIsRejectConfirmOpen(false);
     setPhotoToReject(null);
@@ -353,7 +362,7 @@ export default function GalleryPage() {
 
     try {
       // 1. Guardar en Firestore
-      const docRef = doc(db, COLLECTIONS.CLIENTS, slug.toUpperCase())
+      const docRef = doc(db, COLLECTIONS.CLIENTS, clientId || slug.toUpperCase())
       
       const filenames = Array.from(favorites)
         .map(id => {
@@ -397,7 +406,7 @@ export default function GalleryPage() {
 
       toast({ 
         title: "✅ ¡Selección enviada!", 
-        description: "Jose ha recibido tu lista correctamente.",
+        description: "Su seleccion ha sido recibida correctamente.",
       })
     } catch (e) {
       console.error(e);
@@ -443,12 +452,17 @@ export default function GalleryPage() {
       return isActive && isVisible;
     });
 
-    // Inyectar Producto Digital si está activo
+    // Archivo Digital Base
     const digitalSettings = client?.gallerySettings?.digitalFiles;
     if (digitalSettings?.enabled) {
       const included = digitalSettings.packIncluded || 0;
       const isExtra = digitalFilesCount >= included;
-      const currentPrice = isExtra ? (digitalSettings.extraPrice || digitalSettings.price || 0) : 0;
+      
+      // PRIORIDAD: Precio Individual de la Foto > Precio Extra Global > 0
+      let currentPrice = photoToBuy?.price;
+      if (currentPrice === null || currentPrice === undefined) {
+          currentPrice = isExtra ? (digitalSettings.extraPrice || digitalSettings.price || 15) : 0;
+      }
 
       const digitalProduct = {
         id: 'digital-file-product',
@@ -464,6 +478,23 @@ export default function GalleryPage() {
       if (!term || digitalProduct.name.toLowerCase().includes(term)) {
         activeProducts = [digitalProduct, ...activeProducts];
       }
+
+      // OFERTA PACK COMPLETO
+      if (digitalSettings.fullPackPrice > 0) {
+        const fullPackProduct = {
+          id: 'digital-full-pack',
+          name: '¡OFERTA! GALERÍA DIGITAL COMPLETA',
+          price: digitalSettings.fullPackPrice,
+          image: 'https://cdn-icons-png.flaticon.com/512/8242/8242984.png',
+          description: 'Recibe TODAS las fotografías de la galería en máxima resolución a un precio especial de lote.',
+          active: true,
+          showPrice: true,
+          isDigital: true
+        };
+        if (!term || fullPackProduct.name.toLowerCase().includes(term)) {
+          activeProducts = [fullPackProduct, ...activeProducts];
+        }
+      }
     }
 
     if (!term) return activeProducts
@@ -476,7 +507,7 @@ export default function GalleryPage() {
       )
       return matchesMainName || matchesVariants
     })
-  }, [products, searchTerm, client?.gallerySettings?.digitalFiles, digitalFilesCount])
+  }, [products, searchTerm, client?.gallerySettings?.digitalFiles, digitalFilesCount, photoToBuy])
 
   // Sincronizar contador de archivos digitales y sus precios
   useEffect(() => {
@@ -486,11 +517,28 @@ export default function GalleryPage() {
     const digitalSettings = client?.gallerySettings?.digitalFiles;
     if (digitalSettings?.enabled) {
       const included = digitalSettings.packIncluded || 0;
-      const extraPrice = digitalSettings.extraPrice || digitalSettings.price || 0;
+      const extraPrice = digitalSettings.extraPrice || digitalSettings.price || 15;
+      const fullPrice = digitalSettings.fullPackPrice || 0;
 
-      // Recalcular precios de cada item digital en el carrito para que los primeros N sean 0€
-      digitals.forEach((item, index) => {
-        const correctPrice = index < included ? 0 : extraPrice;
+      // Filtrar los que no tienen precio individual para aplicar la lógica base
+      const standardDigitals = digitals.filter(item => !item.hasIndividualPrice);
+
+      // Recalcular precios de cada item digital ESTÁNDAR en el carrito
+      standardDigitals.forEach((item, index) => {
+        let correctPrice = index < included ? 0 : extraPrice;
+        
+        if (fullPrice > 0) {
+          const extraCount = Math.max(0, index + 1 - included);
+          if (extraCount * extraPrice > fullPrice) {
+            const paidPreviously = Math.max(0, index - included) * extraPrice;
+            if (paidPreviously >= fullPrice) {
+              correctPrice = 0;
+            } else {
+              correctPrice = Math.max(0, fullPrice - paidPreviously);
+            }
+          }
+        }
+
         if (item.price !== correctPrice) {
           updateItem(item.id, item.variantId, item.notes, { price: correctPrice, basePrice: correctPrice });
         }
@@ -562,10 +610,13 @@ export default function GalleryPage() {
         description: `${product.name} quitado de esta foto.`,
       });
     } else {
+      const individualPrice = photoToBuy?.price;
+      const isDigital = product.id === 'digital-file-product';
+
       addItem({
         id: product.id,
         name: product.name,
-        basePrice: product.id === 'digital-file-product' ? product.price : product.price,
+        basePrice: isDigital ? (individualPrice ?? product.price) : product.price,
         price: finalPrice,
         quantity: 1,
         image: photoToBuy.url,
@@ -573,9 +624,12 @@ export default function GalleryPage() {
         variantId: variant?.id,
         variantName: variant?.name,
         variantPrice: variant?.price,
-        notes: finalNotes,
+        notes: isDigital && individualPrice !== undefined && individualPrice !== null 
+          ? `[PRECIO INDIVIDUAL] ${finalNotes}` 
+          : finalNotes,
         variantBehavior: product.variantBehavior,
-        isDigital: product.isDigital
+        isDigital: product.isDigital,
+        hasIndividualPrice: isDigital && (individualPrice !== null && individualPrice !== undefined)
       });
 
       toast({
@@ -783,7 +837,7 @@ export default function GalleryPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   className="relative group overflow-hidden rounded-2xl cursor-pointer shadow-sm hover:shadow-xl transition-all"
-                  onClick={() => setViewerIndex(photos.findIndex((p:any) => p.id === photo.id))}
+                  onClick={() => setViewerIndex(displayedPhotos.findIndex((p:any) => p.id === photo.id))}
                 >
                   <img 
                     src={photo.url} 
@@ -854,13 +908,15 @@ export default function GalleryPage() {
                               }}
                               title={showRejected ? "Recuperar para la galería" : "Ocultar / Descartar foto"}
                               className={cn(
-                                "w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/20",
+                                "rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/20 h-9",
                                 showRejected 
-                                  ? "bg-[#4A7C59] text-white border-[#4A7C59]" 
-                                  : "bg-red-500 text-white hover:bg-red-600 border-red-500/50"
+                                  ? "bg-[#4A7C59] text-white border-[#4A7C59] px-4 gap-2 shadow-lg" 
+                                  : "w-9 h-9 bg-red-500 text-white hover:bg-red-600 border-red-500/50"
                               )}
                             >
-                              {showRejected ? <Plus className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                              {showRejected ? (
+                                  <span className="text-[10px] font-black uppercase tracking-widest leading-none">Recuperar</span>
+                              ) : <EyeOff className="h-4 w-4" />}
                             </button>
 
                             {/* Comprar / Elegir Producto */}
@@ -930,7 +986,7 @@ export default function GalleryPage() {
                     return (
                       <tr key={photo.id} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="px-6 py-4">
-                          <div className="w-20 h-20 rounded-xl overflow-hidden shadow-sm border-2 border-white cursor-pointer relative" onClick={() => setViewerIndex(photos.findIndex((p:any) => p.id === photo.id))}>
+                          <div className="w-20 h-20 rounded-xl overflow-hidden shadow-sm border-2 border-white cursor-pointer relative" onClick={() => setViewerIndex(displayedPhotos.findIndex((p:any) => p.id === photo.id))}>
                             <img src={photo.url} className="w-full h-full object-contain" />
                              {/* Watermark miniatura */}
                              {(client.gallerySettings?.watermarkEnabled !== false) && (
@@ -993,13 +1049,15 @@ export default function GalleryPage() {
                             <button 
                               onClick={() => handleRejectAction(photo)}
                               className={cn(
-                                "h-10 w-10 rounded-xl transition-all flex items-center justify-center border",
+                                "h-10 rounded-xl transition-all flex items-center justify-center border",
                                 showRejected 
-                                  ? "bg-[#4A7C59]/10 text-[#4A7C59] border-[#4A7C59]/20 hover:bg-[#4A7C59] hover:text-white" 
-                                  : "bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border-red-100"
+                                  ? "bg-[#4A7C59] text-white border-[#4A7C59] px-5 gap-2 shadow-sm font-black uppercase text-[10px] tracking-widest" 
+                                  : "w-10 h-10 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border-red-100"
                               )}
                             >
-                              {showRejected ? <Plus className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                              {showRejected ? (
+                                  "Recuperar"
+                              ) : <Trash2 className="h-4 w-4" />}
                             </button>
                           </div>
                         </td>
@@ -1121,7 +1179,7 @@ export default function GalleryPage() {
                   <MessageSquare className="h-5 w-5 text-white/40" />
                   <input 
                     type="text" 
-                    placeholder="Escribe una nota para Jose sobre esta foto..."
+                    placeholder="Escribe una nota sobre esta foto..."
                     className="bg-transparent border-none focus:ring-0 text-white text-sm w-full font-medium"
                     value={comments[selectedPhoto.id] || ''}
                     onChange={(e) => {
@@ -1609,7 +1667,7 @@ export default function GalleryPage() {
                 </button>
                 <div className="hidden md:flex flex-col">
                   <p className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white leading-none">
-                    {displayedPhotos[viewerIndex].fileName?.replace(/\.[^/.]+$/, "")}
+                    {displayedPhotos[viewerIndex]?.fileName?.replace(/\.[^/.]+$/, "")}
                   </p>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1">
                     Imagen {viewerIndex + 1} de {displayedPhotos.length}
@@ -1625,17 +1683,17 @@ export default function GalleryPage() {
                   <ShoppingBag className="h-4 w-4" /> Comprar
                 </Button>
                 <Button 
-                  onClick={() => toggleFavorite(displayedPhotos[viewerIndex].id)}
+                  onClick={() => toggleFavorite(displayedPhotos[viewerIndex]?.id)}
                   variant="outline"
                   className={cn(
                     "rounded-full h-11 px-8 font-black uppercase text-[11px] tracking-widest border-2 transition-all flex gap-2",
-                    favorites.has(displayedPhotos[viewerIndex].id)
+                    displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id)
                       ? "bg-white text-orange-500 border-white shadow-lg"
                       : "bg-transparent text-white border-white/20 hover:bg-white/10"
                   )}
                 >
-                  <Heart className={cn("h-4 w-4", favorites.has(displayedPhotos[viewerIndex].id) && "fill-current")} /> 
-                  {favorites.has(displayedPhotos[viewerIndex].id) ? 'Favorita' : 'Marcar Favorita'}
+                  <Heart className={cn("h-4 w-4", displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) && "fill-current")} /> 
+                  {displayedPhotos[viewerIndex] && favorites.has(displayedPhotos[viewerIndex].id) ? 'Favorita' : 'Marcar Favorita'}
                 </Button>
                 <button 
                   onClick={() => setViewerIndex(null)}
@@ -1674,10 +1732,10 @@ export default function GalleryPage() {
                   </div>
                 )}
                 <motion.img 
-                  key={displayedPhotos[viewerIndex].id}
+                  key={displayedPhotos[viewerIndex]?.id}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  src={displayedPhotos[viewerIndex].url}
+                  src={displayedPhotos[viewerIndex]?.url}
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -1698,9 +1756,12 @@ export default function GalleryPage() {
                   </div>
                   <input 
                     type="text"
-                    placeholder="Escribe una nota para Jose sobre esta foto..."
-                    value={photoNotes[displayedPhotos[viewerIndex].id] || ''}
-                    onChange={(e) => setPhotoNotes(prev => ({...prev, [displayedPhotos[viewerIndex].id]: e.target.value}))}
+                    placeholder="Escribe una nota sobre esta foto..."
+                    value={displayedPhotos[viewerIndex] ? (photoNotes[displayedPhotos[viewerIndex].id] || '') : ''}
+                    onChange={(e) => {
+                      if (!displayedPhotos[viewerIndex]) return;
+                      setPhotoNotes(prev => ({...prev, [displayedPhotos[viewerIndex].id]: e.target.value}));
+                    }}
                     className="w-full bg-white/10 backdrop-blur-xl border-2 border-white/30 rounded-full py-4 pl-12 pr-6 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-white/50 transition-all placeholder:text-white/60 shadow-2xl"
                   />
                </div>
@@ -1715,7 +1776,7 @@ export default function GalleryPage() {
         <DialogContent className="sm:max-w-2xl rounded-[32px] p-8 overflow-hidden border-none shadow-2xl z-[100]">
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Resumen para Jose</h2>
+              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Resumen de Selección</h2>
               <p className="text-slate-500 text-sm">Este es el resumen listo para enviar. Puedes copiarlo y pegarlo.</p>
             </div>
             

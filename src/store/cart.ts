@@ -22,6 +22,7 @@ export interface CartItem {
   tierPricing?: any // Puede ser string JSON o Array
   variantBehavior?: 'add' | 'replace'
   isDigital?: boolean
+  hasIndividualPrice?: boolean
 }
 
 interface CartStore {
