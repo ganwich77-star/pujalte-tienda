@@ -60,7 +60,7 @@ export default function GalleryPage() {
   const [lastCartCount, setLastCartCount] = useState(0)
   const [heartBurst, setHeartBurst] = useState<string | null>(null) // ID de la foto que acaba de recibir un corazón
   
-  const { setSlug, addItem, removeItem, updateQuantity, updateItem, items: cartItems, getItemCount } = useCartStore()
+  const { setSlug, addItem, removeItem, updateQuantity, updateItem, items: cartItems, getItemCount, getTotal } = useCartStore()
 
   // Efecto para animar el carrito cuando cambia el conteo
   useEffect(() => {
@@ -94,9 +94,11 @@ export default function GalleryPage() {
   const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, string>>({})
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false)
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const [viewerPhotos, setViewerPhotos] = useState<any[]>([])
   const [photoNotes, setPhotoNotes] = useState<Record<string, string>>({})
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showSummary, setShowSummary] = useState(false)
+  const [showNoteInput, setShowNoteInput] = useState(false)
   const [summaryText, setSummaryText] = useState('')
   const [heroIndex, setHeroIndex] = useState(0)
   const [zoomedProduct, setZoomedProduct] = useState<any | null>(null)
@@ -137,6 +139,8 @@ export default function GalleryPage() {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
   }, []);
 
+
+
   const photos = client?.gallerySettings?.photos || []
   const digitalSettings = client?.gallerySettings?.digitalFiles || {};
   const includedPhotosCount = client?.gallerySettings?.includedPhotos ?? digitalSettings.packIncluded ?? 0;
@@ -155,6 +159,15 @@ export default function GalleryPage() {
     }
     return filtered || [];
   }, [photos, rejectedPhotos, showRejected, showOnlyFavorites, favorites]);
+
+  // Sincronizar las fotos del visor cuando se abre
+  useEffect(() => {
+    if (viewerIndex !== null && viewerPhotos.length === 0) {
+      setViewerPhotos(displayedPhotos);
+    } else if (viewerIndex === null && viewerPhotos.length > 0) {
+      setViewerPhotos([]);
+    }
+  }, [viewerIndex, displayedPhotos, viewerPhotos.length]);
 
   const galleryMode = client?.gallerySettings?.digitalFiles?.mode || 'dual';
   const isVisitMode = galleryMode === 'solo-fotos';
@@ -372,14 +385,16 @@ export default function GalleryPage() {
   }
   
   const handleRejectAction = async (photo: any) => {
-    if (showRejected) {
-      // Si estamos en modo explorador de rechazadas, el botón sirve para RESTAURAR
+    const isAlreadyRejected = rejectedPhotos.has(photo.id);
+
+    if (showRejected || isAlreadyRejected) {
+      // Si estamos en modo explorador de rechazadas o la foto ya está marcada como rechazada, RESTAURAMOS directamente
       const newRejected = new Set(rejectedPhotos);
       newRejected.delete(photo.id);
       setRejectedPhotos(newRejected);
       
-      // SI ERA LA ÚLTIMA FOTO DESCARTADA, VOLVEMOS A LA GALERÍA NORMAL AUTOMÁTICAMENTE
-      if (newRejected.size === 0) {
+      // Si era la última foto del modo "solo rechazadas", volvemos a la galería normal
+      if (showRejected && newRejected.size === 0) {
         setShowRejected(false);
       }
       
@@ -388,7 +403,8 @@ export default function GalleryPage() {
         await updateDoc(docRef, {
           'gallerySettings.rejectedPhotos': Array.from(newRejected)
         });
-        toast({ title: "Foto restaurada", description: "La foto vuelve a estar disponible en tu galería." });
+        setViewerNotification("¡FOTO RECUPERADA!");
+        setTimeout(() => setViewerNotification(null), 1500);
       } catch (e) { 
         console.error("Error al restaurar:", e);
         toast({ title: "Error al actualizar", description: "No se pudo guardar el cambio en el servidor.", variant: "destructive" });
@@ -396,7 +412,7 @@ export default function GalleryPage() {
       return;
     }
 
-    // Modo normal: Preparar para descartar
+    // Modo normal: Preparar para descartar (Aquí sí pedimos confirmación)
     setPhotoToReject(photo);
     setIsRejectConfirmOpen(true);
   }
@@ -426,7 +442,8 @@ export default function GalleryPage() {
           'gallerySettings.rejectedPhotos': Array.from(newRejected),
           'gallerySettings.lastSelection': Array.from(favorites)
         });
-        toast({ title: "Foto movida", description: "Se ha guardado en tu zona de descartes." });
+        setViewerNotification("¡FOTO DESCARTADA!");
+        setTimeout(() => setViewerNotification(null), 1500);
       } catch (e) { 
         console.error("Error al descartar:", e);
         toast({ title: "Error al guardar", description: "No se pudo sincronizar el descarte.", variant: "destructive" });
@@ -995,19 +1012,64 @@ export default function GalleryPage() {
           </div>
         )}
         
+        {/* FILTROS DE VISTA (Pestañas) - Versión Compacta y Glassmorphism */}
+        <div className="flex items-center justify-center gap-1 mb-10 bg-white/70 backdrop-blur-xl p-1 rounded-full border border-slate-200/60 max-w-fit mx-auto shadow-xl sticky top-24 z-40 overflow-hidden">
+          <button 
+            onClick={() => { setShowOnlyFavorites(false); setShowRejected(false); }}
+            className={cn(
+              "px-4 sm:px-8 py-2 sm:py-3 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all duration-300 flex items-center gap-2",
+              !showOnlyFavorites && !showRejected 
+                ? "bg-slate-900 text-white shadow-lg scale-105" 
+                : "text-slate-400 hover:text-slate-600 hover:bg-black/5"
+            )}
+          >
+            <ImageIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+            <span className="hidden xs:inline">Galería</span>
+            <span className="xs:hidden">Galeria</span>
+          </button>
+          
+          <button 
+            onClick={() => { setShowOnlyFavorites(true); setShowRejected(false); }}
+            className={cn(
+              "px-4 sm:px-8 py-2 sm:py-3 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all duration-300 flex items-center gap-2",
+              showOnlyFavorites && !showRejected
+                ? "bg-white text-red-500 shadow-lg border border-red-50/50 scale-105" 
+                : "text-slate-400 hover:text-slate-600 hover:bg-black/5"
+            )}
+          >
+            <Heart className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5", showOnlyFavorites ? "fill-current" : "")} />
+            <span className="hidden xs:inline">Favoritas</span>
+            <span className="xs:hidden">Favs</span>
+          </button>
+
+          <button 
+            onClick={() => { setShowOnlyFavorites(false); setShowRejected(true); }}
+            className={cn(
+              "px-4 sm:px-8 py-2 sm:py-3 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all duration-300 flex items-center gap-2",
+              showRejected
+                ? "bg-white text-orange-500 shadow-lg border border-orange-50/50 scale-105" 
+                : "text-slate-400 hover:text-slate-600 hover:bg-black/5"
+            )}
+          >
+            <EyeOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+            <span className="hidden xs:inline">Descartadas</span>
+            <span className="xs:hidden">Ocultas</span>
+          </button>
+        </div>
+
         {/* Barra de Progreso de Selección */}
         {photos.length > 0 && !showRejected && !isSoloFotos && (
-          <div className="mb-12 max-w-md mx-auto">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mb-12 max-w-sm mx-auto bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between mb-3 text-center">
               <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">Progreso de selección</span>
-              <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{favorites.size} / {photos.length} fotos</span>
+              <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">{favorites.size} / {photos.length} fotos</span>
             </div>
-            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+            <div className="h-2.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 p-0.5">
               <motion.div 
-                className="h-full bg-gradient-to-r from-[#4A7C59] to-[#60a074]"
+                className="h-full bg-gradient-to-r from-[#4A7C59] to-[#60a074] rounded-full shadow-[0_0_10px_rgba(74,124,89,0.3)]"
                 initial={{ width: 0 }}
                 animate={{ width: `${(favorites.size / photos.length) * 100}%` }}
-                transition={{ type: "spring", bounce: 0, duration: 1 }}
+                transition={{ type: "spring", bounce: 0, duration: 1.5 }}
               />
             </div>
           </div>
@@ -1125,13 +1187,20 @@ export default function GalleryPage() {
                   {/* Badges de estado en Grid */}
                   <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-20">
                     {favorites.has(photo.id) && (
-                      <motion.div 
+                      <motion.button 
                         initial={{ scale: 0 }} 
                         animate={{ scale: 1 }} 
-                        className="w-7 h-7 rounded-full bg-white text-orange-500 shadow-lg flex items-center justify-center"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(photo.id);
+                        }}
+                        className="w-8 h-8 rounded-full bg-white text-orange-500 shadow-lg flex items-center justify-center hover:bg-orange-50 transition-colors z-30"
+                        title="Quitar de favoritas"
                       >
                         <Heart className="h-4 w-4 fill-current" />
-                      </motion.div>
+                      </motion.button>
                     )}
                     {hasComment && (
                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-7 h-7 rounded-full bg-white text-blue-500 shadow-lg flex items-center justify-center">
@@ -1981,12 +2050,38 @@ export default function GalleryPage() {
                         </motion.div>
                       )}
                     </AnimatePresence>
-                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Selecciona una opción para añadir al carrito</p>
+                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-4">Selecciona una opción para añadir al carrito</p>
                   </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* BOTÓN FLOTANTE DE CESTA DENTRO DEL MODAL */}
+          {getItemCount() > 0 && (
+             <div className="absolute bottom-6 inset-x-8 z-[60]">
+                <Button 
+                  onClick={() => {
+                    setIsShopModalOpen(false);
+                    setTimeout(() => setIsCartOpen(true), 240);
+                  }}
+                  className="w-full h-16 rounded-[24px] bg-slate-900 border-4 border-white text-white font-black uppercase text-[12px] tracking-widest shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:bg-black transition-all flex items-center justify-between px-8 animate-in fade-in slide-in-from-bottom-6 duration-500 hover:scale-[1.02] active:scale-95"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <ShoppingBag className="h-5 w-5 text-[#4A7C59]" />
+                      <span className="absolute -top-2.5 -right-2.5 bg-white text-slate-900 text-[9px] font-black h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-900">
+                        {getItemCount()}
+                      </span>
+                    </div>
+                    <span>Ver mi cesta y pagar</span>
+                  </div>
+                  <div className="bg-[#4A7C59] px-5 py-2.5 rounded-[14px] font-black text-white text-[13px] shadow-sm">
+                    {getTotal().toFixed(2)}€
+                  </div>
+                </Button>
+             </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -2110,9 +2205,9 @@ export default function GalleryPage() {
 
       {/* VISOR DE FOTOS FULL SCREEN CON NAVEGACIÓN */}
       <AnimatePresence>
-        {viewerIndex !== null && displayedPhotos[viewerIndex] && (
+        {viewerIndex !== null && viewerPhotos[viewerIndex] && (
           (() => {
-            const currentPhoto = displayedPhotos[viewerIndex];
+            const currentPhoto = viewerPhotos[viewerIndex];
             const isExtra = isSelectionLimited && (viewerIndex + 1 > includedCount);
             return (
               <motion.div 
@@ -2121,90 +2216,61 @@ export default function GalleryPage() {
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-[80] bg-black"
               >
-                {/* Cabecera Visor (OVERLAY) */}
-                <div className="absolute top-0 inset-x-0 z-30 p-2 sm:p-4 flex items-center justify-between text-white bg-gradient-to-b from-black/95 via-black/40 to-transparent transition-all duration-500">
-                  <div className="flex items-center gap-1 sm:gap-4">
+
+                {/* TOP BAR: Info, Altavoz y Cerrar */}
+                <div className="absolute top-0 inset-x-0 p-6 flex items-center justify-between z-50 pointer-events-none">
+                  <div className="flex items-center gap-4 pointer-events-auto bg-black/20 backdrop-blur-md p-2 px-4 rounded-2xl border border-white/10">
                     <button 
                       onClick={() => setViewerIndex(null)}
-                      className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70"
+                      className="w-10 h-10 flex items-center justify-center bg-white/10 text-white border border-white/20 hover:bg-white/20 rounded-full transition-all"
                     >
-                      <ChevronLeft className="h-6 w-6" />
+                      <X className="h-5 w-5" />
                     </button>
                     <div className="flex flex-col">
-                      <p className="text-lg sm:text-3xl font-black uppercase tracking-tighter text-white drop-shadow-2xl leading-none">
-                        {currentPhoto.fileName?.replace(/\.[^/.]+$/, "")}
-                      </p>
-                      <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-white/50 mt-2 flex items-center gap-2">
-                        <span>Imagen {viewerIndex + 1} / {displayedPhotos.length}</span>
-                        {isExtra && (
-                          <Badge className="bg-orange-500 text-white border-none text-[8px] font-black px-2 py-0 animate-pulse">
-                            EXTRA DE PAGO
-                          </Badge>
-                        )}
+                      <h3 className="text-white font-black text-sm uppercase tracking-tighter italic">
+                        {currentPhoto.name || currentPhoto.id}
+                      </h3>
+                      <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest leading-none">
+                        Imagen {viewerIndex! + 1} / {viewerPhotos.length}
                       </p>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-1.5 sm:gap-3">
-                    {!isSoloFotos && (
-                      <>
-                        {showRejected ? (
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              handleRejectAction(currentPhoto);
-                              if (rejectedPhotos.size <= 1) setViewerIndex(null);
-                            }}
-                            className="flex items-center gap-2 px-4 sm:px-6 h-11 sm:h-12 rounded-[18px] transition-all font-black text-[10px] uppercase tracking-widest border-2 shrink-0 bg-orange-500 border-orange-500 text-white shadow-xl hover:scale-105 active:scale-95"
-                          >
-                            <Check className="h-4 w-4" />
-                            <span>Recuperar</span>
-                          </button>
-                        ) : (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleRejectAction(currentPhoto); }}
-                            className="flex items-center gap-2 px-4 sm:px-6 h-11 sm:h-12 rounded-[18px] transition-all font-black text-[10px] uppercase tracking-widest border-2 shrink-0 bg-orange-500 border-orange-400 text-white shadow-xl hover:scale-105 active:scale-95"
-                          >
-                            <EyeOff className="h-4 w-4" />
-                            <span className="hidden sm:inline">Descartar</span>
-                            <span className="sm:hidden text-[8px]">Descartar</span>
-                          </button>
-                        )}
 
-                        <div 
-                          className={cn(
-                            "flex items-center gap-2 px-4 sm:px-6 h-11 sm:h-12 rounded-[18px] transition-all font-black text-[10px] uppercase tracking-widest border-2 shrink-0",
-                            favorites.size > 0
-                              ? "bg-white/10 border-white/20 text-white backdrop-blur-md" 
-                              : "bg-black/20 text-white/50 border-white/10"
-                          )}
-                        >
-                          <Heart className={cn("h-4 w-4", favorites.has(currentPhoto.id) && "fill-current text-red-500")} />
-                          <span className="sm:inline hidden">Seleccionadas</span>
-                          <span className="sm:hidden text-[8px]">Favs.</span>
-                          <span className="bg-white/20 px-1.5 rounded-md ml-0.5">{favorites.size}</span>
-                        </div>
-                      </>
-                    )}
-
+                  <div className="flex items-center gap-2 pointer-events-auto">
+                    {/* Botón Añadir Artículos (Cyan) - AHORA ARRIBA */}
                     <button 
-                      onClick={(e) => { e.stopPropagation(); handleOpenShop(currentPhoto); }}
-                      className="bg-slate-900 text-white border-2 border-slate-900 rounded-xl h-9 sm:h-10 px-3 sm:px-5 font-black uppercase text-[9px] tracking-tighter shadow-xl hover:bg-black hover:border-black transition-all flex items-center justify-center gap-1.5 shrink-0"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setPhotoToBuy(currentPhoto);
+                        setIsShopModalOpen(true);
+                      }}
+                      className="bg-cyan-600/90 text-white border border-cyan-400 rounded-full h-10 px-4 font-black uppercase text-[9px] tracking-widest shadow-xl hover:bg-cyan-500 hover:scale-[1.02] transition-all flex items-center gap-2 group active:scale-95"
                     >
-                      <ShoppingBag className="h-3.5 w-3.5 text-[#4A7C59]" />
-                      <span className="sm:inline hidden">Cesta</span>
-                      <span className="sm:hidden">Cesta</span>
-                      <span className="bg-white/20 px-1 rounded-sm ml-0.5 font-bold">
-                        {getItemCount()}
-                      </span>
+                      <Plus className="h-3 w-3 group-hover:rotate-90 transition-transform" />
+                      <span className="hidden sm:inline">Comprar Foto</span>
+                      <span className="sm:hidden">Tienda</span>
+                    </button>
+
+                    {/* Botón Ver Resumen (Cesta) Arriba con Texto para evitar dudas */}
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setIsCartOpen(true); }}
+                      className="h-10 px-4 flex items-center gap-2 bg-black/40 text-white border border-[#4A7C59]/30 hover:bg-black/60 rounded-full transition-all shadow-2xl relative group"
+                    >
+                      <ShoppingBag className="h-4 w-4 text-[#4A7C59] group-hover:scale-110 transition-transform" />
+                      <span className="font-black uppercase text-[9px] tracking-widest text-[#4A7C59]">Mi Cesta</span>
+                      {favorites.size > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-[#4A7C59] text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-black shadow-lg animate-in zoom-in-50">
+                          {favorites.size}
+                        </span>
+                      )}
                     </button>
 
                     {client?.gallerySettings?.bgMusic?.url && (
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleMusic(); }}
-                        className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-black/20 text-white border-2 border-white/10 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0"
+                        className="w-10 h-10 flex items-center justify-center bg-black/40 text-white border border-white/10 hover:bg-white/20 rounded-full transition-all shadow-2xl"
                       >
-                        {isPlaying ? <Volume2 className="h-4 w-4 text-blue-400" /> : <VolumeX className="h-4 w-4 text-white/30" />}
+                        {isPlaying ? <Volume2 className="h-4 w-4 text-orange-400 animate-pulse" /> : <VolumeX className="h-4 w-4 text-white/30" />}
                       </button>
                     )}
                   </div>
@@ -2212,28 +2278,27 @@ export default function GalleryPage() {
 
                 <div className="flex-1 relative w-full h-full flex items-center justify-center p-0 overflow-hidden">
                   <button 
-                    onClick={() => setViewerIndex(prev => prev! > 0 ? prev! - 1 : displayedPhotos.length - 1)}
-                    className="absolute left-6 z-30 p-4 bg-black/20 hover:bg-black/40 rounded-full text-white transition-all backdrop-blur-sm"
+                    onClick={() => setViewerIndex(prev => prev! > 0 ? prev! - 1 : viewerPhotos.length - 1)}
+                    className="absolute left-6 z-30 p-4 bg-black/20 hover:bg-black/40 rounded-full text-white transition-all backdrop-blur-sm active:scale-90"
                   >
                     <ChevronLeft className="h-8 w-8" />
                   </button>
-
-                  {!isSoloFotos && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); toggleFavorite(currentPhoto.id); }}
-                      className={cn(
-                        "absolute top-24 right-5 sm:right-8 z-40 w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center transition-all border backdrop-blur-md shadow-2xl active:scale-95 group",
-                        favorites.has(currentPhoto.id)
-                          ? "bg-red-500 border-red-400 text-white" 
-                          : "bg-white/10 border-white/20 text-white hover:bg-red-500 hover:border-red-500"
-                      )}
-                    >
-                      <Heart className={cn("h-6 w-6 sm:h-7 sm:w-7 transition-transform group-hover:scale-110", favorites.has(currentPhoto.id) && "fill-red-200 fill-current")} />
-                    </button>
-                  )}
                   
                   <div className="relative w-full h-full flex items-center justify-center">
-                    {(client.gallerySettings?.watermarkEnabled !== false) && (
+                    <AnimatePresence>
+                      {heartBurst === currentPhoto.id && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5, y: 0 }}
+                          animate={{ opacity: 1, scale: 2.5, y: -100 }}
+                          exit={{ opacity: 0, scale: 3, y: -150 }}
+                          transition={{ duration: 0.7, ease: "easeOut" }}
+                          className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
+                        >
+                          <Heart className="text-red-500 fill-current h-24 w-24 drop-shadow-[0_0_25px_rgba(239,68,68,0.6)]" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    {(client?.gallerySettings?.watermarkEnabled !== false) && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden select-none">
                         {(globalConfig?.logoUrl || globalConfig?.logo) ? (
                           <img 
@@ -2250,58 +2315,212 @@ export default function GalleryPage() {
                       </div>
                     )}
                     <motion.img 
-                      key={currentPhoto.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                      key={`${currentPhoto.id}-${rejectedPhotos.has(currentPhoto.id)}`}
+                      initial={{ opacity: 0.5, scale: 0.9 }}
+                      animate={{ 
+                        opacity: 1, 
+                        scale: rejectedPhotos.has(currentPhoto.id) ? 0.95 : 1,
+                        filter: rejectedPhotos.has(currentPhoto.id) ? "grayscale(100%) brightness(0.6)" : "grayscale(0%) brightness(1)"
+                      }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 260, 
+                        damping: 20 
+                      }}
                       src={currentPhoto.url}
                       className="w-full h-full object-contain"
                     />
                   </div>
                   
                   <button 
-                    onClick={() => setViewerIndex(prev => prev! < displayedPhotos.length - 1 ? prev! + 1 : 0)}
-                    className="absolute right-6 z-10 p-4 bg-black/20 hover:bg-black/40 rounded-full text-white transition-all backdrop-blur-sm"
+                    onClick={() => setViewerIndex(prev => prev! < viewerPhotos.length - 1 ? prev! + 1 : 0)}
+                    className="absolute right-6 z-30 p-4 bg-black/20 hover:bg-black/40 rounded-full text-white transition-all backdrop-blur-sm active:scale-90"
                   >
                     <ChevronRight className="h-8 w-8" />
                   </button>
                 </div>
 
-                <div className="absolute bottom-0 inset-x-0 z-30 p-10 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col items-center gap-4">
-                  <div className="w-full max-w-xl relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
-                      <MessageSquare className="h-4 w-4" />
+                {/* CONSOLA DE CONTROL INFERIOR */}
+                <div className="absolute bottom-0 inset-x-0 z-50 p-6 sm:p-10 flex flex-col items-center gap-6 bg-gradient-to-t from-black via-black/40 to-transparent">
+                  
+                  {/* Fila de Micro-notificación y Notas */}
+                  <div className="w-full max-w-4xl flex flex-col items-center gap-3">
+                    <AnimatePresence mode="wait">
+                      {viewerNotification && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="bg-white/95 backdrop-blur-md px-6 py-2 rounded-xl shadow-2xl mb-1 border border-white"
+                        >
+                           <span className={cn(
+                            "text-[11px] font-black uppercase tracking-[0.1em] flex items-center gap-3",
+                            viewerNotification.includes("DESCARTADA") || viewerNotification.includes("Eliminada") ? "text-orange-600" : "text-cyan-600"
+                          )}>
+                            {viewerNotification.includes("Añadida") || viewerNotification.includes("RECUPERADA") ? <Check className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                            {viewerNotification}
+                          </span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    
+                    <AnimatePresence>
+                      {showNoteInput && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                          className="w-full max-w-2xl relative group"
+                        >
+                          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white transition-colors">
+                            <MessageSquare className="h-4 w-4" />
+                          </div>
+                          <input 
+                            type="text"
+                            autoFocus
+                            placeholder="Escribe una nota sobre esta foto..."
+                            value={photoNotes[currentPhoto.id] || ''}
+                            onChange={(e) => {
+                              setPhotoNotes(prev => ({...prev, [currentPhoto.id]: e.target.value}));
+                            }}
+                            className="w-full bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[24px] py-5 pl-14 pr-8 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/30 transition-all placeholder:text-white/20 shadow-2xl"
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* BARRA DE FUNCIONES PRINCIPAL */}
+                  <div className="w-full max-w-7xl bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[40px] p-2 flex items-center justify-between shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative gap-4 mb-2 pointer-events-auto overflow-visible">
+                    
+                    {/* 1. LADO IZQUIERDO: ACCIONES RÁPIDAS (33%) */}
+                    <div className="flex-1 flex items-center gap-3 pl-2">
+                       <button 
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(currentPhoto.id); }}
+                        className={cn(
+                          "w-12 sm:w-14 h-12 sm:h-14 rounded-full flex items-center justify-center transition-all border shadow-lg group active:scale-95 relative",
+                          favorites.has(currentPhoto.id)
+                            ? "bg-red-500 border-red-400 text-white shadow-red-500/20" 
+                            : "bg-white/5 border-white/10 text-white hover:bg-white/20"
+                        )}
+                      >
+                        <Heart className={cn("h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110", favorites.has(currentPhoto.id) && "fill-current")} />
+                        {favorites.size > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-white text-red-600 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-red-500 shadow-xl">
+                            {favorites.size}
+                          </span>
+                        )}
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap z-[100]">
+                          {favorites.has(currentPhoto.id) ? "Quitar Favorita" : "Marcar Favorita"}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-[5px] border-x-transparent border-t-[5px] border-t-white" />
+                        </div>
+                      </button>
+
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setShowNoteInput(!showNoteInput); }}
+                        className={cn(
+                          "w-12 sm:w-14 h-12 sm:h-14 rounded-full flex items-center justify-center transition-all border shadow-lg group active:scale-95 relative",
+                          showNoteInput || photoNotes[currentPhoto.id]
+                            ? "bg-blue-500 border-blue-400 text-white shadow-blue-500/20" 
+                            : "bg-white/5 border-white/10 text-white hover:bg-white/20"
+                        )}
+                      >
+                        <MessageSquare className={cn("h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110", photoNotes[currentPhoto.id] && "fill-current")} />
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap z-[100]">
+                          Escribir Nota
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-[5px] border-x-transparent border-t-[5px] border-t-white" />
+                        </div>
+                      </button>
                     </div>
-                    <input 
-                      type="text"
-                      placeholder="Escribe una nota sobre esta foto..."
-                      value={photoNotes[currentPhoto.id] || ''}
-                      onChange={(e) => {
-                        setPhotoNotes(prev => ({...prev, [currentPhoto.id]: e.target.value}));
-                      }}
-                      className="w-full bg-white/10 backdrop-blur-xl border-2 border-white/30 rounded-full py-4 pl-12 pr-6 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-white/50 transition-all placeholder:text-white/60 shadow-2xl"
-                    />
+
+                    {/* 2. CENTRO: ACCIÓN DE DESCARTAR (33%) */}
+                    <div className="flex-1 flex items-center justify-center">
+                      {rejectedPhotos.has(currentPhoto.id) ? (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleRejectAction(currentPhoto); }}
+                          className="flex items-center gap-2 px-6 sm:px-10 h-12 sm:h-15 rounded-full transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-widest bg-cyan-600/90 border border-cyan-400 text-white shadow-xl hover:bg-cyan-600 hover:scale-[1.02] active:scale-95 shrink-0 relative group"
+                        >
+                          <Check className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <span>Recuperar</span>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap z-[100]">
+                            Devolver a la galería
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-[5px] border-x-transparent border-t-[5px] border-t-white" />
+                          </div>
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleRejectAction(currentPhoto); }}
+                          className="flex items-center gap-2 px-6 sm:px-10 h-12 sm:h-15 rounded-full transition-all font-black text-[10px] sm:text-[11px] uppercase tracking-widest bg-orange-600 border border-orange-500 text-white shadow-xl hover:bg-orange-500 hover:scale-[1.02] active:scale-95 shrink-0 relative group"
+                        >
+                          <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <span>Descartar</span>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap z-[100]">
+                            Ocultar esta foto
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-[5px] border-x-transparent border-t-[5px] border-t-white" />
+                          </div>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* 3. LADO DERECHO: FILTROS DE SECCIÓN (33%) */}
+                    <div className="flex-1 flex items-center justify-end pr-2 overflow-visible">
+                      <div className="flex bg-black/40 backdrop-blur-md p-1 rounded-full border border-white/10 shadow-inner overflow-visible">
+                        <button 
+                          onClick={() => { setShowOnlyFavorites(false); setShowRejected(false); }}
+                          className={cn(
+                            "px-3 sm:px-6 h-10 sm:h-12 rounded-full text-[8.5px] sm:text-[10px] font-black uppercase tracking-widest transition-all relative group",
+                            !showOnlyFavorites && !showRejected ? "bg-white text-slate-900 shadow-xl" : "text-white/40 hover:text-white"
+                          )}
+                        >
+                           <span className="hidden sm:inline">GALERÍA</span>
+                           <ImageIcon className="h-4 w-4 sm:hidden" />
+                           {/* Tooltip */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap z-[100]">
+                              Ver Todo
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-[5px] border-x-transparent border-t-[5px] border-t-white" />
+                            </div>
+                        </button>
+                        <button 
+                          onClick={() => { setShowOnlyFavorites(true); setShowRejected(false); }}
+                          className={cn(
+                            "w-10 sm:w-14 h-10 sm:h-12 rounded-full flex items-center justify-center transition-all relative group",
+                            showOnlyFavorites ? "bg-white/10 text-white border border-white/10" : "text-white/30 hover:text-white/60"
+                          )}
+                        >
+                          <Heart className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", showOnlyFavorites && "fill-current text-red-500")} />
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap z-[100]">
+                            Ver Favoritas
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-[5px] border-x-transparent border-t-[5px] border-t-white" />
+                          </div>
+                        </button>
+                        <button 
+                          onClick={() => { setShowOnlyFavorites(false); setShowRejected(true); }}
+                          className={cn(
+                            "w-10 sm:w-14 h-10 sm:h-12 rounded-full flex items-center justify-center transition-all relative group",
+                            showRejected ? "bg-white/10 text-white border border-white/10" : "text-white/30 hover:text-white/60"
+                          )}
+                        >
+                          <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap z-[100]">
+                            Ver Descartadas
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-[5px] border-x-transparent border-t-[5px] border-t-white" />
+                          </div>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="flex flex-col items-center">
-                    {viewerNotification && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="bg-white/90 backdrop-blur-md px-6 py-2 rounded-full shadow-2xl mb-2"
-                      >
-                        <span className={cn(
-                          "text-[11px] font-black uppercase tracking-[0.15em]",
-                          viewerNotification.includes("Eliminada") ? "text-red-500" : "text-[#4A7C59]"
-                        )}>
-                          {viewerNotification}
-                        </span>
-                      </motion.div>
-                    )}
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mt-2">
-                      {isMobile ? 'Desliza para navegar' : 'usa las flechas de tu teclado para navegar'}
-                    </p>
-                  </div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.5em] text-white/20 mt-1 flex items-center gap-3">
+                    <span className="w-8 h-[1px] bg-white/10" />
+                    {isMobile ? 'Desliza para navegar' : 'NAVEGACIÓN POR FLECHAS'}
+                    <span className="w-8 h-[1px] bg-white/10" />
+                  </p>
                 </div>
               </motion.div>
             );
