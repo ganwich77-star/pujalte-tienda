@@ -342,33 +342,55 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                   </div>
                 )}
 
-               {!!product.hasVariants && !!product.variants.length && (
+                {!!product.hasVariants && !!product.variants.length && (
                   <div className="flex-shrink-0 -mt-1 sm:-mt-2">
-                    <div className="flex items-center gap-2 px-1 mb-1.5 pt-2">
+                    <div className="flex items-center gap-2 px-1 mb-3 pt-2">
                       <Settings2 className="h-3 w-3 text-slate-400" />
-                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 leading-none italic">Opciones</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 leading-none italic">Elige tu opción</span>
                     </div>
-                    <Select
-                      value={selectedVariant?.id || 'base'}
-                      onValueChange={(v) => {
-                        if (v === 'base') setSelectedVariant(null)
-                        else setSelectedVariant(product.variants.find(vr => vr.id === v) || null)
-                      }}
-                    >
-                      <SelectTrigger className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl border-none bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest px-5 shadow-lg">
-                        <SelectValue placeholder="ELIGE UNA OPCIÓN..." />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border border-white/10 shadow-2xl p-1 bg-slate-900 text-white min-w-[280px]">
-                        <SelectItem value="base" className="text-[10px] font-black uppercase rounded-lg py-3 focus:bg-white/10 focus:text-white transition-colors">
-                          <div className="flex items-center justify-between w-full"><span>{product.name}</span><span className="text-white/60 ml-4 font-bold">Desde {formatPrice(activeBasePrice)}</span></div>
-                        </SelectItem>
-                        {product.variants.filter(v => v.name).map(variant => (
-                          <SelectItem key={variant.id} value={variant.id} className="text-[10px] font-black uppercase rounded-lg py-3 focus:bg-white/10 focus:text-white transition-colors">
-                            <div className="flex items-center justify-between w-full gap-8"><span>{variant.name}</span><span className="text-white/60 font-bold">{formatPrice(product.variantBehavior === 'replace' ? Number(variant.price) : activeBasePrice + Number(variant.price))}</span></div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="grid grid-cols-1 gap-2">
+                      {/* Opción Base */}
+                      <button
+                        onClick={() => setSelectedVariant(null)}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 text-left",
+                          !selectedVariant 
+                            ? "border-slate-900 bg-slate-900 text-white shadow-md scale-[1.02]" 
+                            : "border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200"
+                        )}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase tracking-widest">{product.name}</span>
+                          <span className={cn("text-[8px] font-bold mt-0.5", !selectedVariant ? "text-white/60" : "text-slate-400")}>Opción estándar</span>
+                        </div>
+                        <span className="text-xs font-black">{formatPrice(activeBasePrice)}</span>
+                      </button>
+
+                      {/* Variantes */}
+                      {product.variants.filter(v => v.name).map(variant => {
+                        const isSelected = selectedVariant?.id === variant.id;
+                        const finalPrice = product.variantBehavior === 'replace' ? Number(variant.price) : activeBasePrice + Number(variant.price);
+                        
+                        return (
+                          <button
+                            key={variant.id}
+                            onClick={() => setSelectedVariant(variant)}
+                            className={cn(
+                              "flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 text-left",
+                              isSelected 
+                                ? "border-slate-900 bg-slate-900 text-white shadow-md scale-[1.02]" 
+                                : "border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200"
+                            )}
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-black uppercase tracking-widest">{variant.name}</span>
+                              <span className={cn("text-[8px] font-bold mt-0.5", isSelected ? "text-white/60" : "text-slate-400")}>Opción personalizada</span>
+                            </div>
+                            <span className="text-xs font-black">{formatPrice(finalPrice)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
@@ -606,7 +628,8 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
               </div>
             </div>
 
-            <div className="mt-auto p-4 sm:p-6 bg-white border-t border-slate-100 flex flex-col gap-3 z-10">
+            {/* PIE DEL MODAL - SEPARADO TOTALMENTE DEL SCROLL */}
+            <div className="shrink-0 p-4 sm:p-6 bg-white border-t border-slate-100 flex flex-col gap-3 relative z-20">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200">
                      <button onClick={() => setQuantity(Math.max(minQty, quantity - stepQty))} className="h-8 w-8 sm:h-11 sm:w-11 rounded-lg flex items-center justify-center hover:bg-white text-slate-400 font-black active:scale-90">-</button>
