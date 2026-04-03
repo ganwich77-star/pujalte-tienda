@@ -276,8 +276,8 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
         </motion.div>
       </DialogTrigger>
 
-      <DialogContent showCloseButton={false} className={cn("w-[95vw] max-h-[82dvh] sm:max-h-[90dvh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all", showPreview && "bg-transparent shadow-none")}>
-        <div className={cn("relative flex-1 flex flex-col overflow-hidden transition-all duration-300", showPreview ? "opacity-0 pointer-events-none scale-95" : "opacity-100")}>
+      <DialogContent showCloseButton={false} className={cn("w-[95vw] max-h-[82dvh] sm:max-h-[90dvh] sm:max-w-[550px] p-0 overflow-visible bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all", showPreview && "bg-transparent shadow-none")}>
+        <div className={cn("relative flex-1 flex flex-col overflow-visible transition-all duration-300", showPreview ? "opacity-0 pointer-events-none scale-95" : "opacity-100")}>
             {/* Indicador de scroll flotante sutil */}
             <AnimatePresence>
               {showScrollHint && (
@@ -606,7 +606,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
               </div>
             </div>
 
-            <div className="mt-auto p-4 sm:p-6 bg-white border-t border-slate-100 flex flex-col gap-3 z-20">
+            <div className="mt-auto p-4 sm:p-6 bg-white border-t border-slate-100 flex flex-col gap-3 z-10">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200">
                      <button onClick={() => setQuantity(Math.max(minQty, quantity - stepQty))} className="h-8 w-8 sm:h-11 sm:w-11 rounded-lg flex items-center justify-center hover:bg-white text-slate-400 font-black active:scale-90">-</button>
