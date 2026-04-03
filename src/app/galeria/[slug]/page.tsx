@@ -102,13 +102,14 @@ export default function GalleryPage() {
   const [photoNotes, setPhotoNotes] = useState<Record<string, string>>({})
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showSummary, setShowSummary] = useState(false)
-  const [showNoteInput, setShowNoteInput] = useState(false)
-  const [summaryText, setSummaryText] = useState('')
-  const [heroIndex, setHeroIndex] = useState(0)
   const [zoomedProduct, setZoomedProduct] = useState<any | null>(null)
+  const [showNoteInput, setShowNoteInput] = useState(false)
+  const [summaryText, setSummaryText] = useState("")
+  const [showTextSummary, setShowTextSummary] = useState(false)
+  const [heroIndex, setHeroIndex] = useState(0)
   const [shakePhotoId, setShakePhotoId] = useState<string | null>(null)
   const [showAddedConfirmation, setShowAddedConfirmation] = useState(false)
-  const [addedItemName, setAddedItemName] = useState('')
+  const [addedItemName, setAddedItemName] = useState("")
 
   const { scrollY } = useScroll()
   const heroY = useTransform(scrollY, [0, 1000], [0, 300])
@@ -558,11 +559,30 @@ export default function GalleryPage() {
     }
   }
 
+  const sendWhatsAppSelection = () => {
+    const phone = globalConfig?.whatsappConfig?.phone || "34661623126"; 
+    const galleryName = client?.name || "Galería Privada";
+    
+    let message = `📸 *¡NUEVA SELECCIÓN DE FAVORITOS!* 📸\n\n`;
+    message += `Hola *Pujalte Fotografía*, he terminado mi selección en la galería:\n\n`;
+    message += `📂 *GALERÍA:* ${galleryName.toUpperCase()}\n`;
+    message += `👤 *CLIENTE:* ${client?.name}\n\n`;
+    message += `✅ *RESUMEN DE SELECCIÓN:*\n`;
+    message += `---------------------------------\n`;
+    const cleanSummary = summaryText.includes('LISTA PARA COPIAR:') ? summaryText.split('LISTA PARA COPIAR:')[0] : summaryText;
+    message += cleanSummary; 
+    message += `\n---------------------------------\n`;
+    message += `🚀 _Enviado desde mi Galería de Cliente_`;
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${encodedMessage}`, '_blank');
+  }
+
   const handleOpenShop = (photo: any, productToSelect?: any) => {
     setPhotoToBuy(photo)
     setSearchTerm('')
     setSelectedCustomOptions({})
-    setZoomedProduct(null) // Limpiamos cualquier zoom previo de producto
+    setZoomedProduct(null) 
     
     if (productToSelect) {
       setSelectedProduct(productToSelect)
@@ -1759,7 +1779,7 @@ export default function GalleryPage() {
           setSelectedCustomOptions({});
         }
       }}>
-        <DialogContent className="sm:max-w-[660px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl z-[100] bg-white">
+        <DialogContent className="sm:max-w-[660px] rounded-[32px] p-0 overflow-y-auto max-h-[90vh] border-none shadow-2xl z-[100] bg-white scrollbar-hide">
           <AnimatePresence mode="wait">
             {showAddedConfirmation ? (
               <motion.div 
@@ -1888,7 +1908,7 @@ export default function GalleryPage() {
                     );
                   })()}
 
-                  <div className="max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar pb-32">
                     <AnimatePresence mode="wait">
                       {photoToBuy && client.gallerySettings?.shopRequiresFavorite && !favorites.has(photoToBuy.id) ? (
                         <motion.div 
@@ -2642,32 +2662,98 @@ export default function GalleryPage() {
       </AnimatePresence>
 
       {/* MODAL DE RESUMEN PARA COPIAR */}
-      <Dialog open={showSummary} onOpenChange={setShowSummary}>
-        <DialogContent className="sm:max-w-2xl rounded-[32px] p-8 overflow-hidden border-none shadow-2xl z-[100]">
-          <div className="flex flex-col gap-6">
-            <DialogHeader className="flex flex-col gap-2 text-left">
-              <DialogTitle className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Resumen de Selección</DialogTitle>
-              <p className="text-slate-500 text-sm">Este es el resumen listo para enviar. Puedes copiarlo y pegarlo.</p>
-            </DialogHeader>
-            
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-               <textarea 
-                readOnly
-                className="w-full h-64 bg-transparent border-none text-[10px] font-mono leading-relaxed focus:outline-none resize-none"
-                value={summaryText}
-               />
-            </div>
-            
-            <Button 
-              onClick={() => {
-                navigator.clipboard.writeText(summaryText);
-                toast({ title: "¡Copiado!", description: "Listo para pegar en WhatsApp o Email." });
-              }}
-              className="w-full bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-full h-14 font-black uppercase text-[11px] tracking-widest shadow-xl shadow-[#4A7C59]/10"
-            >
-              Copiar al portapapeles
-            </Button>
-          </div>
+      <Dialog open={showSummary} onOpenChange={(val) => { setShowSummary(val); if(!val) setShowTextSummary(false); }}>
+        <DialogContent className="sm:max-w-md rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl z-[100] bg-white">
+          <AnimatePresence mode="wait">
+            {!showTextSummary ? (
+              <motion.div 
+                key="success"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.1 }}
+                className="flex flex-col items-center justify-center p-10 text-center gap-6"
+              >
+                <div className="w-24 h-24 bg-[#4A7C59]/10 rounded-full flex items-center justify-center mb-2">
+                   <div className="w-16 h-16 bg-[#4A7C59] rounded-full flex items-center justify-center shadow-lg shadow-[#4A7C59]/20">
+                      <Check className="h-8 w-8 text-white" strokeWidth={3} />
+                   </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight italic">¡Selección Enviada!</h3>
+                  <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-[240px] mx-auto">
+                    Tu selección ha sido recibida correctamente. ¿Quieres agilizar el proceso?
+                  </p>
+                </div>
+
+                <div className="flex flex-col w-full gap-3 mt-4">
+                  <Button 
+                    onClick={sendWhatsAppSelection}
+                    className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white rounded-full h-14 font-black uppercase text-[11px] tracking-widest shadow-xl shadow-[#25D366]/20 flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    Enviar por WhatsApp
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowTextSummary(true)}
+                    className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 rounded-full h-14 font-black uppercase text-[11px] tracking-widest"
+                  >
+                    Ver Vista Previa
+                  </Button>
+
+                  <Button 
+                    variant="ghost"
+                    onClick={() => setShowSummary(false)}
+                    className="w-full text-slate-400 hover:text-slate-600 h-10 font-bold uppercase text-[9px] tracking-widest"
+                  >
+                    Cerrar y Salir
+                  </Button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="summary"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex flex-col gap-6 p-10"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setShowTextSummary(false)}
+                    className="rounded-full h-8 w-8 hover:bg-slate-100"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Vista Previa</h3>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                  <textarea 
+                    readOnly
+                    className="w-full h-64 bg-transparent border-none text-[10px] font-mono leading-relaxed focus:outline-none resize-none scrollbar-hide"
+                    value={summaryText}
+                  />
+                </div>
+                
+                <Button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(summaryText);
+                    toast({ title: "¡Copiado!", description: "Listo para pegar en WhatsApp o Email." });
+                  }}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-full h-14 font-black uppercase text-[11px] tracking-widest shadow-xl"
+                >
+                  Copiar Texto
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </DialogContent>
       </Dialog>
 
@@ -2712,7 +2798,12 @@ export default function GalleryPage() {
           </div>
         </DialogContent>
       </Dialog>
-      <CartSheet isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} clientId={clientId || slug} />
+      <CartSheet 
+        isOpen={isCartOpen} 
+        onClose={() => setIsCartOpen(false)} 
+        clientId={clientId || slug} 
+        galleryTitle={client?.name}
+      />
 
       {/* Global Notification at the bottom */}
       <AnimatePresence>

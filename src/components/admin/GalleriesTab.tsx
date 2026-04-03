@@ -66,7 +66,7 @@ export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: G
     }
   }, [initialFilter])
   const [customers, setCustomers] = useState<any[]>([])
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [deletingGallery, setDeletingGallery] = useState<any>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSelectCustomerModalOpen, setIsSelectCustomerModalOpen] = useState(false)
@@ -104,10 +104,17 @@ export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: G
 
     const isConfirmed = c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0;
     const isEmpty = !c.gallerySettings?.photos || c.gallerySettings.photos.length === 0;
+    const manualStatus = c.gallerySettings?.status;
 
     if (actionFilter === 'pending_action') return isConfirmed || isEmpty;
     if (actionFilter === 'empty') return isEmpty;
     if (actionFilter === 'confirmed') return isConfirmed;
+    
+    // Filtros de estado manual
+    if (actionFilter === 'PENDIENTE') return manualStatus === 'PENDIENTE SELECCIÓN';
+    if (actionFilter === 'TERMINADA') return manualStatus === 'TERMINADA';
+    if (actionFilter === 'LABORATORIO') return manualStatus === 'ENVIADA A LABORATORIO';
+    if (actionFilter === 'ARCHIVADA') return manualStatus === 'ARCHIVADA';
     
     return true;
   })
@@ -130,6 +137,24 @@ export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: G
       toast({ title: 'Error', description: 'No se pudo eliminar la galería.', variant: 'destructive' })
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handleUpdateStatus = async (customer: any, newStatus: string | null) => {
+    try {
+      const clientRef = doc(db, COLLECTIONS.CLIENTS, customer.id)
+      await updateDoc(clientRef, {
+        'gallerySettings.status': newStatus,
+        'updatedAt': new Date()
+      })
+      toast({ 
+        title: 'Estado actualizado', 
+        description: `Reportaje de ${customer.name} marcado como ${newStatus || 'SIN ESTADO'}` 
+      })
+      loadCustomers()
+    } catch (e) {
+      console.error('Error updating status:', e)
+      toast({ title: 'Error', description: 'No se pudo actualizar el estado.', variant: 'destructive' })
     }
   }
 
@@ -177,7 +202,13 @@ export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: G
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
-              <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest py-3">Todos</SelectItem>
+              <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest py-3 hover:bg-slate-50 transition-colors">Todos</SelectItem>
+              <div className="h-px bg-slate-100 my-1 mx-2" />
+              <SelectItem value="PENDIENTE" className="text-[10px] font-bold uppercase tracking-widest py-3 text-orange-500 font-black hover:bg-orange-50 transition-colors">⏳ PENDIENTE SELECCIÓN</SelectItem>
+              <SelectItem value="TERMINADA" className="text-[10px] font-bold uppercase tracking-widest py-3 text-blue-600 font-black hover:bg-blue-50 transition-colors">🏁 Terminadas</SelectItem>
+              <SelectItem value="LABORATORIO" className="text-[10px] font-bold uppercase tracking-widest py-3 text-purple-600 font-black hover:bg-purple-50 transition-colors">🔬 En Laboratorio</SelectItem>
+              <SelectItem value="ARCHIVADA" className="text-[10px] font-bold uppercase tracking-widest py-3 text-slate-500 font-black hover:bg-slate-50 transition-colors">📦 Archivadas</SelectItem>
+              <div className="h-px bg-slate-100 my-1 mx-2" />
               <SelectItem value="pending_action" className="text-[10px] font-bold uppercase tracking-widest py-3 text-orange-500 font-black">Acción Pendiente</SelectItem>
               <SelectItem value="confirmed" className="text-[10px] font-bold uppercase tracking-widest py-3 text-emerald-500 font-black">Confirmadas</SelectItem>
               <SelectItem value="empty" className="text-[10px] font-bold uppercase tracking-widest py-3 text-rose-500 font-black">Sin Fotos</SelectItem>
@@ -254,8 +285,28 @@ export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: G
                             </Badge>
                           )}
                           {((customer.orders && customer.orders.length > 0) || (customer.gallerySettings?.selectionConfirmed && customer.gallerySettings?.lastSelection?.length > 0)) && (
-                            <Badge className="h-6 px-3 rounded-full font-black text-[10px] uppercase tracking-widest border-none shadow-lg bg-emerald-500 text-white animate-pulse">
+                            <Badge className="h-6 px-3 rounded-full font-black text-[10px] uppercase tracking-widest border-none shadow-lg bg-emerald-500 text-white">
                               <CheckCircle2 className="h-3 w-3 mr-1" /> CONFIRMADA
+                            </Badge>
+                          )}
+                          {customer.gallerySettings?.status === 'PENDIENTE SELECCIÓN' && (
+                            <Badge className="h-6 px-3 rounded-full font-black text-[10px] uppercase tracking-widest border-none shadow-lg bg-orange-500 text-white">
+                               ⏳ PENDIENTE
+                            </Badge>
+                          )}
+                          {customer.gallerySettings?.status === 'TERMINADA' && (
+                            <Badge className="h-6 px-3 rounded-full font-black text-[10px] uppercase tracking-widest border-none shadow-lg bg-blue-600 text-white">
+                               🏁 TERMINADA
+                            </Badge>
+                          )}
+                          {customer.gallerySettings?.status === 'ENVIADA A LABORATORIO' && (
+                            <Badge className="h-6 px-3 rounded-full font-black text-[10px] uppercase tracking-widest border-none shadow-lg bg-purple-600 text-white">
+                               🔬 LABORATORIO
+                            </Badge>
+                          )}
+                          {customer.gallerySettings?.status === 'ARCHIVADA' && (
+                            <Badge className="h-6 px-3 rounded-full font-black text-[10px] uppercase tracking-widest border-none shadow-lg bg-slate-500 text-white">
+                               📦 ARCHIVADA
                             </Badge>
                           )}
                         </div>
@@ -283,6 +334,25 @@ export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: G
                                <DropdownMenuItem onClick={() => setDeletingGallery(customer)} className="gap-2 font-bold text-xs uppercase tracking-tight text-red-500 focus:text-red-600 focus:bg-red-50">
                                  <Trash2 className="h-3.5 w-3.5" /> Borrar Galería
                                </DropdownMenuItem>
+                               <div className="h-px bg-slate-100 my-1" />
+                               <div className="px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-slate-400">Cambiar Estado</div>
+                               <DropdownMenuItem onClick={() => handleUpdateStatus(customer, 'PENDIENTE SELECCIÓN')} className="gap-2 font-bold text-[10px] uppercase tracking-tighter text-orange-500">
+                                 ⏳ Pendiente Selección
+                               </DropdownMenuItem>
+                               <DropdownMenuItem onClick={() => handleUpdateStatus(customer, 'TERMINADA')} className="gap-2 font-bold text-[10px] uppercase tracking-tighter text-blue-600">
+                                 🏁 Marcar Terminada
+                               </DropdownMenuItem>
+                               <DropdownMenuItem onClick={() => handleUpdateStatus(customer, 'ENVIADA A LABORATORIO')} className="gap-2 font-bold text-[10px] uppercase tracking-tighter text-purple-600">
+                                 🔬 Enviar a Laboratorio
+                               </DropdownMenuItem>
+                               <DropdownMenuItem onClick={() => handleUpdateStatus(customer, 'ARCHIVADA')} className="gap-2 font-bold text-[10px] uppercase tracking-tighter text-slate-500">
+                                 📦 Archivar
+                               </DropdownMenuItem>
+                               {customer.gallerySettings?.status && (
+                                 <DropdownMenuItem onClick={() => handleUpdateStatus(customer, null)} className="gap-2 font-bold text-[10px] uppercase tracking-tighter text-orange-400">
+                                   ✖️ Quitar Estado
+                                 </DropdownMenuItem>
+                               )}
                              </DropdownMenuContent>
                            </DropdownMenu>
                         </div>
@@ -395,7 +465,8 @@ Cualquier duda, ¡escríbeme! 📲
                   <tr className="bg-slate-50/50">
                     <th className="px-2 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Reportaje</th>
                     <th className="px-1 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Fotos</th>
-                    <th className="px-2 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:table-cell">Ult. Cambio</th>
+                    <th className="px-2 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Estado</th>
+                    <th className="px-2 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:table-cell text-center">Ult. Cambio</th>
                     <th className="px-2 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right pr-4">Acciones</th>
                   </tr>
                 </thead>
@@ -436,6 +507,32 @@ Cualquier duda, ¡escríbeme! 📲
                             </Badge>
                           )}
                         </div>
+                      </td>
+                      <td className="px-2 py-4">
+                         <div className="flex justify-center">
+                            <Select 
+                              value={customer.gallerySettings?.status || "none"} 
+                              onValueChange={(val) => handleUpdateStatus(customer, val === "none" ? null : val)}
+                            >
+                              <SelectTrigger className={cn(
+                                "w-[160px] h-9 rounded-xl border-none font-black text-[9px] uppercase tracking-widest shadow-sm transition-all",
+                                !customer.gallerySettings?.status && "bg-slate-50 text-slate-400",
+                                customer.gallerySettings?.status === 'PENDIENTE SELECCIÓN' && "bg-orange-500 text-white",
+                                customer.gallerySettings?.status === 'TERMINADA' && "bg-blue-600 text-white",
+                                customer.gallerySettings?.status === 'ENVIADA A LABORATORIO' && "bg-purple-600 text-white",
+                                customer.gallerySettings?.status === 'ARCHIVADA' && "bg-slate-500 text-white"
+                              )}>
+                                <SelectValue placeholder="SIN ESTADO" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl border-slate-100 shadow-xl overflow-hidden p-0">
+                                <SelectItem value="none" className="text-[9px] font-black uppercase tracking-widest py-3 hover:bg-slate-50 transition-colors">Sin Estado</SelectItem>
+                                <SelectItem value="PENDIENTE SELECCIÓN" className="text-[9px] font-black uppercase tracking-widest py-3 text-orange-500 hover:bg-orange-50 transition-colors">⏳ P. Selección</SelectItem>
+                                <SelectItem value="TERMINADA" className="text-[9px] font-black uppercase tracking-widest py-3 text-blue-600 hover:bg-blue-50 transition-colors">🏁 Terminada</SelectItem>
+                                <SelectItem value="ENVIADA A LABORATORIO" className="text-[9px] font-black uppercase tracking-widest py-3 text-purple-600 hover:bg-purple-50 transition-colors">🔬 Lab</SelectItem>
+                                <SelectItem value="ARCHIVADA" className="text-[9px] font-black uppercase tracking-widest py-3 text-slate-500 hover:bg-slate-50 transition-colors">📦 Archivada</SelectItem>
+                              </SelectContent>
+                            </Select>
+                         </div>
                       </td>
                       <td className="px-2 py-4 hidden sm:table-cell text-center">
                         <p className="text-[10px] font-black text-slate-400 uppercase">

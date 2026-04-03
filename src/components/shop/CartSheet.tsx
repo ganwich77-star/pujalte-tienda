@@ -53,7 +53,7 @@ import {
 import { useConfig } from '@/hooks/use-config'
 import { toast } from 'sonner'
 
-export function CartSheet({ isOpen, onClose, clientId }: { isOpen: boolean, onClose: () => void, clientId?: string | null }) {
+export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen: boolean, onClose: () => void, clientId?: string | null, galleryTitle?: string }) {
   const { items, removeItem, updateQuantity, clearCart, getTotal, getItemCount, updateItem } = useCartStore()
   const { isLoggedIn, user: loggedUser } = useUserStore()
   const { config } = useConfig()
@@ -72,6 +72,7 @@ export function CartSheet({ isOpen, onClose, clientId }: { isOpen: boolean, onCl
   
   const [processingPayment, setProcessingPayment] = useState(false)
   const [trackingCode, setTrackingCode] = useState('')
+  const [lastOrderDetails, setLastOrderDetails] = useState<{ items: any[], total: number, customer: typeof shippingData, method: string } | null>(null)
   const [showPrivacyModal, setShowPrivacyModal] = useState(false)
   const [showReturnsModal, setShowReturnsModal] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -286,12 +287,26 @@ export function CartSheet({ isOpen, onClose, clientId }: { isOpen: boolean, onCl
 
       if (response.ok) {
         const order = await response.json()
-        setTrackingCode(order.trackingNumber || order.trackingCode) 
-        setCheckoutStep('success')
-        clearCart()
-        toast.success("Pedido confirmado. Revisa tu email.")
+        const code = order.trackingCode || order.trackingNumber || "CONFIRMADO";
+        setTrackingCode(code)
+        
+        // Guardamos los detalles BLINDADOS ANTES de borrar el carrito para el mensaje de WhatsApp
+        setLastOrderDetails({
+          items: [...items],
+          total: getTotal(),
+          customer: { ...shippingData },
+          method: paymentMethod === 'cash' ? 'EFECTIVO / TRANSFERENCIA' : 'PAGADO ONLINE'
+        })
+        
+        // Timeout minúsculo para asegurar que el estado se procesa bien
+        setTimeout(() => {
+          setCheckoutStep('success')
+          clearCart()
+          toast.success("¡Pedido realizado con éxito!")
+        }, 100)
       } else {
-        toast.error("Error al procesar el pedido")
+        const errData = await response.json().catch(() => ({}));
+        toast.error(errData.error || "Error al procesar el pedido")
       }
     } catch (error) {
       toast.error("Error al crear el pedido")
@@ -301,18 +316,25 @@ export function CartSheet({ isOpen, onClose, clientId }: { isOpen: boolean, onCl
   }
 
   const sendWhatsAppOrder = () => {
-    const phone = config?.whatsappConfig?.phone || "34600000000"; // Número por defecto si no hay config
-    const galleryName = clientId || "Galería Privada";
+    const phone = config?.whatsappConfig?.phone || "34661623126"; 
+    const galleryName = galleryTitle || clientId || "Galería Privada";
     
+    // Usamos los detalles blindados
+    const orderItems = lastOrderDetails?.items || items;
+    const orderTotal = lastOrderDetails?.total || getTotal();
+    const customer = lastOrderDetails?.customer || shippingData;
+    const method = lastOrderDetails?.method || (paymentMethod === 'cash' ? 'EFECTIVO / TRANSFERENCIA' : 'PAGADO ONLINE');
+
     let message = `📸 *¡NUEVA COMPRA DE GALERÍA!* 📸\n\n`;
     message += `Hola *Pujalte Fotografía*, he completado mi pedido desde mi área de cliente. Aquí tienes los detalles:\n\n`;
-    message += `📂 *GALERÍA:* ${galleryName}\n`;
-    message += `👤 *CLIENTE:* ${shippingData.firstName} ${shippingData.lastName}\n`;
-    message += `📧 *EMAIL:* ${shippingData.email}\n`;
-    message += `📱 *TEL:* ${shippingData.phone}\n\n`;
-    message += `--- 📦 *DETALLE DEL PEDIDO* ---\n\n`;
+    message += `📂 *GALERÍA:* ${galleryName.toUpperCase()}\n`;
+    message += `👤 *CLIENTE:* ${customer.firstName} ${customer.lastName}\n`;
+    message += `📧 *EMAIL:* ${customer.email}\n`;
+    message += `📱 *TEL:* ${customer.phone}\n\n`;
+    message += `📦 *DETALLE DEL PEDIDO:*\n`;
+    message += `---------------------------------\n`;
 
-    items.forEach((item, index) => {
+    orderItems.forEach((item, index) => {
       message += `${index + 1}. *${item.name}* (x${item.quantity}) - ${formatCurrency(item.price * item.quantity)}\n`;
       if (item.variantName) message += `   ▫️ _Opción: ${item.variantName}_\n`;
       if (item.notes) {
@@ -322,15 +344,16 @@ export function CartSheet({ isOpen, onClose, clientId }: { isOpen: boolean, onCl
       message += `\n`;
     });
 
-    message += `--- 💳 *TOTAL: ${formatCurrency(getTotal())}* ---\n\n`;
-    message += `📌 *ESTADO DEL PAGO:* ${paymentMethod === 'cash' ? 'Pendiente (Efectivo/Transferencia)' : 'Pagado (Tarjeta/Bizum)'}\n`;
+    message += `---------------------------------\n`;
+    message += `💰 *TOTAL A PAGAR: ${formatCurrency(orderTotal)}*\n`;
+    message += `📌 *MÉTODO:* ${method}\n\n`;
     
-    if (shippingData.address) {
-      message += `📍 *ENVÍO:* ${shippingData.address}, ${shippingData.city}\n\n`;
+    if (customer.address) {
+      message += `📍 *ENVÍO:* ${customer.address}\n\n`;
     }
 
-    message += `💬 *MENSAJE FINAL:* "Quedo a la espera de que prepares mi pedido. ¡Muchas gracias!"\n\n`;
-    message += `🚀 _Enviado desde mi Galería de Cliente_`;
+    message += `💬 "Quedo a la espera de que prepares mi pedido. ¡Muchas gracias!"\n\n`;
+    message += `🚀 _Enviado desde Pujalte Creative Studio_`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${encodedMessage}`, '_blank');

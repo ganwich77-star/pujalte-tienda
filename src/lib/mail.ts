@@ -144,7 +144,7 @@ export const sendOrderEmails = async (order: any, isCash: boolean = false) => {
 
     // Al administrador (Jose) se le avisa SIEMPRE
     await transporter.sendMail({
-      from: isCash ? '"Aviso de Pedido" <pedidos@pujaltefotografia.es>' : '"Gestión de Pedidos" <pedidos@pujaltefotografia.es>',
+      from: isCash ? `"Aviso de Pedido" <${process.env.MAIL_USER || 'hola@pujaltefotografia.es'}>` : `"Gestión de Pedidos" <${process.env.MAIL_USER || 'hola@pujaltefotografia.es'}>`,
       to: 'pedidos@pujaltefotografia.es, apps@pujaltefotografia.es',
       subject: isCash ? `⚠️ PEDIDO PENDIENTE: ${customerName}` : `🚀 NUEVO PEDIDO: ${customerName}`,
       html: adminEmailHtml,

@@ -21,24 +21,35 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 [PEDIDO] Iniciando procesamiento de pedido...');
+  console.time('OrderCreation');
   try {
     const data = await request.json();
     const { items, total, customer, status = 'pending', paymentMethod = 'cash', notes = '' } = data;
 
+    console.log(`📝 [PEDIDO] Cliente: ${customer?.firstName}, Total: ${total}, Método: ${paymentMethod}`);
+
     // Extraemos datos del cliente de forma segura
-    let cName = customer?.name;
-    if (!cName && customer?.firstName) {
-        cName = `${customer.firstName} ${customer.lastName || ''}`.trim();
+    let cName = customer?.name || "";
+    if (!cName && (customer?.firstName || customer?.lastName)) {
+        cName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
     }
+    
+    // Si sigue vacío, probamos con el DNI del propio objeto customer o de la metadata
+    const cDni = customer?.dni || data.dni || "";
+    if (!cName && cDni) {
+        cName = `Cliente DNI: ${cDni}`;
+    }
+    
     cName = cName || 'Cliente sin nombre';
 
     let cEmail = customer?.email || null;
     let cPhone = customer?.phone || '';
     const cAddress = customer?.address || '';
-    const cDni = customer?.dni || '';
 
-    // PARCHE: Si el nombre está vacío pero tenemos DNI, intentamos recuperar los datos del cliente de la base de datos
-    if (cName === 'Cliente sin nombre' && cDni) {
+    // PARCHE: Si el nombre está vacío o es genérico, pero tenemos DNI, intentamos recuperar los datos reales del cliente
+    if ((cName === 'Cliente sin nombre' || cName.startsWith('Cliente DNI:')) && cDni) {
+      console.log(`🔎 [PEDIDO] Buscando cliente por DNI: ${cDni}`);
       try {
         const existingClient = await db.client.findFirst({
           where: {
@@ -55,16 +66,14 @@ export async function POST(request: NextRequest) {
           cPhone = cPhone || existingClient.phone || '';
         }
       } catch (e) {
-        console.error('Error al recuperar cliente por DNI:', e);
+        console.error('❌ [PEDIDO] Error al recuperar cliente por DNI:', e);
       }
     }
 
-    // Si el esquema no tiene DNI, lo guardamos en las notas del pedido para no perderlo
     const finalNotes = cDni ? `[DNI: ${cDni}] ${notes || ''}` : (notes || '');
-
-    // 1. Crear el pedido en MySQL (Neon/Postgres vía Prisma)
     const trackingNumber = `PUJ-26-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    console.log('💾 [PEDIDO] Guardando en Base de Datos...');
     const order = await db.order.create({
       data: {
         customerName: cName,
@@ -76,7 +85,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: paymentMethod,
         paymentId: trackingNumber, 
         notes: finalNotes,
-        clientId: data.clientId || null, // Guardamos el slug o ID de la galería
+        clientId: data.clientId || null,
         items: {
           create: items.map((item: any) => ({
             productId: item.productId || item.id,
@@ -96,22 +105,25 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // 2. Enviar correos de notificación
-    try {
-      const isCash = String(paymentMethod).toUpperCase() === 'CASH';
-      await sendOrderEmails({ ...order, trackingNumber }, isCash);
-    } catch (mailError) {
-      console.error('Error al enviar emails de pedido:', mailError);
-    }
+    console.log('✅ [PEDIDO] Guardado con éxito. ID:', order.id);
+    console.timeEnd('OrderCreation');
+
+    // 2. Enviar correos de notificación (SIN AWAIT para no bloquear al cliente)
+    const isCash = String(paymentMethod).toUpperCase() === 'CASH';
+    console.log('📧 [PEDIDO] Lanzando envío de emails en paralelo...');
+    sendOrderEmails({ ...order, trackingNumber }, isCash).catch(mailError => {
+      console.error('❌ [PEDIDO] Error en segundo plano al enviar emails:', mailError);
+    });
     
     return NextResponse.json({ 
         id: order.id,
         success: true,
-        trackingCode: trackingNumber // Devolvemos trackingCode para el frontend
+        trackingCode: trackingNumber 
     });
   } catch (error) {
-    console.error('Error creating order in MySQL:', error);
-    return NextResponse.json({ error: 'Error al crear el pedido' }, { status: 500 });
+    console.error('❌ [PEDIDO] Error Fatal:', error);
+    console.timeEnd('OrderCreation');
+    return NextResponse.json({ error: 'Error interno al procesar el pedido' }, { status: 500 });
   }
 }
 

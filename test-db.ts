@@ -1,16 +1,25 @@
-import { PrismaClient } from "@prisma/client";
+import { db } from './src/lib/db'
 
-async function main() {
-  const prisma = new PrismaClient();
-  console.log("Modelos disponibles:", Object.keys(prisma).filter(k => !k.startsWith("_") && !k.startsWith("$")));
+async function testOrder() {
+  console.log('🚀 [TEST] Intentando crear pedido de prueba...')
   try {
-    const supplierCount = await (prisma as any).supplier.count();
-    console.log("Recuento de proveedores:", supplierCount);
-  } catch (error: any) {
-    console.error("Error al acceder a 'supplier':", error.message);
+    const order = await db.order.create({
+      data: {
+        customerName: 'Pepe Test Mágico',
+        customerPhone: '600000000',
+        customerEmail: 'pepe@pujaltefotografia.es',
+        total: 1.0,
+        status: 'pending',
+        paymentMethod: 'Cash',
+        clientId: 'alicia-en-el-pais-de-las-maravillas'
+      }
+    })
+    console.log('✅ [TEST] ¡PEDIDO CREADO CON ÉXITO! ID:', order.id)
+  } catch (err) {
+    console.error('❌ [TEST] ERROR AL CREAR PEDIDO:', err)
   } finally {
-    await prisma.$disconnect();
+    process.exit()
   }
 }
 
-main();
+testOrder()
