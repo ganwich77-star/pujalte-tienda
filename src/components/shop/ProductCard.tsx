@@ -333,7 +333,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                   </div>
                 </div>
 
-                <div className="p-4 sm:p-7 flex flex-col gap-4 sm:gap-6">
+                <div className="p-4 sm:p-7 pb-32 sm:pb-44 flex flex-col gap-4 sm:gap-6">
                 {product.description && (
                   <div className="bg-slate-50 p-3 sm:p-4 rounded-[1.2rem] sm:rounded-[2rem] border border-slate-100 flex-shrink-0">
                     <p className="text-[9px] sm:text-[10px] leading-tight text-slate-500 font-bold uppercase text-center italic tracking-tight whitespace-pre-line">
