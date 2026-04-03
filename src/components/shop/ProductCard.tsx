@@ -276,8 +276,8 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
         </motion.div>
       </DialogTrigger>
 
-      <DialogContent showCloseButton={false} className={cn("w-[95vw] max-h-[82dvh] sm:max-h-[90dvh] sm:max-w-[550px] p-0 overflow-visible bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all", showPreview && "bg-transparent shadow-none")}>
-        <div className={cn("relative flex-1 flex flex-col overflow-visible transition-all duration-300", showPreview ? "opacity-0 pointer-events-none scale-95" : "opacity-100")}>
+      <DialogContent showCloseButton={false} className={cn("w-[95vw] max-h-[82dvh] sm:max-h-[90dvh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all", showPreview && "bg-transparent shadow-none")}>
+        <div className={cn("relative flex-1 flex flex-col overflow-hidden transition-all duration-300", showPreview ? "opacity-0 pointer-events-none scale-95" : "opacity-100")}>
             {/* Indicador de scroll flotante sutil */}
             <AnimatePresence>
               {showScrollHint && (
