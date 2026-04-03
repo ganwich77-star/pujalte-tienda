@@ -459,7 +459,7 @@ Cualquier duda, ¡escríbeme! 📲
             </div>
           ) : (
             /* Modo Lista */
-            <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
+            <div className="bg-white rounded-[2rem] border border-slate-100 overflow-x-auto shadow-sm custom-scrollbar">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50">

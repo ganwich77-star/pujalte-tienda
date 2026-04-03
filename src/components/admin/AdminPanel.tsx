@@ -425,7 +425,7 @@ export function AdminPanel(props: AdminPanelProps) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="bg-white rounded-[1.25rem] sm:rounded-[1.5rem] border border-slate-100 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)] p-2 sm:p-4 min-h-[500px] sm:min-h-[600px] animate-in fade-in slide-in-from-right-2 duration-400 relative overflow-hidden">
+          <div className="bg-white rounded-[1.25rem] sm:rounded-[1.5rem] border border-slate-100 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)] p-2 sm:p-4 min-h-[500px] sm:min-h-[600px] animate-in fade-in slide-in-from-right-2 duration-400 relative overflow-visible">
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#4A7C59]/[0.02] rounded-full -mr-32 -mt-32 pointer-events-none" />
             <div className="relative z-10 h-full">
               {activeTab === 'dashboard' && (
