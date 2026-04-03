@@ -18,7 +18,7 @@ import {
   Image as ImageIcon,
   Search,
   LayoutGrid,
-  List,
+  LayoutList,
   MessageCircle,
   AlertCircle,
   Trash2,
@@ -29,7 +29,11 @@ import {
   Maximize2,
   EyeOff,
   ChevronsDown,
-  Minus
+  Minus,
+  ArrowLeft,
+  ArrowUp,
+  ArrowDown,
+  CheckCircle2
 } from 'lucide-react'
 import { db, COLLECTIONS } from '@/lib/firebase'
 import { doc, getDoc, updateDoc, serverTimestamp, query, collection, where, getDocs } from 'firebase/firestore'
@@ -859,6 +863,22 @@ export default function GalleryPage() {
           </motion.div>
         </div>
 
+        {/* Botón de Música Flotante en el Slider */}
+        <button 
+          onClick={toggleMusic}
+          className="absolute top-10 right-10 z-30 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all active:scale-90 group"
+          title={isPlaying ? "Silenciar" : "Escuchar música"}
+        >
+          {isPlaying ? (
+            <div className="relative flex items-center justify-center">
+              <Volume2 className="h-5 w-5" />
+              <span className="absolute inset-[-6px] rounded-full border border-white animate-ping opacity-30" />
+            </div>
+          ) : (
+            <VolumeX className="h-5 w-5 opacity-40 group-hover:opacity-100" />
+          )}
+        </button>
+
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none">
           <span className="text-white/40 text-[9px] font-black uppercase tracking-widest">Desliza para ver</span>
         </div>
@@ -870,12 +890,55 @@ export default function GalleryPage() {
           <div className="flex items-center gap-2 sm:gap-6 shrink-0">
             {isSelectionMode ? (
               <>
-                <div className="flex flex-col">
-                  <span className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Total</span>
-                  <span className="text-sm font-black text-slate-900 leading-none mt-0.5">
-                    {favorites.size}/<span className="text-[#4A7C59]">{Number(includedPhotosCount) === 0 ? '∞' : includedPhotosCount}</span>
-                  </span>
+                {/* Contador Total Eliminado */}
+                
+                {/* BOTONES IZQUIERDA: CORAZÓN Y OJO */}
+                <div className="flex items-center gap-1.5 sm:gap-2 pr-4 border-r border-slate-100 mr-2">
+                   {/* Favoritas */}
+                   <button 
+                    onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+                    className={cn(
+                      "flex items-center gap-2 px-3 sm:px-4 h-9 sm:h-10 rounded-full border text-[9px] font-black uppercase transition-all shadow-sm active:scale-95 shrink-0",
+                      showOnlyFavorites 
+                        ? "bg-red-500 border-red-500 text-white shadow-red-200 shadow-lg" 
+                        : (favorites.size > 0 
+                          ? "bg-rose-50 border-rose-100 text-red-500" 
+                          : "bg-white border-slate-100 text-slate-300")
+                    )}
+                  >
+                    <Heart className={cn("h-3.5 w-3.5", favorites.size > 0 && "fill-current")} />
+                    <span className={cn(
+                      "font-black",
+                      showOnlyFavorites 
+                        ? "text-white opacity-80" 
+                        : (favorites.size > 0 ? "text-red-600" : "text-slate-300")
+                    )}>{favorites.size}</span>
+                  </button>
+
+                  {/* Descartadas */}
+                  {(rejectedPhotos.size > 0 || showRejected) && (
+                    <button
+                      onClick={() => setShowRejected(!showRejected)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 h-9 sm:h-10 rounded-full transition-all font-black text-[9px] uppercase border shrink-0 active:scale-95 shadow-sm",
+                        showRejected 
+                          ? "bg-orange-500 border-orange-500 text-white shadow-orange-100 shadow-lg" 
+                          : (rejectedPhotos.size > 0 
+                            ? "bg-orange-50 border-orange-100 text-orange-500" 
+                            : "bg-white border-slate-100 text-slate-300 hover:text-orange-500")
+                      )}
+                    >
+                      <EyeOff className="h-3.5 w-3.5" />
+                      <span className={cn(
+                        "font-black",
+                        showRejected 
+                          ? "text-white opacity-80" 
+                          : (rejectedPhotos.size > 0 ? "text-orange-600" : "text-slate-300")
+                      )}>{rejectedPhotos.size}</span>
+                    </button>
+                  )}
                 </div>
+
                 {Number(includedPhotosCount) > 0 && favorites.size > Number(includedPhotosCount) && (
                   <div className="flex flex-col border-l border-slate-100 pl-2 sm:pl-6">
                     <span className="text-[7px] sm:text-[9px] font-black text-orange-400 uppercase tracking-widest leading-none">Extras</span>
@@ -903,185 +966,167 @@ export default function GalleryPage() {
           </div>
 
           <div className="flex items-center justify-end gap-1 sm:gap-3 shrink-0">
-             <div className="flex bg-slate-50 p-0.5 rounded-full border border-slate-100">
+             <div className="flex bg-slate-100/60 p-1.5 rounded-full border border-slate-200/40 shadow-inner shrink-0">
                 <button 
                   onClick={() => setViewMode('grid')}
                   className={cn(
-                    "p-1.5 rounded-full transition-all",
-                    viewMode === 'grid' ? "bg-white text-[#4A7C59] shadow-sm" : "text-slate-300"
+                    "px-7 sm:px-4 py-3 sm:py-2.5 rounded-full transition-all duration-300 flex items-center justify-center active:scale-90",
+                    viewMode === 'grid' 
+                      ? "bg-white text-[#4A7C59] shadow-[0_4px_20px_rgba(0,0,0,0.1)] scale-105" 
+                      : "text-slate-300 hover:text-slate-500"
                   )}
                 >
-                  <LayoutGrid className="h-3 w-3" />
+                  <LayoutGrid className="h-5 w-5 sm:h-4 sm:w-4" />
                 </button>
                 <button 
                   onClick={() => setViewMode('list')}
                   className={cn(
-                    "p-1.5 rounded-full transition-all",
-                    viewMode === 'list' ? "bg-white text-[#4A7C59] shadow-sm" : "text-slate-300"
+                    "px-7 sm:px-4 py-3 sm:py-2.5 rounded-full transition-all duration-300 flex items-center justify-center active:scale-90",
+                    viewMode === 'list' 
+                      ? "bg-white text-[#4A7C59] shadow-[0_4px_20px_rgba(0,0,0,0.1)] scale-105" 
+                      : "text-slate-300 hover:text-slate-500"
                   )}
                 >
-                  <List className="h-3 w-3" />
+                  <LayoutList className="h-5 w-5 sm:h-4 sm:w-4" />
                 </button>
              </div>
 
-             {/* Botón de Descartadas - Solo si hay fotos o estamos en esa vista */}
-             {(rejectedPhotos.size > 0 || showRejected) && (
-               <button
-                 onClick={() => setShowRejected(!showRejected)}
-                 className={cn(
-                   "flex items-center gap-1 px-1.5 sm:px-3 h-8 sm:h-9 rounded-lg transition-all font-black text-[8px] sm:text-[9px] uppercase tracking-tighter border shrink-0",
-                   showRejected 
-                     ? "bg-slate-900 border-slate-900 text-white" 
-                     : rejectedPhotos.size > 0
-                       ? "bg-red-50 border-red-100 text-red-500"
-                       : "bg-white border-slate-100 text-slate-300"
-                 )}
-               >
-                 <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                 <span>{showRejected ? "Volver" : "Descartadas"}</span>
-                 <span className="opacity-50">({rejectedPhotos.size})</span>
-               </button>
-             )}
+               {/* Botón de Descartadas movido a la izquierda */}
 
               {isArchiveMode && (
                 <a 
                   href={`/api/download-all?slug=${slug}${!canDownloadAll ? '&favoritesOnly=true' : ''}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 h-8 sm:h-9 rounded-lg bg-[#4A7C59] text-white font-black uppercase text-[8px] sm:text-[9px] tracking-tighter shadow-sm hover:translate-y-[-1px] transition-all shrink-0"
+                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 h-8 sm:h-9 rounded-lg bg-[#4A7C59] text-white font-black uppercase text-[8px] sm:text-[9px] tracking-tighter shadow-sm hover:translate-y-[-1px] transition-all shrink-0 ml-4"
                 >
                   <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                   <span>{canDownloadAll ? 'Descargar todo' : `Descargar ${favorites.size} fotos`}</span>
                 </a>
               )}
 
-              {(isSelectionMode || showSelectionToolsInArchive) && (
-                showOnlyFavorites ? (
-                  <button 
-                    onClick={() => setShowOnlyFavorites(false)}
-                    className="bg-orange-500 text-white rounded-lg px-2 sm:px-4 h-8 sm:h-9 font-black uppercase text-[8px] sm:text-[9px] tracking-tighter flex items-center justify-center gap-1 transition-all shrink-0 shadow-sm"
-                  >
-                    <X className="h-3 w-3" />
-                    <span>Salir</span>
-                  </button>
-                ) : (
-                  <>
-                  <button 
-                    onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-                    className={cn(
-                      "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 h-8 sm:h-9 rounded-lg border text-[8px] sm:text-[9px] font-black uppercase tracking-tighter transition-all shadow-sm active:scale-95 shrink-0",
-                      showOnlyFavorites 
-                        ? "bg-[#4A7C59] border-[#4A7C59] text-white" 
-                        : (favorites.size > 0 
-                          ? "bg-orange-50 border-orange-100 text-orange-600" 
-                          : "bg-white border-slate-100 text-slate-200")
-                    )}
-                  >
-                    <Heart className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5", favorites.size > 0 && "fill-current")} />
-                    <span>Favoritas</span>
-                    <span className="bg-current/10 px-1 rounded-sm">{favorites.size}</span>
-                  </button>
+                  {/* Botón de Favoritas movido a la izquierda */}
 
                   {isSelectionMode && (
                     <button 
                       onClick={() => setIsCartOpen(true)}
-                      className="bg-slate-900 text-white rounded-lg h-8 sm:h-9 px-2 sm:px-4 font-black uppercase text-[8px] sm:text-[9px] tracking-tighter shadow-md hover:bg-black transition-all flex items-center justify-center gap-1 shrink-0"
+                      className="bg-slate-900 text-white rounded-2xl h-12 sm:h-14 px-6 sm:px-8 font-black uppercase text-[10px] sm:text-[11px] tracking-widest shadow-[0_10px_30px_rgba(0,0,0,0.2)] hover:bg-black transition-all flex items-center justify-center gap-3 shrink-0 active:scale-95 border-b-4 border-black/30 ml-6 sm:ml-10"
                     >
-                      <ShoppingBag className="h-3 w-3 text-white/90" />
-                      <span>Cesta</span>
-                      {getItemCount() > 0 && (
-                        <span className="bg-red-500 text-white px-1 rounded-full text-[7px] animate-pulse">
-                          {getItemCount()}
-                        </span>
-                      )}
+                      <div className="relative">
+                        <ShoppingBag className="h-5 w-5 text-white" />
+                        {getItemCount() > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-[9px] h-3.5 min-w-[0.875rem] px-0.5 rounded-full flex items-center justify-center animate-bounce shadow-lg">
+                            {getItemCount()}
+                          </span>
+                        )}
+                      </div>
+                      <span>Ver Cesta</span>
                     </button>
                   )}
-                  </>
-                )
-              )}
            </div>
         </div>
       </div>
 
       {/* GRID DE FOTOS */}
       <main className="max-w-7xl mx-auto px-6 py-12">
+        {/* CABECERA: MODO FAVORITAS */}
         {showOnlyFavorites && (
-          <div className="mb-6 text-center animate-in fade-in slide-in-from-top-4">
-             <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Tus fotos seleccionadas</h2>
-             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Has seleccionado {favorites.size} favoritas</p>
+          <div className="mb-10 text-center animate-in fade-in slide-in-from-top-4">
+             <h2 className="text-3xl font-black text-slate-910 uppercase tracking-tighter italic">Tus fotos seleccionadas</h2>
+             <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.3em] mt-2">Repasa tu colección antes de finalizar</p>
           </div>
         )}
         
-        {/* FILTROS DE VISTA (Pestañas) - Versión Compacta y Glassmorphism */}
-        <div className="flex items-center justify-center gap-1 mb-10 bg-white/70 backdrop-blur-xl p-1 rounded-full border border-slate-200/60 max-w-fit mx-auto shadow-xl sticky top-24 z-40 overflow-hidden">
+        {/* CABECERA: ESTADO DE SELECCIÓN Y PROGRESO (DISEÑO PREMIUM) */}
+        {photos.length > 0 && !showRejected && !isSoloFotos && (
+          <div className="mb-16 max-w-xl mx-auto px-4">
+            <div className="flex items-end justify-between mb-5">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-black text-[#4A7C59] tracking-[0.3em] uppercase opacity-60">Tu selección actual</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-5xl font-black text-slate-900 tracking-tighter italic leading-none">{favorites.size}</span>
+                  <span className="text-slate-200 text-xl font-medium tracking-tighter">/ {photos.length} fotos</span>
+                </div>
+              </div>
+              
+              <div className="flex flex-col items-end gap-3 text-right">
+                <div className="inline-flex items-center gap-2 bg-white border border-slate-100 px-4 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all">
+                  <Maximize2 className="h-3 w-3 text-[#4A7C59] animate-pulse" />
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest leading-none">Haz click para ampliar</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-slate-300">
+                  <ImageIcon className="h-2.5 w-2.5" />
+                  <span className="text-[8px] font-bold uppercase tracking-[0.2em]">{isSoloFotos ? 'Boda' : 'Formato original'}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="relative w-full h-[4px] bg-slate-100 rounded-full overflow-hidden shadow-inner">
+              <motion.div 
+                className="absolute inset-y-0 left-0 bg-[#4A7C59] shadow-[0_0_20px_rgba(74,124,89,0.4)]"
+                initial={{ width: 0 }}
+                animate={{ width: `${(favorites.size / photos.length) * 100}%` }}
+                transition={{ type: "spring", bounce: 0, duration: 2.5 }}
+              />
+            </div>
+
+            {/* BOTÓN DE SALTO AL FINAL */}
+            <div className="mt-8 flex justify-center">
+              <button 
+                onClick={() => document.getElementById('final-selection')?.scrollIntoView({ behavior: 'smooth' })}
+                className="group flex flex-col items-center gap-2 transition-all hover:scale-105 active:scale-95"
+              >
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-[#4A7C59] transition-colors">
+                  Ya he terminado mi selección
+                </span>
+                <div className="w-10 h-10 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center text-slate-400 group-hover:bg-[#4A7C59] group-hover:text-white transition-all">
+                  <ArrowDown className="h-4 w-4 animate-bounce" />
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* FILTROS FLOTANTES (MODO ISLA APPLE) */}
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] flex items-center justify-center gap-1.5 bg-white/80 backdrop-blur-3xl p-1.5 rounded-full border border-white/40 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] animate-in fade-in slide-in-from-bottom-10 duration-1000">
           <button 
             onClick={() => { setShowOnlyFavorites(false); setShowRejected(false); }}
             className={cn(
-              "px-4 sm:px-8 py-2 sm:py-3 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all duration-300 flex items-center gap-2",
+              "px-5 sm:px-8 py-3 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2.5",
               !showOnlyFavorites && !showRejected 
-                ? "bg-slate-900 text-white shadow-lg scale-105" 
+                ? "bg-slate-900 text-white shadow-xl scale-105" 
                 : "text-slate-400 hover:text-slate-600 hover:bg-black/5"
             )}
           >
-            <ImageIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            <span className="hidden xs:inline">Galería</span>
-            <span className="xs:hidden">Galeria</span>
+            <ImageIcon className="h-4 w-4" />
+            <span>Galería</span>
           </button>
           
           <button 
             onClick={() => { setShowOnlyFavorites(true); setShowRejected(false); }}
             className={cn(
-              "px-4 sm:px-8 py-2 sm:py-3 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all duration-300 flex items-center gap-2",
+              "px-5 sm:px-8 py-3 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2.5",
               showOnlyFavorites && !showRejected
-                ? "bg-white text-red-500 shadow-lg border border-red-50/50 scale-105" 
+                ? "bg-white text-red-500 shadow-xl border border-red-50 scale-105" 
                 : "text-slate-400 hover:text-slate-600 hover:bg-black/5"
             )}
           >
-            <Heart className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5", showOnlyFavorites ? "fill-current" : "")} />
-            <span className="hidden xs:inline">Favoritas</span>
-            <span className="xs:hidden">Favs</span>
+            <Heart className={cn("h-4 w-4", showOnlyFavorites ? "fill-current" : "")} />
+            <span>Favoritas</span>
           </button>
-
+          
           <button 
             onClick={() => { setShowOnlyFavorites(false); setShowRejected(true); }}
             className={cn(
-              "px-4 sm:px-8 py-2 sm:py-3 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all duration-300 flex items-center gap-2",
+              "px-5 sm:px-8 py-3 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2.5",
               showRejected
-                ? "bg-white text-orange-500 shadow-lg border border-orange-50/50 scale-105" 
+                ? "bg-white text-orange-500 shadow-xl border border-orange-50 scale-105" 
                 : "text-slate-400 hover:text-slate-600 hover:bg-black/5"
             )}
           >
-            <EyeOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            <span className="hidden xs:inline">Descartadas</span>
-            <span className="xs:hidden">Ocultas</span>
+            <EyeOff className="h-4 w-4" />
+            <span>Descartadas</span>
           </button>
-        </div>
-
-        {/* Barra de Progreso de Selección */}
-        {photos.length > 0 && !showRejected && !isSoloFotos && (
-          <div className="mb-12 max-w-sm mx-auto bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-            <div className="flex items-center justify-between mb-3 text-center">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">Progreso de selección</span>
-              <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">{favorites.size} / {photos.length} fotos</span>
-            </div>
-            <div className="h-2.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 p-0.5">
-              <motion.div 
-                className="h-full bg-gradient-to-r from-[#4A7C59] to-[#60a074] rounded-full shadow-[0_0_10px_rgba(74,124,89,0.3)]"
-                initial={{ width: 0 }}
-                animate={{ width: `${(favorites.size / photos.length) * 100}%` }}
-                transition={{ type: "spring", bounce: 0, duration: 1.5 }}
-              />
-            </div>
-          </div>
-        )}
-        
-        {/* Aviso de Zoom */}
-        <div className="mb-10 flex flex-col items-center justify-center text-center gap-3 animate-in fade-in slide-in-from-bottom-4">
-          <div className="inline-flex items-center gap-2 bg-[#4A7C59]/10 text-[#4A7C59] px-4 py-2 rounded-full border border-[#4A7C59]/20 shadow-sm">
-            <Maximize2 className="h-4 w-4 animate-pulse" />
-            <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest">Haz clic en cualquier foto para ampliarla</p>
-          </div>
-          <p className="text-slate-400 text-[10px] font-medium uppercase tracking-[0.2em]">Todas las fotos se mantienen en su formato original</p>
         </div>
 
         {showOnlyFavorites && displayedPhotos.length === 0 && (
@@ -1100,6 +1145,23 @@ export default function GalleryPage() {
             >
               Ver todas las fotos
             </Button>
+          </div>
+        )}
+
+        {showRejected && (
+          <div className="mb-8 flex justify-center animate-in fade-in slide-in-from-top-2 duration-500">
+            <div className="bg-orange-500 text-white rounded-full px-5 py-2 flex items-center gap-3 shadow-xl shadow-orange-200 border-2 border-white">
+              <EyeOff className="h-4 w-4" />
+              <span className="text-[9px] font-black uppercase tracking-widest leading-none">Recuperando fotos descartadas</span>
+              <div className="w-[1px] h-3 bg-white/30" />
+              <button 
+                onClick={() => setShowRejected(false)}
+                className="bg-white text-orange-500 px-4 py-1.5 rounded-full text-[8.5px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm flex items-center gap-1.5 active:scale-95 ml-1"
+              >
+                Volver a Galería 
+                <ChevronRight className="h-3 w-3 stroke-[3]" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -1153,7 +1215,7 @@ export default function GalleryPage() {
                       height={1200}
                       className={cn(
                         "w-full h-auto transition-all duration-1000 group-hover:scale-105 select-none",
-                        rejectedPhotos.has(photo.id) ? "grayscale opacity-50" : "opacity-100"
+                        showRejected ? "grayscale contrast-[1.1] opacity-90" : (rejectedPhotos.has(photo.id) ? "grayscale opacity-50" : "opacity-100")
                       )}
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
@@ -1336,7 +1398,10 @@ export default function GalleryPage() {
                               alt={photo.name || 'Foto'} 
                               fill
                               priority
-                              className="object-contain select-none" 
+                              className={cn(
+                                "object-contain select-none transition-all duration-500",
+                                showRejected && "grayscale contrast-[1.2] opacity-90"
+                              )} 
                               sizes="100vw"
                             />
                              {/* Watermark sutil */}
@@ -1455,21 +1520,49 @@ export default function GalleryPage() {
 
       {/* FOOTER DE GALERÍA (Solo si NO es solo-fotos) */}
       {!isSoloFotos && (
-      <footer className="bg-slate-50 py-20 px-6 text-center border-t border-slate-100">
-        <div className="max-w-2xl mx-auto space-y-6">
-          <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center mx-auto mb-8">
-            <ImageIcon className="h-8 w-8 text-[#4A7C59]" />
+      <footer id="final-selection" className="bg-slate-50 pt-16 pb-44 px-6 text-center border-t border-slate-100">
+        <div className="max-w-2xl mx-auto space-y-4">
+          <div className="flex flex-col items-center">
+             <div className="w-24 h-24 bg-white rounded-[1.8rem] shadow-sm border border-slate-200 flex items-center justify-center mb-4 p-5 overflow-hidden">
+                {globalConfig?.logoUrl ? (
+                  <img 
+                    src={globalConfig.logoUrl} 
+                    alt="Logo Empresa" 
+                    className="w-full h-full object-contain grayscale brightness-0 opacity-100" 
+                  />
+                ) : (
+                  <CheckCircle2 className="h-10 w-10 text-[#4A7C59] stroke-[2.5px]" />
+                )}
+             </div>
+             <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 italic whitespace-nowrap">
+               Más que fotografía, tus mejores recuerdos
+             </p>
           </div>
-          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">¿Has terminado tu selección?</h2>
-          <p className="text-slate-500 font-medium leading-relaxed">
-            Una vez envíes tu selección, tu fotógrafo favorito recibirá una notificación y comenzará con el proceso de edición final y preparación de tus productos. ¡Estamos deseando que los tengas en tus manos!
+          <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">¿Has terminado?</h2>
+          <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-md mx-auto">
+            Al enviar tu selección, <strong>tu fotógrafo recibirá una notificación</strong> para comenzar con la edición final. <strong>Te avisaremos cuando todo esté listo para recoger</strong>. ¡Ya falta muy poco!
           </p>
-          <Button 
-             onClick={handleSaveSelection}
-             className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-full px-12 h-14 font-black uppercase text-xs tracking-widest shadow-xl shadow-[#4A7C59]/30"
-          >
-            Confirmar y Enviar Selección
-          </Button>
+          <div className="pt-4">
+            <Button 
+               onClick={handleSaveSelection}
+               className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-full px-10 h-12 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-[#4A7C59]/30"
+            >
+              Enviar Selección
+            </Button>
+          </div>
+
+          {/* BOTÓN DISCRETO VOLVER ARRIBA */}
+          <div className="pt-12 pb-10 flex justify-center">
+            <button 
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="group flex flex-col items-center gap-2 text-slate-400 hover:text-[#4A7C59] transition-all duration-300"
+            >
+              <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center mb-1 group-hover:bg-white group-hover:border-[#4A7C59] group-hover:shadow-md transition-all">
+                <ArrowUp className="h-4 w-4" />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-[0.3em]">Volver al inicio</span>
+            </button>
+          </div>
         </div>
       </footer>
       )}
@@ -2222,9 +2315,9 @@ export default function GalleryPage() {
                   <div className="flex items-center gap-4 pointer-events-auto bg-black/20 backdrop-blur-md p-2 px-4 rounded-2xl border border-white/10">
                     <button 
                       onClick={() => setViewerIndex(null)}
-                      className="w-10 h-10 flex items-center justify-center bg-white/10 text-white border border-white/20 hover:bg-white/20 rounded-full transition-all"
+                      className="w-10 h-10 flex items-center justify-center bg-white/10 text-white border border-white/20 hover:bg-white/20 rounded-full transition-all group"
                     >
-                      <X className="h-5 w-5" />
+                      <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
                     </button>
                     <div className="flex flex-col">
                       <h3 className="text-white font-black text-sm uppercase tracking-tighter italic">
@@ -2364,34 +2457,51 @@ export default function GalleryPage() {
                       )}
                     </AnimatePresence>
                     
+                    {/* CUADRO DE NOTA CON OVERLAY DE CIERRE */}
                     <AnimatePresence>
                       {showNoteInput && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                          className="w-full max-w-2xl relative group"
-                        >
-                          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white transition-colors">
-                            <MessageSquare className="h-4 w-4" />
-                          </div>
-                          <input 
-                            type="text"
-                            autoFocus
-                            placeholder="Escribe una nota sobre esta foto..."
-                            value={photoNotes[currentPhoto.id] || ''}
-                            onChange={(e) => {
-                              setPhotoNotes(prev => ({...prev, [currentPhoto.id]: e.target.value}));
-                            }}
-                            className="w-full bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[24px] py-5 pl-14 pr-8 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/30 transition-all placeholder:text-white/20 shadow-2xl"
+                        <>
+                          {/* Overlay invisible para detectar clic fuera */}
+                          <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowNoteInput(false)}
+                            className="fixed inset-0 z-[60] cursor-pointer"
                           />
-                        </motion.div>
+                          
+                          {/* El input en sí */}
+                          <motion.div 
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                            className="w-full max-w-2xl relative group z-[70] pointer-events-auto"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-white transition-colors">
+                              <MessageSquare className="h-4 w-4" />
+                            </div>
+                            <input 
+                              type="text"
+                              autoFocus
+                              placeholder="Escribe una nota sobre esta foto..."
+                              value={photoNotes[currentPhoto.id] || ''}
+                              onChange={(e) => {
+                                setPhotoNotes(prev => ({...prev, [currentPhoto.id]: e.target.value}));
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') setShowNoteInput(false);
+                              }}
+                              className="w-full bg-black/80 backdrop-blur-3xl border border-white/20 rounded-[24px] py-5 pl-14 pr-8 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/40 transition-all placeholder:text-white/20 shadow-2xl"
+                            />
+                          </motion.div>
+                        </>
                       )}
                     </AnimatePresence>
                   </div>
 
-                  {/* BARRA DE FUNCIONES PRINCIPAL */}
-                  <div className="w-full max-w-7xl bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[40px] p-2 flex items-center justify-between shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative gap-4 mb-2 pointer-events-auto overflow-visible">
+                  {/* BARRA DE FUNCIONES PRINCIPAL - COMPACTA PARA ORDENADOR */}
+                  <div className="w-full max-w-5xl bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[40px] p-2 flex items-center justify-between shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative gap-4 mb-2 pointer-events-auto overflow-visible">
                     
                     {/* 1. LADO IZQUIERDO: ACCIONES RÁPIDAS (33%) */}
                     <div className="flex-1 flex items-center gap-3 pl-2">
@@ -2426,10 +2536,13 @@ export default function GalleryPage() {
                             : "bg-white/5 border-white/10 text-white hover:bg-white/20"
                         )}
                       >
-                        <MessageSquare className={cn("h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110", photoNotes[currentPhoto.id] && "fill-current")} />
+                        <MessageSquare className={cn("h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110", photoNotes[currentPhoto.id] && "fill-current text-white")} />
+                        {photoNotes[currentPhoto.id] && (
+                          <span className="absolute -top-1 -right-1 bg-white w-4 h-4 rounded-full border-2 border-blue-500 animate-pulse shadow-lg" />
+                        )}
                         {/* Tooltip */}
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 pointer-events-none whitespace-nowrap z-[100]">
-                          Escribir Nota
+                          {photoNotes[currentPhoto.id] ? "Editar Nota" : "Escribir Nota"}
                           <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-[5px] border-x-transparent border-t-[5px] border-t-white" />
                         </div>
                       </button>
@@ -2560,31 +2673,12 @@ export default function GalleryPage() {
 
       {/* Reproductor de Audio */}
       {client?.gallerySettings?.bgMusic?.url && (
-          <>
             <audio 
               ref={audioRef}
               src={client.gallerySettings.bgMusic.url}
               loop
               autoPlay
             />
-            <button
-                onClick={toggleMusic}
-                className={cn(
-                  "fixed right-6 z-[120] rounded-full bg-white/95 backdrop-blur-md shadow-2xl border border-slate-100 flex items-center justify-center text-slate-800 hover:scale-110 active:scale-95 transition-all group top-6",
-                  (selectedPhoto || viewerIndex !== null) ? "hidden" : "w-12 h-12"
-                )}
-                title={isPlaying ? "Silenciar" : "Escuchar música"}
-            >
-                {isPlaying ? (
-                    <div className="relative flex items-center justify-center">
-                        <Volume2 className="h-5 w-5 text-blue-500" />
-                        <span className="absolute inset-[-4px] rounded-full border border-blue-500 animate-ping opacity-20" />
-                    </div>
-                ) : (
-                    <VolumeX className="h-5 w-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                )}
-            </button>
-          </>
       )}
       {/* DIALOGO DE CONFIRMACIÓN DE DESCARTE */}
       <Dialog open={isRejectConfirmOpen} onOpenChange={setIsRejectConfirmOpen}>
