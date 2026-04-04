@@ -39,6 +39,7 @@ import {
   Pause,
   Play,
   Download,
+  DownloadCloud,
   Info,
   Star,
   FileImage,
@@ -107,6 +108,7 @@ interface CustomersTabProps {
   formatPrice: (price: number) => string
   customerIdToEdit?: string | null
   initialFilter?: string
+  onClose?: () => void
 }
 
 const generateSlug = (text: string) => {
@@ -151,7 +153,7 @@ const resizeImage = (file: File, maxSide: number = 1500): Promise<File> => {
   });
 };
 
-export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFilter = 'all' }: CustomersTabProps) {
+export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFilter = 'all', onClose }: CustomersTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [actionFilter, setActionFilter] = useState(initialFilter) // all, pending_action, empty, confirmed
 
@@ -252,12 +254,47 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
   const [playingSong, setPlayingSong] = useState<string | null>(null)
   const [previewAudio] = useState(new Audio())
   const [uploadStatus, setUploadStatus] = useState({ current: 0, total: 0 })
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set())
   const [isCancelUploadRequested, setIsCancelUploadRequested] = useState(false)
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null)
   const router = useRouter()
   const initialEditProcessed = useRef(false)
   const uploadControllerRef = useRef<boolean>(false)
+  
+  // Control de seguridad para no perder cambios (Snapshot) en Gestión de Cliente
+  const initialCustomerSnapshot = useRef<string | null>(null);
+
+  // Al abrir el modal, capturamos el estado inicial para poder comparar después
+  useEffect(() => {
+    if (editingCustomer && !initialCustomerSnapshot.current) {
+      initialCustomerSnapshot.current = JSON.stringify(editingCustomer);
+    } else if (!editingCustomer) {
+      initialCustomerSnapshot.current = null;
+    }
+  }, [editingCustomer]);
+
+  const handleSafeClose = () => {
+    if (!editingCustomer) return;
+    const currentSnapshot = JSON.stringify(editingCustomer);
+    if (initialCustomerSnapshot.current && initialCustomerSnapshot.current !== currentSnapshot) {
+      setShowExitConfirm(true); 
+    } else {
+      setEditingCustomer(null);
+      onClose?.();
+    }
+  };
+
+  const confirmExit = () => {
+    setShowExitConfirm(false);
+    setEditingCustomer(null);
+    onClose?.();
+  };
+
+  const handleCloseEdit = () => {
+    setEditingCustomer(null);
+    onClose?.();
+  };
 
   // Cargar datos de clientes desde Firebase (tiene DNI, cashEnabled actualizados)
   useEffect(() => {
@@ -1376,11 +1413,16 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
         )}
       </div>
 
+
+
+
+
+      
         {/* Modal de Edición */}
-        <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && setEditingCustomer(null)}>
+        <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && handleSafeClose()}>
           <DialogContent className="w-[95vw] sm:max-w-[950px] h-[90dvh] max-h-[90dvh] overflow-hidden rounded-[2rem] p-0 flex flex-col shadow-2xl border-none bg-white">
             <div className="absolute top-4 right-4 z-[60]">
-              <Button variant="ghost" size="icon" onClick={() => setEditingCustomer(null)} className="rounded-full bg-slate-50/50 hover:bg-slate-100 hover:text-slate-900 h-8 w-8 transition-all"><X className="h-4 w-4 text-slate-400 group-hover:text-slate-900" /></Button>
+              <Button variant="ghost" size="icon" onClick={handleSafeClose} className="rounded-full bg-slate-50/50 hover:bg-slate-100 hover:text-slate-900 h-8 w-8 transition-all"><X className="h-4 w-4 text-slate-400 group-hover:text-slate-900" /></Button>
             </div>
             <Tabs defaultValue="galeria" className="h-full flex flex-col">
               <DialogHeader className="p-4 sm:p-6 pb-2 border-b border-slate-50 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-50">
@@ -1454,12 +1496,13 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
 
                         {/* CONFIGURACIÓN Y MÚSICA */}
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                          <div className="md:col-span-8 grid grid-cols-2 gap-2">
+                          <div className="md:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-2">
                              {[
                                 { label: 'Marca Agua', icon: ImageIcon, field: 'watermarkEnabled', color: 'text-blue-500', bg: 'bg-blue-50' },
                                 { label: 'Bloqueo Cap.', icon: Lock, field: 'safetyLockEnabled', color: 'text-amber-500', bg: 'bg-amber-50' },
                                 { label: 'Forzar Sel.', icon: Star, field: 'shopRequiresFavorite', color: 'text-orange-500', bg: 'bg-orange-50' },
-                                { label: 'Pago Efec.', icon: BadgeEuro, field: 'cashEnabled', color: 'text-green-500', bg: 'bg-green-50', root: true }
+                                { label: 'Pago Efec.', icon: BadgeEuro, field: 'cashEnabled', color: 'text-green-500', bg: 'bg-green-50', root: true },
+                                { label: 'Libre Sel.', icon: DownloadCloud, field: 'selectionDownloadEnabled', color: 'text-purple-500', bg: 'bg-purple-50' },
                              ].map((item) => (
                                 <div key={item.label} className="bg-white border border-slate-100 rounded-xl px-3 py-2 flex items-center justify-between shadow-sm h-11">
                                   <div className="flex items-center gap-2">
@@ -1887,7 +1930,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                 </div>
 
                 <DialogFooter className="p-4 sm:p-6 border-t border-slate-50 bg-slate-50/20 flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-4 shrink-0">
-                  <Button variant="ghost" onClick={() => setEditingCustomer(null)} className="w-full sm:w-auto rounded-xl text-xs font-black uppercase tracking-widest h-11 px-8 text-slate-400 hover:text-slate-600">Cancelar</Button>
+                  <Button variant="ghost" onClick={handleCloseEdit} className="w-full sm:w-auto rounded-xl text-xs font-black uppercase tracking-widest h-11 px-8 text-slate-400 hover:text-slate-600">Cancelar</Button>
                   <Button 
                     onClick={async () => {
                       if (!editingCustomer.name || !editingCustomer.email) {
@@ -1935,6 +1978,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
 
                         toast({ title: 'Éxito', description: 'Cliente actualizado' })
                         await reloadFirebase()
+                        handleCloseEdit()
                       } catch (e) {
                         toast({ title: 'Error', description: 'No se pudo guardar', variant: 'destructive' })
                       } finally {
@@ -2395,6 +2439,45 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
           </DialogContent>
         </Dialog>
 
+        {/* MODAL DE CONFIRMACIÓN DE SALIDA SEGURA (PREMIUM) */}
+        <Dialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+          <DialogContent className="sm:max-w-md bg-black/60 backdrop-blur-2xl border border-white/5 shadow-2xl p-0 overflow-hidden ring-1 ring-white/10">
+            <div className="p-8 text-center bg-gradient-to-b from-amber-500/10 to-transparent">
+              <motion.div 
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="w-20 h-20 bg-amber-500/10 border-2 border-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_40px_-5px_rgba(245,158,11,0.3)]"
+              >
+                <AlertCircle className="h-10 w-10 text-amber-500" />
+              </motion.div>
+              
+              <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic mb-3 leading-none">
+                ¡Ojo! Cambios sin guardar
+              </h2>
+              
+              <p className="text-white/50 text-[13px] leading-relaxed mb-8 px-4 font-medium">
+                Has realizado modificaciones que aún no se han sincronizado. Si sales ahora, <span className="text-amber-500 font-bold uppercase">perderás todo el trabajo</span> de esta sesión.
+              </p>
+
+              <div className="flex flex-col gap-3">
+                <Button 
+                  onClick={() => setShowExitConfirm(false)}
+                  className="bg-white text-black hover:bg-white/90 font-black h-12 uppercase tracking-widest text-[10px] transition-all hover:scale-[1.02] active:scale-95 shadow-xl border-none"
+                >
+                  Continuar editando
+                </Button>
+                
+                <Button 
+                  variant="ghost"
+                  onClick={confirmExit}
+                  className="text-white/30 hover:text-red-400 hover:bg-red-400/5 font-bold h-10 uppercase tracking-widest text-[9px] transition-all rounded-xl"
+                >
+                  Salir y descartar cambios
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </TooltipProvider>

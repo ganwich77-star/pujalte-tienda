@@ -15,6 +15,7 @@ import {
   X,
   Eye,
   Send,
+  CheckSquare,
   Image as ImageIcon,
   Search,
   LayoutGrid,
@@ -30,10 +31,13 @@ import {
   EyeOff,
   ChevronsDown,
   Minus,
+  Sparkles,
   ArrowLeft,
   ArrowUp,
   ArrowDown,
-  CheckCircle2
+  CheckCircle2,
+  DownloadCloud,
+  Gift
 } from 'lucide-react'
 import { db, COLLECTIONS } from '@/lib/firebase'
 import { doc, getDoc, updateDoc, serverTimestamp, query, collection, where, getDocs, addDoc } from 'firebase/firestore'
@@ -111,6 +115,14 @@ export default function GalleryPage() {
   const [showAddedConfirmation, setShowAddedConfirmation] = useState(false)
   const [addedItemName, setAddedItemName] = useState("")
 
+  // Estados para Oferta Pack Completo Digital
+  const [showFullPackPopup, setShowFullPackPopup] = useState(false)
+  const [showGiftPopup, setShowGiftPopup] = useState(false)
+  const [showFommoMessage, setShowFommoMessage] = useState(false)
+  const [fullPackDismissed, setFullPackDismissed] = useState(false)
+  const [hasSeenFullPackPopup, setHasSeenFullPackPopup] = useState(false)
+  const [hasSeenGiftPopup, setHasSeenGiftPopup] = useState(false)
+
   const { scrollY } = useScroll()
   const heroY = useTransform(scrollY, [0, 1000], [0, 300])
   
@@ -126,6 +138,8 @@ export default function GalleryPage() {
   const [showRejected, setShowRejected] = useState(false)
   const [photoToReject, setPhotoToReject] = useState<any>(null)
   const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   
   // Estados para Música de Fondo
   const [isPlaying, setIsPlaying] = useState(true)
@@ -139,6 +153,8 @@ export default function GalleryPage() {
   const digitalExtrasCount = isSelectionLimited ? Math.max(0, favorites.size - includedCount) : 0
   const digitalExtrasPrice = client?.gallerySettings?.photoExtraPrice || 0
   const digitalExtrasTotal = digitalExtrasCount * digitalExtrasPrice
+
+  const remainingPhotosCount = Math.max(0, (client?.gallerySettings?.photos?.length || 0) - includedCount)
 
   useEffect(() => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
@@ -383,10 +399,51 @@ export default function GalleryPage() {
       setTimeout(() => setHeartBurst(null), 1000)
     }
     setFavorites(newFavs)
-    
+
+    // LÓGICA DE REGALO POR FIDELIDAD 🎁💎
+    // Si elige el 81% o más (ej: 13 de 16), ¡le regalamos el resto!
+    if (!alreadyFavorite && !hasSeenGiftPopup && photos.length > 5) { // Solo si hay fotos suficientes
+      const threshold = Math.max(1, Math.floor(photos.length * 0.81));
+      if (newFavs.size >= threshold) {
+        setShowGiftPopup(true);
+        setHasSeenGiftPopup(true);
+      }
+    }
+
     // Notificación rápida e integrada
     setViewerNotification(alreadyFavorite ? "Eliminada de favoritos" : "Añadida a favoritos");
     setTimeout(() => setViewerNotification(null), 1200);
+  }
+
+  const handleAcceptGift = () => {
+    // 1. Seleccionar TODAS las fotos de la galería automáticamente
+    const allIds = photos.map((p: any) => p.id);
+    setFavorites(new Set(allIds));
+    
+    // 2. Añadir el Regalo al carrito con valor 0€
+    const giftProduct = {
+      id: 'gift-full-gallery',
+      name: 'REGALO: GALERÍA COMPLETA DIGITAL',
+      price: 0,
+      basePrice: 0, // Añadido para corregir el error de tipado
+      image: photos[0]?.url || '',
+      type: 'digital',
+      quantity: 1,
+      options: { 'Promoción': 'Fidelidad 100% Descuento' }
+    };
+    
+    // Usamos el addItem del store del carrito
+    addItem(giftProduct);
+    
+    // 3. Cerrar popup y avisar
+    setShowGiftPopup(false);
+    setShowOnlyFavorites(false); // Mostramos todas para que vea el éxito
+    
+    toast({ 
+      title: "🎁 ¡GALERÍA COMPLETADA!", 
+      description: "Hemos añadido todas las fotos y el pack completo a tu cesta gratis.", 
+      variant: "default" 
+    });
   }
   
   const handleRejectAction = async (photo: any) => {
@@ -486,6 +543,39 @@ export default function GalleryPage() {
     setIsCartOpen(true);
   };
 
+  const handleDeclineOffer = () => {
+    setShowFullPackPopup(false);
+    setShowFommoMessage(true);
+    setTimeout(() => {
+      setShowFommoMessage(false);
+      handleSaveSelection(true); 
+    }, 6000);
+  };
+
+  const handleAcceptFullPack = () => {
+    // Pepe: Añadimos el pack completo como un producto especial al carrito
+    const fullPackPrice = Number(client?.gallerySettings?.digitalFiles?.fullPackPrice) || 0;
+    
+    addItem({
+      id: 'digital-full-pack',
+      name: `Galería Completa (${photos.length} fotos)`,
+      price: fullPackPrice,
+      basePrice: fullPackPrice,
+      quantity: 1,
+      image: photos[0]?.url,
+      isDigital: true,
+      notes: `Compra de galería completa para: ${slug}`
+    });
+
+    toast({ 
+      title: "🎁 ¡Pack Completo añadido!", 
+      description: "Ya tienes todas tus fotos en la cesta. Puedes seguir añadiendo álbumes o marcos." 
+    });
+
+    setShowFullPackPopup(false);
+    // Pepe: Ya no llamamos a handleSaveSelection aquí para que el cliente pueda seguir comprando complementos.
+  };
+
   const handleDownloadArchive = async () => {
     if (favorites.size === 0) {
       toast({ title: "Selección vacía", description: "Debes marcar alguna foto como favorita primero.", variant: "destructive" })
@@ -494,10 +584,33 @@ export default function GalleryPage() {
     window.open(`/api/download-all?slug=${slug}${!canDownloadAll ? '&favoritesOnly=true' : ''}`, '_blank');
   }
 
-  const handleSaveSelection = async () => {
+  const handleSaveSelection = async (ignoreOffers = false) => {
+    // Activamos el filtro de favoritas para el repaso final
+    setShowOnlyFavorites(true);
     if (favorites.size === 0) {
       toast({ title: "Selección vacía", description: "Debes marcar alguna foto como favorita primero.", variant: "destructive" })
       return
+    }
+
+    // ESTRATEGIA TRIPLE DE MARKETING (3 TIPOS DE CLIENTE)
+    if (!ignoreOffers) {
+      // 1. EL "JUSTO" (Exactamente las incluidas): Empujoncito final
+      if (favorites.size === Number(includedPhotosCount) && 
+          client?.gallerySettings?.digitalFiles?.fullPackPrice > 0 && 
+          Number(includedPhotosCount) > 0) {
+        setShowFullPackPopup(true)
+        return
+      }
+
+      // 2. EL "FIEL / FAN" (75% de la galería total): Premio por su lealtad
+      const totalGalleryCount = photos.length
+      if (favorites.size >= totalGalleryCount * 0.75 && 
+          !hasSeenGiftPopup && 
+          favorites.size < totalGalleryCount) {
+        setShowGiftPopup(true) // Pepe: He creado este estado para avisarles del regalo
+        setHasSeenGiftPopup(true)
+        return
+      }
     }
 
     try {
@@ -512,19 +625,19 @@ export default function GalleryPage() {
         .filter(([id, note]) => favorites.has(id) && note.trim())
         .map(([id, note]) => {
           const f = photos.find((p: any) => p.id === id)?.fileName || 'Foto';
-          return `- ${f.replace(/\.[^/.]+$/, "")}: ${note}`;
+          return `📝 ${f.replace(/\.[^/.]+$/, "")}: ${note}`;
         });
 
       const extraItems = (cartItems?.length || 0) > 0 
-        ? cartItems.map(i => `- ${i.name} (x${i.quantity}) ${i.variantName ? `[${i.variantName}]` : ''}`)
-        : ['Ninguno'];
+        ? cartItems.map(i => `• ${i.name} ${i.quantity > 1 ? `(x${i.quantity})` : ''} ${i.variantName ? `[${i.variantName}]` : ''}`)
+        : ['Sin artículos adicionales'];
 
       const finalSummary = `📸 SELECCIÓN DE GALERÍA: ${client?.name || 'Cliente'}\n` +
         `----------------------------------------\n` +
-        `Total seleccionadas: ${favoritesList.length}\n\n` +
-        `FOTOS SELECCIONADAS:\n${favoritesList.join(', ')}\n\n` +
-        `COMENTARIOS:\n${photoWithNotesArr.length > 0 ? photoWithNotesArr.join('\n') : 'Sin comentarios'}\n\n` +
-        `ARTÍCULOS DE TIENDA:\n${extraItems.join('\n')}`;
+        `✅ Total seleccionadas: ${favoritesList.length}\n\n` +
+        `🎞️ FOTOS SELECCIONADAS:\n${favoritesList.join(', ')}\n\n` +
+        `💬 COMENTARIOS:\n${photoWithNotesArr.length > 0 ? photoWithNotesArr.join('\n') : 'Sin comentarios'}\n\n` +
+        `🛒 ARTÍCULOS DE TIENDA:\n${extraItems.join('\n')}`;
 
       await updateDoc(docRef, {
         'gallerySettings.lastSelection': Array.from(favorites),
@@ -596,20 +709,50 @@ export default function GalleryPage() {
     }
   }
 
+  const selectAllPhotos = () => {
+    const allIds = photos.map((p: any) => p.id);
+    setFavorites(new Set(allIds));
+    toast({ title: "¡Seleccionadas!", description: "Has seleccionado todas las fotos de la galería.", variant: "default" });
+    setShowOnlyFavorites(true); 
+  }
+
+  const clearSelection = () => {
+    setShowClearConfirm(true);
+  }
+
+  const handleConfirmClear = () => {
+    setFavorites(new Set());
+    setShowClearConfirm(false);
+    toast({ title: "Selección limpia", description: "Se han quitado todas las fotos de tus favoritas.", variant: "default" });
+  }
+
+  const cancelSelection = () => {
+    setShowCancelConfirm(true);
+  }
+
+  const handleConfirmCancel = () => {
+    // 1. Clear selection locally
+    setFavorites(new Set());
+    setShowOnlyFavorites(false);
+    setShowCancelConfirm(false);
+    
+    toast({ title: "Selección reiniciada", description: "Hemos limpiado tu selección para que puedas empezar de cero.", variant: "default" });
+  }
+
   const sendWhatsAppSelection = () => {
-    const phone = globalConfig?.whatsappConfig?.phone || "34661623126"; 
+    const phone = globalConfig?.whatsappConfig?.phone || "34650494728"; 
     const galleryName = client?.name || "Galería Privada";
     
-    let message = `📸 *¡NUEVA SELECCIÓN DE FAVORITOS!* 📸\n\n`;
+    let message = `✨ *¡NUEVA SELECCIÓN DE FAVORITOS!* ✨\n\n`;
     message += `Hola *Pujalte Fotografía*, he terminado mi selección en la galería:\n\n`;
-    message += `📂 *GALERÍA:* ${galleryName.toUpperCase()}\n`;
+    message += `🖼️ *GALERÍA:* ${galleryName.toUpperCase()}\n`;
     message += `👤 *CLIENTE:* ${client?.name}\n\n`;
-    message += `✅ *RESUMEN DE SELECCIÓN:*\n`;
+    message += `📦 *RESUMEN DE SELECCIÓN:*\n`;
     message += `---------------------------------\n`;
     const cleanSummary = summaryText.includes('LISTA PARA COPIAR:') ? summaryText.split('LISTA PARA COPIAR:')[0] : summaryText;
     message += cleanSummary; 
     message += `\n---------------------------------\n`;
-    message += `🚀 _Enviado desde mi Galería de Cliente_`;
+    message += `🔗 _Enviado desde mi Galería de Cliente_`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${encodedMessage}`, '_blank');
@@ -974,6 +1117,28 @@ export default function GalleryPage() {
                     )}>{favorites.size}</span>
                   </button>
 
+                  {/* BOTONES MAESTROS DE ACCIÓN (Funto al corazón) */}
+                  <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2">
+                    <button 
+                        onClick={selectAllPhotos}
+                        className="h-9 sm:h-10 px-3 sm:px-4 rounded-full bg-[#4A7C59] text-white flex items-center justify-center gap-2 shadow-lg shadow-[#4A7C59]/20 hover:scale-105 active:scale-95 transition-all text-[9px] font-black uppercase tracking-widest border border-[#4A7C59]"
+                    >
+                        <CheckSquare className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Las quiero todas</span>
+                        <span className="sm:inline sm:hidden">Todas</span>
+                    </button>
+                    
+                    {favorites.size > 0 && (
+                        <button 
+                            onClick={cancelSelection}
+                            className="h-9 sm:h-10 px-3 sm:px-4 rounded-full bg-white text-red-500 border border-red-100 flex items-center justify-center gap-2 hover:bg-red-50 hover:border-red-200 active:scale-95 transition-all text-[9px] font-black uppercase tracking-widest"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                            <span className="text-[9px] font-black uppercase tracking-widest px-1">Limpiar selección</span>
+                        </button>
+                    )}
+                  </div>
+
                   {/* Descartadas */}
                   {(rejectedPhotos.size > 0 || showRejected) && (
                     <button
@@ -1106,6 +1271,26 @@ export default function GalleryPage() {
                   <span className="text-5xl font-black text-slate-900 tracking-tighter italic leading-none">{favorites.size}</span>
                   <span className="text-slate-200 text-xl font-medium tracking-tighter">/ {photos.length} fotos</span>
                 </div>
+                
+                {/* BOTÓN PERSISTENTE OFERTA (Escenario 3: Cliente que gasta el +30% de extras) */}
+                {fullPackDismissed && 
+                 client?.gallerySettings?.digitalFiles?.fullPackPrice > 0 && 
+                 favorites.size >= (Number(includedPhotosCount) * 1.3) && 
+                 favorites.size < photos.length && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8, x: -10 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowFullPackPopup(true)}
+                    className="flex items-center gap-1.5 bg-gradient-to-r from-[#4A7C59] to-[#5a9c6e] text-white px-3 py-1.5 rounded-full shadow-lg shadow-[#4A7C59]/20 mt-2 border border-white/20 w-fit group"
+                  >
+                    <Sparkles className="h-3 w-3 animate-shine group-hover:rotate-12 transition-transform" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">
+                      Comprar Galería Completa
+                    </span>
+                  </motion.button>
+                )}
               </div>
               
               <div className="flex flex-col items-end gap-3 text-right">
@@ -1584,7 +1769,7 @@ export default function GalleryPage() {
           <div className="flex flex-col items-center">
              <div className="w-24 h-24 bg-white rounded-[1.8rem] shadow-sm border border-slate-200 flex items-center justify-center mb-4 p-5 overflow-hidden">
                 {globalConfig?.logoUrl ? (
-                  <img 
+                   <img 
                     src={globalConfig.logoUrl} 
                     alt="Logo Empresa" 
                     className="w-full h-full object-contain grayscale brightness-0 opacity-100" 
@@ -1597,13 +1782,77 @@ export default function GalleryPage() {
                Más que fotografía, tus mejores recuerdos
              </p>
           </div>
-          <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">¿Has terminado?</h2>
+
+          {/* OFERTA FIN DE PÁGINA (Escenario 3: Cliente que gasta el +30% de extras) */}
+          {client?.gallerySettings?.digitalFiles?.fullPackPrice > 0 && 
+           favorites.size >= (Number(includedPhotosCount) * 1.3) && 
+           favorites.size < photos.length && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="bg-gradient-to-br from-[#4A7C59] to-[#3D6649] rounded-[2.5rem] p-8 mb-12 text-white shadow-2xl shadow-[#4A7C59]/20 relative overflow-hidden group text-left"
+            >
+               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+                  <ShoppingBag className="h-40 w-40 rotate-12" />
+               </div>
+               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="text-center md:text-left space-y-2">
+                     <span className="inline-flex bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">Oferta Especial</span>
+                     <h3 className="text-3xl font-black italic tracking-tighter leading-none">¡LLÉVATELO TODO!</h3>
+                     <p className="text-white/70 text-sm font-medium max-w-sm">Descarga todas las fotos de tu galería sin marcas de agua y a máxima calidad por un único precio.</p>
+                  </div>
+                  <div className="flex flex-col items-center gap-4">
+                     <div className="flex flex-col items-center leading-none">
+                        <span className="text-white/50 text-[10px] font-black line-through mb-1 uppercase tracking-widest">
+                          {photos.length * (client.gallerySettings.digitalFiles.price || 15)}€
+                        </span>
+                        <span className="text-5xl font-black italic tracking-tighter">{client.gallerySettings.digitalFiles.fullPackPrice}€</span>
+                     </div>
+                     <Button 
+                        onClick={() => handleOpenShop(photos[0], filteredProducts.find(p => p.id === 'digital-full-pack'))}
+                        className="bg-white text-[#4A7C59] hover:bg-slate-50 rounded-full px-8 h-12 font-black uppercase text-[11px] tracking-widest shadow-xl transition-all hover:scale-105 active:scale-95"
+                     >
+                        Comprar Galería Completa
+                     </Button>
+                  </div>
+               </div>
+            </motion.div>
+          )}
+
+          {/* BOTÓN DESCARGA SELECCIÓN (Si habilitado por admin) */}
+          {client?.gallerySettings?.selectionDownloadEnabled && favorites.size > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="bg-white border-2 border-dashed border-purple-200 rounded-[2.5rem] p-8 mb-12 group hover:border-purple-400 transition-all"
+            >
+               <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-3xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-sm mb-2 group-hover:rotate-6 transition-transform">
+                     <DownloadCloud className="h-8 w-8" />
+                  </div>
+                  <div className="space-y-1">
+                     <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter italic">Tu descarga está lista</h3>
+                     <p className="text-slate-400 text-sm font-medium">Puedes bajar tus <span className="text-[#4A7C59] font-black">{favorites.size} fotos seleccionadas</span> ahora mismo.</p>
+                  </div>
+                  <Button 
+                     onClick={handleDownloadArchive}
+                     className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-10 h-14 font-black uppercase text-[11px] tracking-widest shadow-xl shadow-purple-200 transition-all hover:scale-105 active:scale-95 gap-3"
+                  >
+                     <DownloadCloud className="h-5 w-5" />
+                     Descargar mi selección
+                  </Button>
+               </div>
+            </motion.div>
+          )}
+
           <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-md mx-auto">
             Al enviar tu selección, <strong>tu fotógrafo recibirá una notificación</strong> para comenzar con la edición final. <strong>Te avisaremos cuando todo esté listo para recoger</strong>. ¡Ya falta muy poco!
           </p>
           <div className="pt-4">
             <Button 
-               onClick={handleSaveSelection}
+               onClick={() => handleSaveSelection()}
                className="bg-[#4A7C59] hover:bg-[#3D6649] text-white rounded-full px-10 h-12 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-[#4A7C59]/30"
             >
               Enviar Selección
@@ -2054,12 +2303,37 @@ export default function GalleryPage() {
                                   <div className="flex-1">
                                   <div>
                                     <p className="font-black text-slate-900 text-sm uppercase tracking-tight flex items-center gap-2">
-                                      <HighlightText text={product.name} highlight={searchTerm} />
-                                      {product.isDigital && <Badge className="bg-blue-600 hover:bg-blue-700 text-[8px] h-4 uppercase">Alta Calidad</Badge>}
+                                      {hasSeenGiftPopup && product.isDigital && product.name.includes("GALERÍA") ? (
+                                        <span className="text-orange-600">¡TU GALERÍA COMPLETA!</span>
+                                      ) : (
+                                        <HighlightText text={product.name} highlight={searchTerm} />
+                                      )}
+                                      {product.isDigital && <Badge className={`${hasSeenGiftPopup && product.name.includes("GALERÍA") ? "bg-orange-500" : "bg-blue-600"} hover:opacity-90 text-[8px] h-4 uppercase border-none`}>Alta Calidad</Badge>}
                                     </p>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                      {(Array.isArray(product.variants) && product.variants.length > 0) ? `Desde ${Math.min(...product.variants.filter((v:any) => typeof v.price === 'number').map((v:any) => v.price))}€` : `${product.price}€`}
-                                      {product.isDigital && product.price === 0 && <span className="ml-2 text-blue-600 font-black italic">¡INCLUIDO EN PACK!</span>}
+                                      {hasSeenGiftPopup && product.isDigital && product.name.includes("GALERÍA") ? (
+                                        <span className="text-orange-500 font-black animate-pulse flex items-center gap-1.5 uppercase italic">
+                                          <Gift className="h-3.5 w-3.5" /> ¡REGALADO! (0€)
+                                        </span>
+                                      ) : (
+                                        <>
+                                          {/* LÓGICA DE PRECIOS DINÁMICOS DESDE EL PANEL DE CONTROL */}
+                                          {product.name.includes("GALERÍA") && client.gallerySettings?.fullGalleryPrice ? (
+                                            `${client.gallerySettings.fullGalleryPrice}€`
+                                          ) : (product.name.includes("ARCHIVO") || product.name.includes("MÁXIMA CALIDAD")) && client.gallerySettings?.archivePrice ? (
+                                            `${client.gallerySettings.archivePrice}€`
+                                          ) : (
+                                            <>
+                                              {(Array.isArray(product.variants) && product.variants.length > 0) ? `Desde ${Math.min(...product.variants.filter((v:any) => typeof v.price === 'number').map((v:any) => v.price))}€` : `${product.price}€`}
+                                            </>
+                                          )}
+
+                                          {/* Solo mostramos "Incluido" si NO es Máxima Calidad y el precio es realmente 0 */}
+                                          {product.isDigital && product.price === 0 && !product.name.includes("MÁXIMA CALIDAD") && !product.name.includes("ARCHIVO") && (
+                                            <span className="ml-2 text-blue-600 font-black italic">¡INCLUIDO EN PACK!</span>
+                                          )}
+                                        </>
+                                      )}
                                     </p>
                                     {product.description && (
                                       <p className="text-[9px] text-slate-500 font-medium italic leading-tight mt-1 opacity-80">
@@ -2371,47 +2645,50 @@ export default function GalleryPage() {
 
                 {/* TOP BAR: Info, Altavoz y Cerrar */}
                 <div className="absolute top-0 inset-x-0 p-6 flex items-center justify-between z-50 pointer-events-none">
-                  <div className="flex items-center gap-4 pointer-events-auto bg-black/20 backdrop-blur-md p-2 px-4 rounded-2xl border border-white/10">
+                  <div className="flex items-center gap-4 pointer-events-auto bg-slate-900 p-2 px-4 rounded-2xl border border-white/10 shadow-2xl">
                     <button 
                       onClick={() => setViewerIndex(null)}
-                      className="w-10 h-10 flex items-center justify-center bg-white/10 text-white border border-white/20 hover:bg-white/20 rounded-full transition-all group"
+                      className="w-10 h-10 flex items-center justify-center bg-slate-800 text-white border border-white/5 hover:bg-white hover:text-black rounded-full transition-all group shadow-inner"
                     >
                       <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
                     </button>
                     <div className="flex flex-col">
-                      <h3 className="text-white font-black text-sm uppercase tracking-tighter italic">
+                      <h3 className="text-white font-black text-sm uppercase tracking-tighter italic leading-none mb-1">
                         {currentPhoto.name || currentPhoto.id}
                       </h3>
-                      <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest leading-none">
-                        Imagen {viewerIndex! + 1} / {viewerPhotos.length}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1 w-1 rounded-full bg-white/20" />
+                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest leading-none">
+                          Imagen {viewerIndex! + 1} de {viewerPhotos.length}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pointer-events-auto">
-                    {/* Botón Añadir Artículos (Cyan) - AHORA ARRIBA */}
+                  <div className="flex items-center gap-3 pointer-events-auto">
+                    {/* Botón Añadir Artículos (Cyan Sólido) - COMPLEMENTOS */}
                     <button 
                       onClick={(e) => { 
                         e.stopPropagation(); 
                         setPhotoToBuy(currentPhoto);
                         setIsShopModalOpen(true);
                       }}
-                      className="bg-cyan-600/90 text-white border border-cyan-400 rounded-full h-10 px-4 font-black uppercase text-[9px] tracking-widest shadow-xl hover:bg-cyan-500 hover:scale-[1.02] transition-all flex items-center gap-2 group active:scale-95"
+                      className="bg-cyan-600 text-white border border-cyan-400/20 rounded-full h-11 px-6 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-cyan-500/10 hover:bg-cyan-500 hover:scale-105 transition-all flex items-center gap-2 group active:scale-95"
                     >
-                      <Plus className="h-3 w-3 group-hover:rotate-90 transition-transform" />
-                      <span className="hidden sm:inline">Comprar Foto</span>
+                      <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform" />
+                      <span className="hidden sm:inline">COMPLEMENTOS</span>
                       <span className="sm:hidden">Tienda</span>
                     </button>
 
-                    {/* Botón Ver Resumen (Cesta) Arriba con Texto para evitar dudas */}
+                    {/* Botón Ver Resumen (Cesta Sólido) */}
                     <button 
                       onClick={(e) => { e.stopPropagation(); setIsCartOpen(true); }}
-                      className="h-10 px-4 flex items-center gap-2 bg-black/40 text-white border border-[#4A7C59]/30 hover:bg-black/60 rounded-full transition-all shadow-2xl relative group"
+                      className="h-11 px-6 flex items-center gap-2 bg-[#4A7C59] text-white border border-[#4A7C59]/20 hover:bg-[#3D6649] hover:scale-105 rounded-full transition-all shadow-xl shadow-green-900/20 relative group active:scale-95"
                     >
-                      <ShoppingBag className="h-4 w-4 text-[#4A7C59] group-hover:scale-110 transition-transform" />
-                      <span className="font-black uppercase text-[9px] tracking-widest text-[#4A7C59]">Mi Cesta</span>
+                      <ShoppingBag className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                      <span className="font-black uppercase text-[10px] tracking-widest">Mi Cesta</span>
                       {favorites.size > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-[#4A7C59] text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-black shadow-lg animate-in zoom-in-50">
+                        <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-lg animate-pulse">
                           {favorites.size}
                         </span>
                       )}
@@ -2420,9 +2697,9 @@ export default function GalleryPage() {
                     {client?.gallerySettings?.bgMusic?.url && (
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleMusic(); }}
-                        className="w-10 h-10 flex items-center justify-center bg-black/40 text-white border border-white/10 hover:bg-white/20 rounded-full transition-all shadow-2xl"
+                        className="w-11 h-11 flex items-center justify-center bg-slate-900 text-white border border-white/10 hover:bg-black rounded-full transition-all shadow-2xl"
                       >
-                        {isPlaying ? <Volume2 className="h-4 w-4 text-orange-400 animate-pulse" /> : <VolumeX className="h-4 w-4 text-white/30" />}
+                        {isPlaying ? <Volume2 className="h-4 w-4 text-cyan-400 animate-pulse" /> : <VolumeX className="h-4 w-4 text-white/30" />}
                       </button>
                     )}
                   </div>
@@ -2860,7 +3137,270 @@ export default function GalleryPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  )
-}
+
+      {/* POPUP OFERTA PACK COMPLETO (Marketing a los 30s) */}
+      <AnimatePresence>
+        {showFullPackPopup && !fullPackDismissed && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[3rem] overflow-hidden shadow-2xl max-w-lg w-full relative"
+            >
+              {/* Botón Cerrar */}
+              <button 
+                onClick={() => {
+                  setShowFullPackPopup(false)
+                  setFullPackDismissed(true)
+                }}
+                className="absolute top-6 right-6 z-20 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all border border-slate-200/50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="bg-gradient-to-br from-[#4A7C59] to-[#3D6649] p-10 text-white relative overflow-hidden text-left">
+                {/* Decoración Fondo */}
+                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                  <ShoppingBag className="h-48 w-48 rotate-12" />
+                </div>
+                
+                <div className="relative z-10 space-y-6">
+                  <div className="space-y-2">
+                    <span className="inline-flex bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">OFERTA ESPECIAL</span>
+                    <h3 className="text-4xl font-black italic tracking-tighter leading-none">
+                      {includedCount > 0 ? "¡COMPLETA TU GALERÍA!" : "¡LLÉVATELO TODO!"}
+                    </h3>
+                    <p className="text-white/70 text-sm font-medium leading-relaxed max-w-[280px]">
+                      {includedCount > 0 
+                        ? `Ya tienes ${includedCount} fotos incluidas. Completa tu colección con las ${remainingPhotosCount} restantes en **formato digital**.`
+                        : "¿Te gustan todas? Llévate la sesión completa en **formato digital** a máxima calidad por un precio único."
+                      }
+                    </p>
+                    <div className="flex items-center gap-2 text-white/40 border-t border-white/10 pt-4 mt-2">
+                       <ShoppingBag className="h-3 w-3" />
+                       <p className="text-[10px] font-bold uppercase tracking-tight leading-tight">
+                         ¿Quieres copias en papel? Pídelas en la tienda.
+                       </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-8">
+                    <div className="flex flex-col items-center text-center">
+                      <span className="text-white/40 text-sm font-black line-through mb-2 uppercase tracking-widest leading-none">
+                        {photos.length * (client?.gallerySettings?.digitalFiles?.price || 15)}€
+                      </span>
+                      <div className="flex items-center justify-center">
+                        <span className="text-3xl font-black italic mt-1 mr-1 text-white/60">+</span>
+                        <span className="text-7xl font-black italic tracking-tighter leading-none text-white drop-shadow-2xl">
+                          {client?.gallerySettings?.digitalFiles?.fullPackPrice}€
+                        </span>
+                      </div>
+                      {includedCount > 0 && (
+                        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mt-4 bg-white/5 border border-white/5 px-4 py-1 rounded-full">
+                          Fotos Adicionales
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col gap-5 w-full items-center">
+                      <Button 
+                        onClick={handleAcceptFullPack}
+                        className="bg-white text-[#4A7C59] hover:bg-slate-50 rounded-full px-12 h-16 font-black uppercase text-[12px] tracking-widest shadow-[0_20px_50px_-12px_rgba(255,255,255,0.3)] transition-all hover:scale-105 active:scale-95 w-full max-w-[340px]"
+                      >
+                        {includedCount > 0 ? "¡Sí, SUMARLAS A MI CESTA!" : "¡SÍ, ME LAS LLEVO TODAS!"}
+                      </Button>
+
+                      <Button 
+                        variant="ghost" 
+                        onClick={handleDeclineOffer}
+                        className="bg-white/10 hover:bg-white/20 text-white/60 hover:text-white rounded-full px-10 h-11 font-black uppercase text-[8px] tracking-[0.15em] shadow-xl transition-all hover:scale-105 active:scale-95 leading-tight backdrop-blur-md border border-white/5 w-full max-w-[280px]"
+                      >
+                        No son importantes para mi,<br/>deseo perder estos recuerdos para siempre
+                      </Button>
+                    </div>
+
+                    <p className="text-[9px] text-white/30 font-bold uppercase tracking-[0.3em] text-center">
+                      * Disponible por tiempo limitado en tu galería privada
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* VENTANA EMERGENTE DE NOSTALGIA (FOMO) */}
+      <AnimatePresence>
+        {showFommoMessage && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 40 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 40 }}
+              className="bg-white border-b-4 border-[#4A7C59] rounded-[2rem] p-8 max-w-sm w-full shadow-2xl relative pointer-events-auto"
+            >
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center animate-bounce">
+                  <Trash2 className="h-8 w-8" />
+                </div>
+                <div className="space-y-2">
+                   <h4 className="text-xl font-black text-slate-800 tracking-tighter italic">¿CUIDADO CON ESTO...?</h4>
+                   <p className="text-slate-500 text-[13px] font-medium leading-relaxed">
+                     Como profesional, para mantener el espacio del servidor al día, **el fotógrafo borrará permanentemente todos tus recuerdos** en cuanto te entregue tu selección definitiva.
+                   </p>
+                   <p className="text-[#4A7C59] text-sm font-black italic mt-4">
+                     Una verdadera pena que se pierdan para siempre... ¿estás totalmente seguro?
+                   </p>
+                </div>
+                <Button 
+                  onClick={() => { setShowFommoMessage(false); setShowFullPackPopup(true); }}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full px-6 h-10 font-bold uppercase text-[9px] tracking-widest transition-all mt-2"
+                >
+                  Esperar, me lo estoy pensando
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+          {/* POPUP REGALO (75% DE LA GALERÍA) */}
+          <AnimatePresence>
+            {showGiftPopup && (
+              <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md text-left">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="bg-white rounded-[3rem] overflow-hidden shadow-2xl max-w-lg w-full relative"
+                >
+                  <div className="bg-gradient-to-br from-[#4A7C59] to-[#3D6649] p-10 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                      <Gift className="h-48 w-48 rotate-12" />
+                    </div>
+                    
+                    <div className="relative z-10 space-y-6">
+                      <div className="space-y-2">
+                        <span className="inline-flex bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">PREMIO A TU SELECCIÓN</span>
+                        <h3 className="text-4xl font-black italic tracking-tighter leading-none">¡REGALO EXCLUSIVO!</h3>
+                        <p className="text-white/80 text-sm font-medium leading-relaxed max-w-[320px]">
+                          Vemos que te ha encantado casi toda la sesión ({favorites.size} fotos). ¡Queremos tener un detalle contigo!
+                        </p>
+                      </div>
+
+                      <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
+                        <p className="text-lg font-black italic leading-tight">
+                          Al enviar esta selección, te habilitaremos la descarga de la <span className="text-yellow-300 underline underline-offset-4 font-black">GALERÍA COMPLETA</span> sin coste adicional.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-4">
+                        <Button 
+                          onClick={handleAcceptGift}
+                          className="bg-white text-[#4A7C59] hover:bg-slate-50 rounded-full px-8 h-14 font-black uppercase text-[11px] tracking-widest shadow-xl transition-all hover:scale-105 active:scale-95"
+                        >
+                          Aceptar Regalo y Enviar
+                        </Button>
+                      </div>
+
+                      <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest">
+                        * El fotógrafo validará tu selección y habilitará la descarga completa en breve.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* MODAL PARA LIMPIAR SELECCIÓN */}
+          <AnimatePresence>
+            {showClearConfirm && (
+              <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl text-center overflow-hidden"
+                >
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="w-20 h-20 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center">
+                      <Trash2 className="h-10 w-10" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-2xl font-black text-slate-800 tracking-tighter uppercase italic">
+                        ¿Limpiar todo?
+                      </h3>
+                      <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                        Se quitarán todas las fotos de tus favoritas. Esta acción no se puede deshacer.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-3 w-full">
+                      <Button 
+                        onClick={handleConfirmClear}
+                        className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-14 font-black uppercase text-[11px] tracking-widest shadow-lg active:scale-95 transition-all"
+                      >
+                        SÍ, LIMPIAR SELECCIÓN
+                      </Button>
+                      <Button 
+                        variant="ghost"
+                        onClick={() => setShowClearConfirm(false)}
+                        className="text-slate-400 hover:text-slate-600 font-bold uppercase text-[10px] tracking-widest"
+                      >
+                        No, quiero dejarlas
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* MODAL PARA CANCELAR Y EMPEZAR DE CERO */}
+          <AnimatePresence>
+            {showCancelConfirm && (
+              <div className="fixed inset-0 z-[1001] flex items-center justify-center p-6 bg-black/70 backdrop-blur-md">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl text-center border-b-[6px] border-slate-200"
+                >
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="w-24 h-24 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center">
+                      <Plus className="h-12 w-12 rotate-45" />
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="text-3xl font-black text-slate-800 tracking-tighter uppercase italic leading-none">
+                        ¿REINICIAR?
+                      </h3>
+                      <p className="text-slate-500 text-[15px] font-semibold leading-relaxed px-4">
+                        ¿Quieres borrar tu selección actual y elegir tus fotos de nuevo desde cero? 
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-4 w-full mt-4">
+                      <Button 
+                        onClick={handleConfirmCancel}
+                        className="bg-slate-900 hover:bg-black text-white rounded-full h-16 font-black uppercase text-[12px] tracking-widest shadow-xl active:scale-95 transition-all w-full"
+                      >
+                        SÍ, EMPEZAR DE NUEVO
+                      </Button>
+                      <Button 
+                        variant="ghost"
+                        onClick={() => setShowCancelConfirm(false)}
+                        className="bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-full h-12 font-bold uppercase text-[10px] tracking-widest transition-all"
+                      >
+                        VOLVER A MIS FOTOS
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      )
+    }
 

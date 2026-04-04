@@ -119,6 +119,7 @@ export function AdminPanel(props: AdminPanelProps) {
   const [suppliers, setSuppliers] = useState<any[]>([])
   const [firebaseClients, setFirebaseClients] = useState<Record<string, any>>({})
   const [customerIdToEdit, setCustomerIdToEdit] = useState<string | null>(null)
+  const [returnTab, setReturnTab] = useState<string | null>(null)
 
   const navigateWithFilter = (tab: string, filter: string = 'all') => {
     setActiveTab(tab)
@@ -273,7 +274,10 @@ export function AdminPanel(props: AdminPanelProps) {
               <motion.button
                 key={item.id}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id)
+                  if (item.id === 'customers') setReturnTab(null)
+                }}
                 className={`flex items-center gap-2 px-3 lg:px-5 py-2 lg:py-3.5 rounded-lg lg:rounded-[1.25rem] text-[9px] lg:text-xs font-black transition-all whitespace-nowrap min-w-fit lg:w-full relative overflow-hidden group/btn ${
                   activeTab === item.id
                   ? 'bg-white lg:bg-white text-[#4A7C59] shadow-sm lg:shadow-[0_10px_25px_-5px_rgba(74,124,89,0.15)] border border-[#4A7C59]/10'
@@ -495,6 +499,13 @@ export function AdminPanel(props: AdminPanelProps) {
                   formatPrice={formatPrice}
                   customerIdToEdit={customerIdToEdit}
                   initialFilter={activeTab === 'customers' ? activeFilter : 'all'}
+                  onClose={() => {
+                    setCustomerIdToEdit(null)
+                    if (returnTab) {
+                      setActiveTab(returnTab)
+                      setReturnTab(null)
+                    }
+                  }}
                 />
               )}
 
@@ -507,6 +518,7 @@ export function AdminPanel(props: AdminPanelProps) {
                   onEditCustomerGallery={(customer) => {
                     const key = (customer.dni || customer.email || customer.phone).trim().toUpperCase()
                     setCustomerIdToEdit(key)
+                    setReturnTab('galleries')
                     setActiveTab('customers')
                   }} 
                   initialFilter={activeTab === 'galleries' ? activeFilter : 'all'}

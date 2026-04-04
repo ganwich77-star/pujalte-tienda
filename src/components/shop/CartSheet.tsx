@@ -361,7 +361,7 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
   }
 
   const sendWhatsAppOrder = () => {
-    const phone = config?.whatsappConfig?.phone || "34661623126"; 
+    const phone = config?.whatsappConfig?.phone || "34650494728"; 
     const galleryName = galleryTitle || clientId || "Galería Privada";
     
     // Usamos los detalles blindados
