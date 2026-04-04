@@ -644,7 +644,8 @@ export default function GalleryPage() {
         'gallerySettings.photoNotes': photoNotes,
         'gallerySettings.selectionItems': cartItems, // Guardamos los artículos de tienda seleccionados
         'gallerySettings.lastUpdate': serverTimestamp(),
-        'gallerySettings.selectionConfirmed': true
+        'gallerySettings.selectionConfirmed': true,
+        'gallerySettings.status': 'EDITAR'
       })
 
       // 2. Enviar correo a través de la API

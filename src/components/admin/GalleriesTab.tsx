@@ -18,7 +18,8 @@ import {
   Edit3,
   Filter,
   Plus,
-  ChevronDown
+  ChevronDown,
+  UserPlus
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,13 +53,16 @@ import { cn } from '@/lib/utils'
 
 interface GalleriesTabProps {
   onEditCustomerGallery: (customer: any) => void
+  onAddCustomer: () => void
   initialFilter?: string
 }
 
-export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: GalleriesTabProps) {
+export function GalleriesTab({ onEditCustomerGallery, onAddCustomer, initialFilter = 'all' }: GalleriesTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [actionFilter, setActionFilter] = useState(initialFilter)
   const [loading, setLoading] = useState(true)
+  const [sortBy, setSortBy] = useState<'updatedAt' | 'status' | 'name'>('updatedAt')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     if (initialFilter) {
@@ -118,6 +122,35 @@ export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: G
     if (actionFilter === 'ARCHIVADA') return manualStatus === 'ARCHIVADA';
     
     return true;
+  }).sort((a, b) => {
+    if (sortBy === 'name') {
+      const nameA = (a.name || '').toLowerCase()
+      const nameB = (b.name || '').toLowerCase()
+      return sortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
+    }
+    
+    if (sortBy === 'status') {
+      const statusPriority: Record<string, number> = {
+        'PENDIENTE SELECCIÓN': 1,
+        'EDITAR': 2,
+        'ENVIADA A LABORATORIO': 3,
+        'TERMINADA': 4,
+        'ARCHIVADA': 5
+      }
+      const valA = statusPriority[a.gallerySettings?.status || ''] || 99
+      const valB = statusPriority[b.gallerySettings?.status || ''] || 99
+      
+      if (valA !== valB) {
+        return sortDirection === 'asc' ? valA - valB : valB - valA
+      }
+      // Si el estado es igual, ordenamos por fecha reversa (más reciente arriba)
+      return (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0)
+    }
+
+    // Default: updatedAt
+    const dateA = a.updatedAt?.seconds || 0
+    const dateB = b.updatedAt?.seconds || 0
+    return sortDirection === 'asc' ? dateA - dateB : dateB - dateA
   })
 
   const handleDeleteGallery = async () => {
@@ -150,7 +183,7 @@ export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: G
       }
 
       if (newStatus === 'CONFIRMADA') {
-        updates['gallerySettings.status'] = null
+        updates['gallerySettings.status'] = 'EDITAR'
         updates['gallerySettings.selectionConfirmed'] = true
         // Para que se vea el badge verde, forzamos que lastSelection tenga algo si está vacío
         if (!customer.gallerySettings?.lastSelection || customer.gallerySettings.lastSelection.length === 0) {
@@ -182,76 +215,100 @@ export function GalleriesTab({ onEditCustomerGallery, initialFilter = 'all' }: G
         <div className="space-y-1">
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none">Galerías Clientes</h2>
           <div className="flex items-center gap-2 pt-1">
-            <div className="h-1 w-6 sm:h-1.5 sm:w-8 rounded-full bg-blue-500" />
+            <div className="h-1 w-6 sm:h-1.5 sm:w-8 rounded-full bg-slate-900" />
             <p className="text-[10px] sm:text-sm font-bold text-slate-400 uppercase tracking-widest">Gestión de Reportajes</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* 1. Search */}
+          <div className="relative group flex-1 md:w-64 min-w-[150px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
+            <Input
+              placeholder="Buscar..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-11 h-10 sm:h-12 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 shadow-inner focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-slate-900/10 transition-all font-medium text-sm"
+            />
+          </div>
+
+          {/* 2. View Mode */}
           <div className="flex bg-slate-100 p-1 rounded-xl sm:rounded-2xl">
             <button 
               onClick={() => setViewMode('grid')}
-              className={cn("p-2 rounded-lg sm:rounded-xl transition-all", viewMode === 'grid' ? "bg-white shadow-sm text-blue-500" : "text-slate-400 hover:text-slate-600")}
+              className={cn("p-2 rounded-lg sm:rounded-xl transition-all", viewMode === 'grid' ? "bg-white shadow-sm text-slate-900" : "text-slate-400 hover:text-slate-600")}
             >
               <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
             <button 
               onClick={() => setViewMode('list')}
-              className={cn("p-2 rounded-lg sm:rounded-xl transition-all", viewMode === 'list' ? "bg-white shadow-sm text-blue-500" : "text-slate-400 hover:text-slate-600")}
+              className={cn("p-2 rounded-lg sm:rounded-xl transition-all", viewMode === 'list' ? "bg-white shadow-sm text-slate-900" : "text-slate-400 hover:text-slate-600")}
             >
               <List className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
 
-          <div className="relative group flex-1 md:w-64 min-w-[150px]">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
-            <Input
-              placeholder="Buscar..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-11 h-10 sm:h-12 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 shadow-inner focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-blue-500/10 transition-all font-medium text-sm"
-            />
-          </div>
-
+          {/* 3. Filter */}
           <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="w-auto h-10 sm:h-12 px-4 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 font-bold text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all gap-2">
-              <Filter className="h-4 w-4 text-blue-500" />
+            <SelectTrigger className="w-auto h-10 sm:h-12 px-4 rounded-xl sm:rounded-2xl border-slate-100 bg-white font-bold text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all gap-2 shadow-sm">
+              <Filter className="h-4 w-4 text-slate-900" />
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
-              <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest py-3 hover:bg-slate-50 transition-colors">Todos</SelectItem>
+              <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest py-3">Todos</SelectItem>
               <div className="h-px bg-slate-100 my-1 mx-2" />
-              <SelectItem value="PENDIENTE" className="text-[10px] font-bold uppercase tracking-widest py-3 text-orange-500 font-black hover:bg-orange-50 transition-colors">⏳ PENDIENTE SELECCIÓN</SelectItem>
-              <SelectItem value="EDITAR" className="text-[10px] font-bold uppercase tracking-widest py-3 text-cyan-500 font-black hover:bg-cyan-50 transition-colors">✏️ PARA EDITAR</SelectItem>
-              <SelectItem value="TERMINADA" className="text-[10px] font-bold uppercase tracking-widest py-3 text-blue-600 font-black hover:bg-blue-50 transition-colors">🏁 Terminadas</SelectItem>
-              <SelectItem value="LABORATORIO" className="text-[10px] font-bold uppercase tracking-widest py-3 text-purple-600 font-black hover:bg-purple-50 transition-colors">🔬 LABORATORIO</SelectItem>
-              <SelectItem value="ARCHIVADA" className="text-[10px] font-bold uppercase tracking-widest py-3 text-slate-500 font-black hover:bg-slate-50 transition-colors">📦 Archivadas</SelectItem>
-              <div className="h-px bg-slate-100 my-1 mx-2" />
-              <SelectItem value="pending_action" className="text-[10px] font-bold uppercase tracking-widest py-3 text-orange-500 font-black">Acción Pendiente</SelectItem>
-              <SelectItem value="confirmed" className="text-[10px] font-bold uppercase tracking-widest py-3 text-emerald-500 font-black">Confirmadas</SelectItem>
-              <SelectItem value="empty" className="text-[10px] font-bold uppercase tracking-widest py-3 text-rose-500 font-black">Sin Fotos</SelectItem>
+              <SelectItem value="PENDIENTE" className="text-[10px] font-bold uppercase tracking-widest py-3 text-orange-500 font-black">⏳ PENDIENTE</SelectItem>
+              <SelectItem value="EDITAR" className="text-[10px] font-bold uppercase tracking-widest py-3 text-cyan-500 font-black">✏️ PARA EDITAR</SelectItem>
+              <SelectItem value="TERMINADA" className="text-[10px] font-bold uppercase tracking-widest py-3 text-emerald-600 font-black">🏁 Terminadas</SelectItem>
+              <SelectItem value="LABORATORIO" className="text-[10px] font-bold uppercase tracking-widest py-3 text-purple-600 font-black">🔬 LABORATORIO</SelectItem>
+              <SelectItem value="ARCHIVADA" className="text-[10px] font-bold uppercase tracking-widest py-3 text-slate-500 font-black">📦 Archivadas</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {/* 4. Sort */}
+          <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
+            <SelectTrigger className="w-auto h-10 sm:h-12 px-4 rounded-xl sm:rounded-2xl border-slate-100 bg-white font-black text-[10px] uppercase tracking-widest text-slate-900 hover:bg-slate-50 transition-all gap-2 min-w-[140px] shadow-sm">
+              <div className="flex items-center gap-2">
+                <ChevronDown 
+                  className={cn("h-4 w-4 transition-transform cursor-pointer", sortDirection === 'asc' ? "rotate-180" : "")} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                  }} 
+                />
+                <span>Orden: {sortBy === 'updatedAt' ? 'Fecha' : sortBy === 'status' ? 'Estado' : 'Nombre'}</span>
+              </div>
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
+              <SelectItem value="updatedAt" className="text-[10px] font-black uppercase tracking-widest py-3">📅 Por Fecha</SelectItem>
+              <SelectItem value="status" className="text-[10px] font-black uppercase tracking-widest py-3">🏷️ Por Estado</SelectItem>
+              <SelectItem value="name" className="text-[10px] font-black uppercase tracking-widest py-3">👤 Por Nombre</SelectItem>
             </SelectContent>
           </Select>
 
-          <Button 
-            onClick={() => setIsSelectCustomerModalOpen(true)}
-            className="h-10 sm:h-12 px-6 rounded-xl sm:rounded-2xl bg-blue-500 hover:bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
-          >
-            <Plus className="h-4 w-4" /> Nuevo Reportaje
-          </Button>
         </div>
       </div>
 
       {/* Stats Quick View */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-0">
-        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-blue-50 text-blue-500">
-            <Camera className="h-6 w-6" />
+        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-100 shadow-sm flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-slate-50 text-slate-900">
+              <Camera className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Reportajes</p>
+              <p className="text-xl font-black text-slate-800 leading-none">{customersWithGallery.length}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Reportajes</p>
-            <p className="text-xl font-black text-slate-800 leading-none">{customersWithGallery.length}</p>
-          </div>
+          
+          <Button 
+            onClick={() => setIsSelectCustomerModalOpen(true)}
+            size="sm"
+            className="h-10 px-4 rounded-xl bg-slate-900 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-[9px] gap-2 transition-all shadow-lg active:scale-95"
+          >
+            <Plus className="h-4 w-4" /> Añadir
+          </Button>
         </div>
       </div>
 
@@ -542,9 +599,20 @@ Cualquier duda, ¡escríbeme! 📲
                               {(customer.gallerySettings?.photos?.length || 0) === 0 && (
                                 <Badge className="bg-red-500 text-white border-none font-black text-[8px] uppercase px-2 py-0.5 rounded-full animate-pulse shadow-sm h-4">Sin Fotos</Badge>
                               )}
-                              <Badge className="bg-blue-50 text-blue-600 border-blue-100/50 font-black text-[9px] uppercase px-2 py-0.5 rounded-lg shadow-sm">
-                                {customer.gallerySettings?.photos?.length || 0} FOTOS
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge className="bg-blue-50 text-blue-600 border-blue-100/50 font-black text-[9px] uppercase px-2 py-0.5 rounded-lg shadow-sm shrink-0">
+                                  {customer.gallerySettings?.photos?.length || 0} FOTOS
+                                </Badge>
+                                {(customer.gallerySettings?.photos?.length || 0) > 0 && (
+                                  <div className="flex -space-x-1.5 overflow-hidden">
+                                     {customer.gallerySettings.photos.slice(0, 3).map((p: any, idx: number) => (
+                                        <div key={idx} className="w-4 h-4 rounded-full border border-white overflow-hidden bg-slate-100 shadow-sm shrink-0">
+                                           <img src={p.url} className="w-full h-full object-cover" />
+                                        </div>
+                                     ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -703,7 +771,17 @@ Cualquier duda, ¡escríbeme! 📲
             </div>
           </div>
 
-          <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex justify-end">
+          <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between gap-4">
+            <Button 
+              onClick={() => {
+                setIsSelectCustomerModalOpen(false)
+                onAddCustomer()
+              }}
+              className="rounded-xl h-12 px-6 bg-slate-900 border-none font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg"
+            >
+              <UserPlus className="h-4 w-4 text-emerald-400" />
+              Añadir Cliente Nuevo
+            </Button>
             <Button variant="ghost" onClick={() => setIsSelectCustomerModalOpen(false)} className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[10px]">Cerrar</Button>
           </div>
         </DialogContent>

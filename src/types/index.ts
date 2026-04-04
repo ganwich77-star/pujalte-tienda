@@ -112,6 +112,7 @@ export interface StoreConfig {
   adminPassword?: string
   formFields: FormField[]
   promos?: any[] // Para evitar dependencias circulares con lib/landing-config
+  sessionTypes?: string[]
 }
 
 export interface GallerySettings {
@@ -129,6 +130,7 @@ export interface GallerySettings {
     packIncluded?: number;
     extraPrice?: number;
   };
+  sessionType?: string;
 }
 
 export interface Customer {

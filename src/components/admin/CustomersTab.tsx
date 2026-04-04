@@ -50,13 +50,15 @@ import {
   CircleDollarSign,
   Package,
   Settings2,
-  ChevronDown
+  ChevronDown,
+  Layers
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Separator } from '@/components/ui/separator'
 import { db, storage, COLLECTIONS } from '@/lib/firebase'
 import { 
   collection, 
@@ -102,13 +104,14 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { Filter } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
-import { Order } from '@/types'
+import { Order, StoreConfig } from '@/types'
 interface CustomersTabProps {
   orders: Order[]
   formatPrice: (price: number) => string
   customerIdToEdit?: string | null
   initialFilter?: string
   onClose?: () => void
+  config: StoreConfig
 }
 
 const generateSlug = (text: string) => {
@@ -153,9 +156,10 @@ const resizeImage = (file: File, maxSide: number = 1500): Promise<File> => {
   });
 };
 
-export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFilter = 'all', onClose }: CustomersTabProps) {
+export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFilter = 'all', onClose, config }: CustomersTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [actionFilter, setActionFilter] = useState(initialFilter) // all, pending_action, empty, confirmed
+  const [sessionFilter, setSessionFilter] = useState('all')
 
   useEffect(() => {
     if (initialFilter) {
@@ -170,7 +174,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
   const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false)
   const [isGalleryConfigOpen, setIsGalleryConfigOpen] = useState(true)
-  const [newCustomer, setNewCustomer] = useState({
+  const [newCustomer, setNewCustomer] = useState<any>({
     name: '',
     dni: '',
     email: '',
@@ -188,7 +192,8 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
         extraPrintPrice: 5,
         packIncluded: 0,
         fullPackPrice: 0
-      }
+                                                    },
+      sessionType: undefined
     },
     slug: ''
   })
@@ -965,6 +970,12 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
 
   // Efecto para abrir el editor automáticamente si viene de Galerías
   useEffect(() => {
+    if (customerIdToEdit === 'NEW' && !initialEditProcessed.current) {
+      setIsAddingCustomer(true)
+      initialEditProcessed.current = true
+      return
+    }
+
     if (customerIdToEdit && customers.length > 0 && !initialEditProcessed.current) {
       const customer = customers.find(c => 
         (c.dni || c.email || c.phone).trim().toUpperCase() === customerIdToEdit.trim().toUpperCase()
@@ -993,10 +1004,13 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
     const isConfirmed = c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0;
     const isEmpty = !c.gallerySettings?.photos || c.gallerySettings.photos.length === 0;
 
-    if (actionFilter === 'pending_action') return isConfirmed || isEmpty;
+    if (actionFilter === 'pending_action') return (isConfirmed || isEmpty);
     if (actionFilter === 'empty') return isEmpty;
     if (actionFilter === 'confirmed') return isConfirmed;
     
+    const matchesSession = sessionFilter === 'all' || c.gallerySettings?.sessionType === sessionFilter;
+    if (!matchesSession) return false;
+
     return true;
   })
 
@@ -1041,13 +1055,29 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
               />
             </div>
             
+            <Select value={sessionFilter} onValueChange={setSessionFilter}>
+              <SelectTrigger className="w-auto h-10 sm:h-12 px-4 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 dark:bg-slate-900 font-bold text-[10px] uppercase tracking-widest text-[#4A7C59] hover:bg-slate-100 transition-all gap-2 shadow-sm border-2 border-emerald-50">
+                <Layers className="h-4 w-4" />
+                <SelectValue placeholder="Tipo de Sesión" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-slate-100 shadow-xl bg-white p-2">
+                <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest py-3">Todas las Sesiones</SelectItem>
+                <Separator className="my-1 bg-slate-50" />
+                {(config?.sessionTypes || []).map((type: string) => (
+                  <SelectItem key={type} value={type} className="text-[10px] font-bold uppercase tracking-widest py-3 hover:bg-emerald-50 rounded-xl transition-colors">
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Select value={actionFilter} onValueChange={setActionFilter}>
               <SelectTrigger className="w-auto h-10 sm:h-12 px-4 rounded-xl sm:rounded-2xl border-slate-100 bg-slate-50 dark:bg-slate-900 font-bold text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all gap-2">
                 <Filter className="h-4 w-4 text-[#4A7C59]" />
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
-                <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest py-3">Todos los clientes</SelectItem>
+              <SelectContent className="rounded-2xl border-slate-100 shadow-xl bg-white p-2">
+                <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest py-3">Todos los estados</SelectItem>
                 <SelectItem value="pending_action" className="text-[10px] font-bold uppercase tracking-widest py-3 text-orange-500">Acción Requerida</SelectItem>
                 <SelectItem value="confirmed" className="text-[10px] font-bold uppercase tracking-widest py-3 text-emerald-500">Solo Confirmadas</SelectItem>
                 <SelectItem value="empty" className="text-[10px] font-bold uppercase tracking-widest py-3 text-rose-500">Solo Sin Fotos</SelectItem>
@@ -1118,6 +1148,11 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                   )}
                   {(!customer.gallerySettings?.photos || customer.gallerySettings.photos.length === 0) && (
                     <Badge className="bg-red-500 text-white border-none font-black text-[8px] px-2 py-0.5 rounded-full uppercase animate-pulse">Sin Fotos</Badge>
+                  )}
+                  {customer.gallerySettings?.sessionType && (
+                    <Badge className="bg-[#4A7C59]/10 text-[#4A7C59] border-[#4A7C59]/10 font-black text-[8px] px-2 py-0.5 rounded-full uppercase inline-flex items-center gap-1">
+                      <Layers className="h-2 w-2" /> {customer.gallerySettings.sessionType}
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -1268,6 +1303,11 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                             )}
                             {(!customer.gallerySettings?.photos || customer.gallerySettings.photos.length === 0) && (
                               <Badge className="bg-red-500 text-white border-none font-black text-[8px] px-2 py-0.5 rounded-full uppercase scale-90 h-4 animate-pulse">Sin Fotos</Badge>
+                            )}
+                            {customer.gallerySettings?.sessionType && (
+                              <Badge className="bg-[#4A7C59]/10 text-[#4A7C59] border-[#4A7C59]/20 font-black text-[8px] px-2 py-0.5 rounded-full uppercase scale-90 h-4 border inline-flex items-center gap-1 shadow-sm transition-all hover:bg-[#4A7C59]/20 cursor-default">
+                                <Layers className="h-2 w-2" /> {customer.gallerySettings.sessionType}
+                              </Badge>
                             )}
                           </p>
                         </div>
@@ -1524,15 +1564,38 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
 
                         {/* GESTIÓN DE FOTOS */}
                         <div className="space-y-3">
-                          <button onClick={() => setIsPhotosModalOpen(true)} className="w-full bg-slate-900 rounded-2xl p-4 flex items-center justify-between shadow-lg hover:bg-slate-800 transition-all text-left">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10"><Cloud className="h-5 w-5 text-blue-400" /></div>
+                          <button onClick={() => setIsPhotosModalOpen(true)} className="w-full bg-[#4A7C59] rounded-[2rem] p-5 flex items-center justify-between shadow-xl shadow-[#4A7C59]/20 hover:bg-[#3D674A] transition-all text-left relative overflow-hidden group/gal group-hover:scale-[1.01] active:scale-[0.99] border-none">
+                            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl group-hover/gal:bg-white/20 transition-all duration-700" />
+                            <div className="flex items-center gap-5 relative z-10">
+                              <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center border border-white/30 group-hover/gal:rotate-6 transition-transform shadow-inner shrink-0">
+                                <Cloud className="h-7 w-7 text-white" />
+                              </div>
                               <div>
-                                <h4 className="text-white text-base font-black uppercase italic tracking-tighter leading-none">Gestionar Galería</h4>
-                                <p className="text-slate-400 font-bold uppercase text-[11px] mt-2 tracking-tighter">Fotos: <span className="text-blue-400 font-black">{editingCustomer?.gallerySettings?.photos?.length || 0} ARCHIVOS</span></p>
+                                <h4 className="text-white text-lg font-black uppercase italic tracking-tighter leading-none mb-1.5">Gestionar Galería</h4>
+                                <div className="flex items-center gap-4">
+                                  <p className="text-white/80 font-black uppercase text-[11px] tracking-tight">Fotos: <span className="text-emerald-300 drop-shadow-sm">{editingCustomer?.gallerySettings?.photos?.length || 0} ARCHIVOS</span></p>
+                                  
+                                  {/* Avatar stack de fotos solapadas */}
+                                  {(editingCustomer?.gallerySettings?.photos?.length || 0) > 0 && (
+                                    <div className="flex -space-x-2.5 ml-2">
+                                      {editingCustomer.gallerySettings.photos.slice(0, 5).map((p: any, i: number) => (
+                                        <div key={i} className="w-6 h-6 rounded-full border-2 border-[#4A7C59] overflow-hidden bg-slate-100 shadow-lg ring-1 ring-white/20 transition-transform group-hover/gal:translate-x-1">
+                                          <img src={p.url} className="w-full h-full object-cover" />
+                                        </div>
+                                      ))}
+                                      {editingCustomer.gallerySettings.photos.length > 5 && (
+                                        <div className="w-6 h-6 rounded-full border-2 border-[#4A7C59] bg-white flex items-center justify-center text-[7px] font-black text-[#4A7C59] shadow-lg ring-1 ring-white/20">
+                                          +{editingCustomer.gallerySettings.photos.length - 5}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                            <ChevronRight className="h-4 w-4 text-white" />
+                            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20 group-hover/gal:bg-white/30 transition-all relative z-10 shadow-lg">
+                               <ChevronRight className="h-6 w-6 text-white group-hover/gal:translate-x-1 transition-transform" />
+                            </div>
                           </button>
                         <div className="space-y-4">
                            <button 
@@ -1628,6 +1691,32 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                                               className="rounded-[1.25rem] h-11 text-[13px] font-bold bg-slate-50 border-slate-100 px-4 text-slate-500 shadow-sm" 
                                             />
                                           </div>
+                                       </div>
+
+                                       <div className="space-y-1">
+                                          <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Categoría de Sesión</Label>
+                                          <Select 
+                                            value={editingCustomer.gallerySettings?.sessionType || 'none'} 
+                                            onValueChange={(val) => setEditingCustomer({
+                                              ...editingCustomer,
+                                              gallerySettings: {
+                                                ...editingCustomer.gallerySettings,
+                                                sessionType: val === 'none' ? undefined : val
+                                              }
+                                            })}
+                                          >
+                                            <SelectTrigger className="h-11 rounded-[1.25rem] border-slate-100 bg-white font-bold text-[11px] uppercase tracking-wider shadow-sm text-slate-900 px-4 transition-all hover:border-[#4A7C59]/30">
+                                              <SelectValue placeholder="Categorizar reportaje..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-none shadow-2xl p-2 bg-white min-w-[200px] z-[9999]">
+                                              <SelectItem value="none" className="rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400">--- SIN CATEGORÍA ---</SelectItem>
+                                              {(config?.sessionTypes || []).map((type: string) => (
+                                                <SelectItem key={type} value={type} className="rounded-xl text-[10px] font-black uppercase tracking-widest">
+                                                  {type}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
                                        </div>
 
                                        <div className="space-y-1 pt-1">
@@ -2057,6 +2146,32 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                     className="rounded-xl h-11"
                   />
                 </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">Categoría de Sesión</Label>
+                <Select 
+                  value={newCustomer.gallerySettings?.sessionType || 'none'} 
+                  onValueChange={(val) => setNewCustomer({
+                    ...newCustomer,
+                    gallerySettings: {
+                      ...newCustomer.gallerySettings,
+                      sessionType: val === 'none' ? undefined : val
+                    }
+                  })}
+                >
+                  <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-slate-50 font-bold text-[11px] uppercase tracking-wider text-slate-900 px-4">
+                    <SelectValue placeholder="Categorizar..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-none shadow-2xl p-2 bg-white min-w-[200px] z-[9999]">
+                    <SelectItem value="none" className="rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400">--- SIN CATEGORÍA ---</SelectItem>
+                    {config.sessionTypes?.map((type: string) => (
+                      <SelectItem key={type} value={type} className="rounded-xl text-[10px] font-black uppercase tracking-widest">
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

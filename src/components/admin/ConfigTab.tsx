@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { 
   Save, 
@@ -14,7 +16,9 @@ import {
   Upload,
   Image as ImageIcon,
   Trash2,
-  Info
+  Info,
+  Layers,
+  Plus
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { 
@@ -176,38 +180,37 @@ export function ConfigTab({ config, onUpdateConfig, onSave }: ConfigTabProps) {
                       ) : (
                         <div className="space-y-2">
                           <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center mx-auto">
-                            {isUploadingLogo ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#4A7C59] border-t-transparent" /> : <Upload className="h-4 w-4 text-[#4A7C59]" />}
+                            {isUploadingLogo ? <span className="animate-spin text-slate-300">/</span> : <Upload className="h-5 w-5 text-slate-400" />}
                           </div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            {isUploadingLogo ? 'Subiendo...' : 'Subir Logo PNG'}
-                          </p>
-                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleLogoUpload} disabled={isUploadingLogo} accept="image/*" />
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Subir Logo</p>
                         </div>
                       )}
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer" 
+                        onChange={handleLogoUpload}
+                        disabled={isUploadingLogo}
+                      />
                     </div>
                   </div>
 
-                  <div className="space-y-6 pt-4">
+                  <div className="space-y-6 pt-2">
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center px-1">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Opacidad del Logo</Label>
-                        <Badge variant="outline" className="bg-white rounded-full font-black text-[10px] px-2 py-0 border-slate-200">
-                          {config.logoOpacity ?? 100}%
-                        </Badge>
-                      </div>
-                      <Slider
-                        value={[config.logoOpacity ?? 100]}
-                        max={100}
-                        step={1}
-                        onValueChange={([val]) => onUpdateConfig({ ...config, logoOpacity: val })}
-                        className="py-4"
-                      />
-                      <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 flex gap-3">
-                        <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-                        <p className="text-[10px] font-medium text-blue-600 leading-relaxed">
-                          Ajusta la opacidad para que el logo se integre mejor como marca de agua o elemento decorativo en las galerías.
-                        </p>
-                      </div>
+                       <div className="flex justify-between">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Opacidad Logo</Label>
+                          <span className="text-[10px] font-black text-[#4A7C59]">{config.logoOpacity ?? 100}%</span>
+                       </div>
+                       <Slider 
+                         value={[config.logoOpacity ?? 100]} 
+                         onValueChange={([val]) => onUpdateConfig({ ...config, logoOpacity: val })}
+                         max={100}
+                         step={1}
+                         className="py-4"
+                       />
+                    </div>
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex gap-3">
+                       <Info className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                       <p className="text-[10px] font-medium text-slate-500 leading-relaxed">PujalteFotografía recomienda un 100% para logos de cliente y un 15-20% para marcas de agua sobre fotos.</p>
                     </div>
                   </div>
                 </div>
@@ -215,37 +218,85 @@ export function ConfigTab({ config, onUpdateConfig, onSave }: ConfigTabProps) {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-black/5 overflow-hidden bg-white/60 backdrop-blur-sm">
+          {/* GESTIÓN DE TIPOS DE SESIÓN */}
+          <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-emerald-900/5 overflow-hidden bg-white/60 backdrop-blur-sm">
             <CardHeader className="border-b border-slate-50 bg-white/80 p-8">
               <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-                <CreditCard className="h-4 w-4" /> Métodos de Pago Activos
+                <Layers className="h-4 w-4" /> Categorías de Reportajes (Tipos de Sesión)
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  { id: 'card', name: 'Tarjeta Bancaria', icon: CreditCard, color: 'text-blue-500', bg: 'bg-blue-50', note: 'Pasarela Paycomet', checked: config.enableCard, key: 'enableCard' },
-                  { id: 'bizum', name: 'Bizum / Transferencia', icon: Smartphone, color: 'text-[#00CCCC]', bg: 'bg-cyan-50', note: 'Gestión por WhatsApp', checked: config.enableBizum, key: 'enableBizum' },
-                  { id: 'cash', name: 'Efectivo / Recogida', icon: Banknote, color: 'text-green-500', bg: 'bg-green-50', note: 'Pago en local', checked: config.enableCash, key: 'enableCash' }
-                ].map((method) => (
-                  <div key={method.id} className="group relative flex items-center justify-between p-5 rounded-[1.5rem] border border-slate-100 bg-white transition-all hover:border-[#4A7C59]/30 hover:shadow-md">
-                    <div className="flex items-center gap-4">
-                      <div className={`h-12 w-12 rounded-xl ${method.bg} flex items-center justify-center`}>
-                        <method.icon className={`h-6 w-6 ${method.color}`} />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-black text-slate-900 group-hover:text-[#4A7C59] transition-colors">{method.name}</Label>
-                        <p className="text-[10px] font-bold text-slate-400 italic mt-0.5">{method.note}</p>
-                      </div>
+            <CardContent className="p-8 space-y-6">
+               <div className="flex gap-2">
+                  <Input 
+                    id="newSessionType"
+                    placeholder="Ej. Boda, Comunión, Estudio..." 
+                    className="h-12 rounded-xl bg-white border-slate-200 font-bold uppercase tracking-tight focus-visible:ring-[#4A7C59]/20"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = e.currentTarget.value.trim().toUpperCase();
+                        if (val && !config.sessionTypes?.includes(val)) {
+                          onUpdateConfig({ 
+                            ...config, 
+                            sessionTypes: [...(config.sessionTypes || []), val] 
+                          });
+                          e.currentTarget.value = '';
+                        }
+                      }
+                    }}
+                  />
+                  <Button 
+                    variant="ghost"
+                    className="h-12 w-12 rounded-xl bg-slate-100 hover:bg-[#4A7C59] hover:text-white transition-all shrink-0"
+                    onClick={() => {
+                        const input = document.getElementById('newSessionType') as HTMLInputElement;
+                        const val = input.value.trim().toUpperCase();
+                        if (val && !config.sessionTypes?.includes(val)) {
+                          onUpdateConfig({ 
+                            ...config, 
+                            sessionTypes: [...(config.sessionTypes || []), val] 
+                          });
+                          input.value = '';
+                        }
+                    }}
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
+               </div>
+
+               <div className="flex flex-wrap gap-2">
+                  {config.sessionTypes?.length ? config.sessionTypes.map((type) => (
+                    <Badge 
+                      key={type} 
+                      className="bg-white border-slate-100 py-2.5 px-4 rounded-xl flex items-center gap-3 group/tag hover:border-[#4A7C59]/30 transition-all shadow-sm"
+                    >
+                       <span className="text-slate-600 font-black text-[10px] uppercase tracking-widest">{type}</span>
+                       <button 
+                         onClick={() => {
+                           onUpdateConfig({
+                             ...config,
+                             sessionTypes: config.sessionTypes?.filter(t => t !== type)
+                           });
+                         }}
+                         className="text-slate-300 hover:text-red-500 transition-colors"
+                       >
+                         <Trash2 className="h-3 w-3" />
+                       </button>
+                    </Badge>
+                  )) : (
+                    <div className="w-full py-10 text-center border-2 border-dashed border-slate-100 rounded-3xl">
+                       <p className="text-[10px] font-black uppercase text-slate-300 tracking-[0.2em]">No hay categorías configuradas</p>
                     </div>
-                    <Switch 
-                      checked={method.checked} 
-                      onCheckedChange={(checked) => onUpdateConfig({ ...config, [method.key]: checked })}
-                      className="data-[state=checked]:bg-[#4A7C59]"
-                    />
+                  )}
+               </div>
+
+               <div className="p-5 rounded-[1.5rem] bg-emerald-50/50 border border-emerald-100 flex gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Sparkles className="h-5 w-5 text-[#4A7C59]" />
                   </div>
-                ))}
-              </div>
+                  <p className="text-[10px] font-medium text-emerald-800 leading-relaxed">
+                    Estructura tu trabajo de forma profesional. Estas categorías te permitirán filtrar y ordenar todos tus reportajes automáticamente en el panel de galerías.
+                  </p>
+               </div>
             </CardContent>
           </Card>
         </div>

@@ -5,6 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Order, Category, Product } from '@/types'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { CheckCircle } from 'lucide-react'
 
 interface DashboardTabProps {
   stats: {
@@ -17,12 +28,15 @@ interface DashboardTabProps {
   products: Product[]
   formatPrice: (price: number) => string
   firebaseClients?: Record<string, any>
-  setActiveTab?: (tab: string) => void
+  setActiveTab?: (tab: string, filter?: string) => void
+  onDismissAlert?: (type: string) => void
 }
 
-export function DashboardTab({ stats, orders, categories, products, formatPrice, firebaseClients = {}, setActiveTab }: DashboardTabProps) {
+export function DashboardTab({ stats, orders, categories, products, formatPrice, firebaseClients = {}, setActiveTab, onDismissAlert }: DashboardTabProps) {
   const [chartType, setChartType] = useState<'status' | 'payment' | 'category'>('status')
   const [isRecentOrdersOpen, setIsRecentOrdersOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [alertToDismiss, setAlertToDismiss] = useState<{id: string, title: string} | null>(null)
 
   // Calcular ventas por método de pago
   const paymentStats = orders.reduce((acc, order) => {
@@ -72,7 +86,7 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice,
       {
         id: 'selections',
         title: 'Selecciones OK',
-        count: clients.filter(c => c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0).length,
+        count: clients.filter(c => c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0 && !c.gallerySettings?.selectionReviewed).length,
         icon: CheckCircle2,
         color: 'bg-emerald-500',
         tab: 'galleries',
@@ -81,7 +95,7 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice,
       {
         id: 'empty',
         title: 'Galerías Vacías',
-        count: clients.filter(c => (c.gallerySettings?.photos?.length || 0) === 0).length,
+        count: clients.filter(c => (c.gallerySettings?.photos?.length || 0) === 0 && !c.gallerySettings?.hideEmptyAlert).length,
         icon: Camera,
         color: 'bg-blue-500',
         tab: 'customers',
@@ -122,6 +136,21 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice,
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-90 mt-1">{alert.title}</p>
                   <p className="text-[8px] font-bold uppercase tracking-widest opacity-30">{alert.description}</p>
                 </div>
+
+                {/* Botón de Check para quitar aviso */}
+                {alert.id !== 'orders' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAlertToDismiss({id: alert.id, title: alert.title});
+                      setDialogOpen(true);
+                    }}
+                    className="ml-auto w-10 h-10 rounded-full bg-white/10 flex items-center justify-center opacity-0 group-hover/alert:opacity-100 hover:bg-emerald-500 hover:text-white transition-all shadow-xl border border-white/10"
+                    title="Marcar como revisado"
+                  >
+                    <CheckCircle2 className="h-5 w-5" />
+                  </button>
+                )}
               </button>
             ))}
           </div>
@@ -455,6 +484,36 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice,
           )}
         </AnimatePresence>
       </Card>
+      {/* Diálogo de Confirmación Premium */}
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent className="bg-slate-900 border-slate-800 text-white rounded-[2rem]">
+          <AlertDialogHeader>
+            <div className="mx-auto w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="h-8 w-8 text-emerald-500" />
+            </div>
+            <AlertDialogTitle className="text-2xl font-black text-center uppercase tracking-tight">
+              ¿Revisar Alertas?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400 text-center text-base">
+              Vas a marcar todos los avisos de <span className="text-white font-bold inline-block px-2 py-0.5 bg-slate-800 rounded">{alertToDismiss?.title}</span> como revisados. Desaparecerán de este panel temporalmente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-3 mt-6">
+            <AlertDialogCancel className="bg-transparent border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl h-12 uppercase font-black text-xs tracking-widest">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (alertToDismiss) onDismissAlert?.(alertToDismiss.id);
+                setDialogOpen(false);
+              }}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-12 uppercase font-black text-xs tracking-widest shadow-lg shadow-emerald-500/20"
+            >
+              Sí, revisar ahora
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

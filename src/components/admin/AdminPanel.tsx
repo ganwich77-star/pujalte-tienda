@@ -52,7 +52,7 @@ import { Button } from '@/components/ui/button'
 import { PacksTab } from './PacksTab'
 import { PromosTab } from './PromosTab'
 import { db, COLLECTIONS } from '@/lib/firebase'
-import { collection, query, getDocs } from 'firebase/firestore'
+import { collection, query, getDocs, doc, updateDoc, writeBatch } from 'firebase/firestore'
 import { useMemo } from 'react'
 import LandingPacksTab from './LandingPacksTab'
 import LandingProductsTab from './LandingProductsTab'
@@ -143,19 +143,50 @@ export function AdminPanel(props: AdminPanelProps) {
       })
 
     // Cargar clientes de Firebase para resolver nombres "DESCONOCIDO"
-    const loadFirebaseClients = async () => {
-      try {
-        const q = collection(db, COLLECTIONS.CLIENTS)
-        const snap = await getDocs(q)
-        const map: Record<string, any> = {}
-        snap.forEach(d => { map[d.id] = d.data() })
-        setFirebaseClients(map)
-      } catch (e) {
-        console.error('Error cargando clientes en AdminPanel:', e)
-      }
-    }
     loadFirebaseClients()
   }, [])
+  
+  const loadFirebaseClients = async () => {
+    try {
+      const q = collection(db, COLLECTIONS.CLIENTS)
+      const snap = await getDocs(q)
+      const map: Record<string, any> = {}
+      snap.forEach(d => { map[d.id] = d.data() })
+      setFirebaseClients(map)
+    } catch (e) {
+      console.error('Error cargando clientes en AdminPanel:', e)
+    }
+  }
+
+  const handleDismissAlert = async (type: string) => {
+    try {
+      const batch = writeBatch(db);
+      const clients = Object.entries(firebaseClients);
+      let count = 0;
+
+      clients.forEach(([id, data]) => {
+        const clientRef = doc(db, COLLECTIONS.CLIENTS, id);
+        if (type === 'selections') {
+          if (data.gallerySettings?.selectionConfirmed && !data.gallerySettings?.selectionReviewed) {
+            batch.update(clientRef, { 'gallerySettings.selectionReviewed': true });
+            count++;
+          }
+        } else if (type === 'empty') {
+          if ((data.gallerySettings?.photos?.length || 0) === 0 && !data.gallerySettings?.hideEmptyAlert) {
+            batch.update(clientRef, { 'gallerySettings.hideEmptyAlert': true });
+            count++;
+          }
+        }
+      });
+
+      if (count > 0) {
+        await batch.commit();
+        await loadFirebaseClients();
+      }
+    } catch (e) {
+      console.error('Error descartando alertas:', e);
+    }
+  }
 
   const toggleDarkMode = () => {
     const newVal = !isDarkMode
@@ -216,8 +247,8 @@ export function AdminPanel(props: AdminPanelProps) {
   const alertsCount = useMemo(() => {
     const pendingOrders = orders.filter(o => o.status === 'pending').length
     const clients = Object.values(firebaseClients || {})
-    const confirmedSelections = clients.filter(c => c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0).length
-    const emptyGalleries = clients.filter(c => (c.gallerySettings?.photos?.length || 0) === 0).length
+    const confirmedSelections = clients.filter(c => c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0 && !c.gallerySettings?.selectionReviewed).length
+    const emptyGalleries = clients.filter(c => (c.gallerySettings?.photos?.length || 0) === 0 && !c.gallerySettings?.hideEmptyAlert).length
     return pendingOrders + confirmedSelections + emptyGalleries
   }, [orders, firebaseClients])
 
@@ -441,6 +472,7 @@ export function AdminPanel(props: AdminPanelProps) {
                   formatPrice={formatPrice}
                   firebaseClients={firebaseClients}
                   setActiveTab={navigateWithFilter}
+                  onDismissAlert={handleDismissAlert}
                 />
               )}
 
@@ -498,6 +530,7 @@ export function AdminPanel(props: AdminPanelProps) {
                   orders={enrichedOrders}
                   formatPrice={formatPrice}
                   customerIdToEdit={customerIdToEdit}
+                  config={config}
                   initialFilter={activeTab === 'customers' ? activeFilter : 'all'}
                   onClose={() => {
                     setCustomerIdToEdit(null)
@@ -521,6 +554,11 @@ export function AdminPanel(props: AdminPanelProps) {
                     setReturnTab('galleries')
                     setActiveTab('customers')
                   }} 
+                  onAddCustomer={() => {
+                    setCustomerIdToEdit('NEW') // Usamos un trigger para que CustomersTab sepa que queremos añadir uno nuevo
+                    setReturnTab('galleries')
+                    setActiveTab('customers')
+                  }}
                   initialFilter={activeTab === 'galleries' ? activeFilter : 'all'}
                 />
               )}
