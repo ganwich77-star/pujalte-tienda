@@ -1587,6 +1587,35 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                                           </div>
                                        </div>
 
+                                       <div className="space-y-1 pt-1">
+                                          <Label className="text-[10px] font-black uppercase text-emerald-600 pl-1 italic">Link de Galería Directo</Label>
+                                          <div className="flex gap-2">
+                                            <Input 
+                                              readOnly 
+                                              value={`${typeof window !== 'undefined' ? window.location.origin : ''}/galeria/${editingCustomer.slug || ''}`}
+                                              className="rounded-[1.25rem] h-10 text-[11px] font-bold bg-emerald-50/50 border-emerald-100 px-4 text-emerald-700 shadow-sm flex-1 cursor-default"
+                                            />
+                                            <Button 
+                                              type="button" 
+                                              size="sm" 
+                                              variant="outline"
+                                              className="h-10 rounded-xl px-4 border-emerald-100 text-emerald-600 hover:bg-emerald-50 font-black text-[10px] uppercase tracking-widest gap-2 transition-all active:scale-95 shrink-0"
+                                              onClick={() => {
+                                                const url = `${window.location.origin}/galeria/${editingCustomer.slug || ''}`;
+                                                navigator.clipboard.writeText(url);
+                                                toast({ 
+                                                  title: '¡Link Copiado!', 
+                                                  description: 'Listo para enviar por WhatsApp.',
+                                                  className: "bg-[#4A7C59] text-white border-none font-bold rounded-2xl shadow-xl"
+                                                });
+                                              }}
+                                            >
+                                              <Copy className="h-4 w-4" />
+                                              Copiar
+                                            </Button>
+                                          </div>
+                                        </div>
+
                                        <div className="space-y-1">
                                          <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Subtítulo (Dedicatoria)</Label>
                                          <textarea 
