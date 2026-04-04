@@ -48,6 +48,7 @@ model Product {
   customOptions   String?          @db.LongText
   supplierId      String?
   isFeatured      Boolean?         @default(false)
+  fotosIncluidas  Int?             @default(1)
   category        Category?        @relation(fields: [categoryId], references: [id])
   supplier        Supplier?        @relation(fields: [supplierId], references: [id])
   variants        ProductVariant[]
@@ -89,9 +90,9 @@ model Order {
   paymentStatus String      @default("pending")
   paymentId     String?
   customFields  String?     @db.LongText
-  clientId      String?     @db.VarChar(100)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  clientId      String?     @db.VarChar(100)
   items         OrderItem[]
 
   @@index([clientId])
@@ -110,8 +111,9 @@ model OrderItem {
   note        String?  @db.Text
   createdAt   DateTime @default(now())
   fileName    String?
-  fileUrl     String?  @db.LongText
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fileUrl        String?  @db.LongText
+  fotosIncluidas Int?     @default(1)
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@map("orderitem")

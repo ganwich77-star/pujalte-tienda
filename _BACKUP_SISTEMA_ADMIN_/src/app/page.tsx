@@ -448,60 +448,115 @@ Mi email: ${formData.email}`
 
   // Admin Handlers
   const handleSaveProduct = async (dataInput: any = productForm): Promise<boolean> => {
-    if (isSaving) return false;
+    // Evitar que se envíe varias veces si ya se está guardando
+    if (isSaving) return false
 
-    // Validación básica
-    if (!dataInput.name || (!dataInput.hasVariants && !dataInput.price)) {
-      toast({ title: 'Error', description: 'Nombre y Precio son obligatorios.', variant: 'destructive' });
-      return false;
+    // Validamos que tenga nombre. El precio solo es obligatorio si NO tiene variantes.
+    const hasName = dataInput && dataInput.name && dataInput.name.trim() !== '';
+    const hasPrice = dataInput && dataInput.price !== '' && dataInput.price !== null && dataInput.price !== undefined;
+    
+    if (!hasName || (!dataInput.hasVariants && !hasPrice)) {
+      const missing = !hasName ? 'Nombre' : 'Precio';
+      toast({ 
+        title: 'Error de Validación', 
+        description: `El campo ${missing} es obligatorio para publicar.`, 
+        variant: 'destructive',
+        className: "bg-red-50 text-red-600 border-red-100 font-bold"
+      })
+      return false
     }
 
-    setIsSaving(true);
+    setIsSaving(true)
     try {
-      const isUpdate = !!editingProduct;
-      const url = isUpdate ? `/api/products/${editingProduct.id}` : '/api/products';
-      const method = isUpdate ? 'PUT' : 'POST';
+      const isUpdate = !!editingProduct
+      const url = isUpdate ? `/api/products/${editingProduct.id}` : '/api/products'
+      const method = isUpdate ? 'PUT' : 'POST'
       
-      const parsePrice = (v: any) => parseFloat(String(v).replace(',', '.')) || 0;
-
-      const body = {
-        ...dataInput,
-        price: parsePrice(dataInput.price),
-        salePrice: dataInput.salePrice ? parsePrice(dataInput.salePrice) : null,
-        fotosIncluidas: parseInt(String(dataInput.fotosIncluidas)) || 1, // EL CORAZÓN DEL FIXED
-        active: dataInput.active !== false,
-        tierPricing: Array.isArray(dataInput.tierPricing) ? JSON.stringify(dataInput.tierPricing) : dataInput.tierPricing,
-        variants: (dataInput.variants || []).map((v: any) => ({
-          ...v,
-          price: parsePrice(v.price),
-          stock: parseInt(String(v.stock)) || 0
-        }))
+      const parseSafePrice = (val: any) => {
+        if (!val && val !== 0) return 0;
+        const s = String(val).replace(',', '.').replace(/[^\d.]/g, '');
+        return parseFloat(s) || 0;
       };
 
+      const body: any = {
+        name: dataInput.name,
+        description: dataInput.description,
+        price: parseSafePrice(dataInput.price),
+        categoryId: (dataInput.categoryId === 'none' || !dataInput.categoryId) ? null : dataInput.categoryId,
+        active: (dataInput as any).active !== false,
+        hasVariants: !!dataInput.hasVariants,
+        showPrice: (dataInput as any).showPrice ?? true,
+        isPack: (dataInput as any).isPack ?? false,
+        packItems: (dataInput as any).packItems ?? '[]',
+        variantType: dataInput.hasVariants ? dataInput.variantType : null,
+        variantBehavior: dataInput.variantBehavior || 'add',
+        isNew: !!(dataInput as any).isNew,
+        isFeatured: !!(dataInput as any).isFeatured,
+        salePrice: (dataInput as any).salePrice ? parseSafePrice((dataInput as any).salePrice) : null,
+        minQuantity: parseInt(String(dataInput.minQuantity)) || 1,
+        stepQuantity: parseInt(String(dataInput.stepQuantity)) || 1,
+        supplierId: (dataInput.supplierId === 'none' || !dataInput.supplierId) ? null : dataInput.supplierId,
+        tierPricing: Array.isArray(dataInput.tierPricing) && dataInput.tierPricing.length > 0 
+          ? JSON.stringify(dataInput.tierPricing.map((t: any) => ({
+              minQty: parseInt(String(t.minQty)) || 1,
+              price: parseSafePrice(t.price)
+            })))
+          : null,
+          variants: (dataInput.variants || []).map((v: any) => ({
+            name: v.name || "",
+            sku: v.sku || "",
+            price: parseSafePrice(v.price),
+            stock: parseInt(String(v.stock)) || 0,
+            sortOrder: v.sortOrder || 0
+          })),
+          customOptions: dataInput.customOptions || null
+        }
+
+      const currentImage = dataInput.image || dataInput.image_url || null;
+      if (!isUpdate || currentImage !== editingProduct?.image) {
+        body.image = currentImage;
+      }
+      
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
-      });
+      })
 
-      if (!res.ok) throw new Error('Error al guardar en base de datos');
-
-      toast({ title: '¡Guardado!', description: 'Producto sincronizado correctamente.', className: "bg-[#4A7C59] text-white" });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.details || errorData.error || 'Error al guardar producto');
+      }
       
-      setIsProductDialogOpen(false);
-      setTimeout(() => {
-        setEditingProduct(null);
-        setProductForm(initialProductForm);
-        fetchAllProducts();
-      }, 200);
+      toast({ 
+        title: '¡Guardado!', 
+        description: 'Producto guardado correctamente en la base de datos',
+        className: "bg-[#4A7C59] text-white border-none font-bold rounded-xl"
+      })
 
-      return true;
+      // Cierre ordenado
+      setIsProductDialogOpen(false)
+      
+      // Delay de seguridad antes de resetear estados para evitar glitches visuales
+      setTimeout(() => {
+        setEditingProduct(null)
+        setProductForm(initialProductForm)
+        fetchAllProducts() 
+        fetchStats()
+      }, 150)
+      
+      return true
     } catch (error: any) {
-      console.error('Error sincronizando producto:', error);
-      toast({ title: 'Fallo de Sincronización', description: error.message, variant: 'destructive' });
-      return false;
+      console.error('Save Error:', error)
+      toast({ 
+        title: 'Error al guardar', 
+        description: error.message || 'No se pudo guardar el producto', 
+        variant: 'destructive' 
+      })
+      return false
     } finally {
-      setTimeout(() => setIsSaving(false), 500);
+      setIsSaving(true) // Esperamos a que todo se asiente antes de liberar el botton
+      setTimeout(() => setIsSaving(false), 500)
     }
   }
 
@@ -593,71 +648,36 @@ Mi email: ${formData.email}`
     setProductForm(initialProductForm)
   }
 
-  const openEditProduct = (p: Product) => {
-    // Clonamos para evitar mutaciones y asegurar tipos correctos
-    const processedProduct = { ...p };
-    
-    // Normalización de ID e Imágenes (Previene pérdida de fotos)
-    if (processedProduct.id) processedProduct.id = String(processedProduct.id);
-    processedProduct.image = (p as any).image || (p as any).src || '';
-    
-    // BLINDAJE DE FOTOS INCLUIDAS: Evita que el fallo reportado ocurra
-    processedProduct.fotosIncluidas = (p.fotosIncluidas !== undefined && p.fotosIncluidas !== null) ? Number(p.fotosIncluidas) : 1;
-    if (isNaN(processedProduct.fotosIncluidas)) processedProduct.fotosIncluidas = 1;
-
-    try {
-      // Normalización de Precios por Volumen (Tier Pricing)
-      if (typeof processedProduct.tierPricing === 'string') {
-        const trimmed = (processedProduct.tierPricing as string).trim();
-        processedProduct.tierPricing = (trimmed === '' || trimmed === 'null' || trimmed === '[]') 
-          ? [] 
-          : JSON.parse(processedProduct.tierPricing);
-      }
-      if (!Array.isArray(processedProduct.tierPricing)) processedProduct.tierPricing = [];
-
-      // Normalización de Opciones Personalizadas
-      if (typeof (processedProduct as any).customOptions === 'string') {
-        const trimmed = (processedProduct as any).customOptions.trim();
-        if (trimmed === '' || trimmed === 'null' || trimmed === '[]') {
-          (processedProduct as any).customOptions = '[]';
-        }
-      }
-
-      // Asegurar integridad de variantes
-      if (!Array.isArray(processedProduct.variants)) processedProduct.variants = [];
-    } catch (e) {
-      console.error('Error procesando datos del producto en Landing:', e);
-      processedProduct.tierPricing = [];
-      processedProduct.variants = [];
-    }
-
-    setEditingProduct(processedProduct as Product);
+  const openEditProduct = (product: Product) => {
+    setEditingProduct(product)
     setProductForm({
-      name: processedProduct.name || '',
-      description: processedProduct.description || '',
-      price: (processedProduct.price ?? 0).toString(),
-      stock: (processedProduct.stock ?? 0).toString(),
-      categoryId: processedProduct.categoryId || '',
-      image: processedProduct.image || '',
-      imagePosition: (processedProduct as any).imagePosition || 'center',
-      hasVariants: !!processedProduct.hasVariants,
-      showPrice: processedProduct.showPrice ?? true,
-      isPack: processedProduct.isPack ?? false,
-      packItems: processedProduct.packItems || '[]',
-      variantType: processedProduct.variantType || '',
-      variantBehavior: processedProduct.variantBehavior || 'add',
-      minQuantity: (processedProduct.minQuantity ?? 1).toString(),
-      stepQuantity: (processedProduct.stepQuantity ?? 1).toString(),
-      supplierId: processedProduct.supplierId || '',
-      tierPricing: processedProduct.tierPricing as any,
-      variants: (processedProduct.variants || []).map(v => ({
+      name: product.name || '',
+      description: product.description || '',
+      price: (product.price ?? 0).toString(),
+      stock: (product.stock ?? 0).toString(),
+      categoryId: product.categoryId || '',
+      image: product.image || '',
+      imagePosition: (product as any).imagePosition || 'center',
+      hasVariants: !!product.hasVariants,
+      showPrice: product.showPrice ?? true,
+      isPack: product.isPack ?? false,
+      packItems: product.packItems || '[]',
+      variantType: product.variantType || '',
+      variantBehavior: product.variantBehavior || 'add',
+      minQuantity: (product.minQuantity ?? 1).toString(),
+      stepQuantity: (product.stepQuantity ?? 1).toString(),
+      supplierId: product.supplierId || '',
+      tierPricing: typeof product.tierPricing === 'string' 
+        ? JSON.parse(product.tierPricing) 
+        : (Array.isArray(product.tierPricing) ? product.tierPricing : []),
+      variants: (product.variants || []).map(v => ({
         id: v.id || Math.random().toString(36).substr(2, 9),
         name: v.name || '',
         price: (v.price ?? 0).toString(),
         stock: (v.stock ?? 0).toString(),
         sortOrder: v.sortOrder ?? 0
       })),
-      customOptions: (processedProduct as any).customOptions || '[]'
+      customOptions: (product as any).customOptions || '[]'
     })
     setIsProductDialogOpen(true)
   }
