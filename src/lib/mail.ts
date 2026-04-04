@@ -145,7 +145,7 @@ export const sendOrderEmails = async (order: any, isCash: boolean = false) => {
     // Al administrador (Jose) se le avisa SIEMPRE
     await transporter.sendMail({
       from: isCash ? `"Aviso de Pedido" <${process.env.MAIL_USER || 'hola@pujaltefotografia.es'}>` : `"Gestión de Pedidos" <${process.env.MAIL_USER || 'hola@pujaltefotografia.es'}>`,
-      to: 'pedidos@pujaltefotografia.es, apps@pujaltefotografia.es',
+      to: 'pedidos@pujaltefotografia.es',
       subject: isCash ? `⚠️ PEDIDO PENDIENTE: ${customerName}` : `🚀 NUEVO PEDIDO: ${customerName}`,
       html: adminEmailHtml,
     })
@@ -256,7 +256,7 @@ export const sendWelcomeEmails = async (client: { dni: string, name: string, ema
 
     await transporter.sendMail({
       from: '"Gestión de Clientes" <hola@pujaltefotografia.es>',
-      to: 'pedidos@pujaltefotografia.es, apps@pujaltefotografia.es',
+      to: 'pedidos@pujaltefotografia.es',
       subject: `👤 NUEVO REGISTRO: ${name} (${dni})`,
       html: adminHtml,
     })
@@ -291,7 +291,7 @@ export const sendSelectionEmail = async (clientName: string, clientSlug: string,
 
   await transporter.sendMail({
     from: '"Gestión de Galería" <hola@pujaltefotografia.es>',
-    to: 'pedidos@pujaltefotografia.es, apps@pujaltefotografia.es',
+    to: 'pedidos@pujaltefotografia.es',
     subject: `📸 SELECCIÓN: ${clientName} (${clientSlug.toUpperCase()})`,
     html: adminEmailHtml,
   })

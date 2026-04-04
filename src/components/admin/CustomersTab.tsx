@@ -109,6 +109,16 @@ interface CustomersTabProps {
   initialFilter?: string
 }
 
+const generateSlug = (text: string) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+    .replace(/[^a-z0-9]+/g, '-')     // Caracteres no alfanuméricos por guiones
+    .replace(/^-+|-+$/g, '');        // Quitar guiones al inicio y final
+};
+
 const resizeImage = (file: File, maxSide: number = 1500): Promise<File> => {
   return new Promise((resolve) => {
     if (!file.type.startsWith('image/')) return resolve(file);
@@ -404,10 +414,11 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
         }
       }
 
-      const key = (newCustomer.dni || newCustomer.email || newCustomer.phone).trim().toUpperCase()
+      const docId = (newCustomer.dni || newCustomer.email || newCustomer.phone).trim().toUpperCase().replace(/[^A-Z0-9]/g, '') + "_" + Math.random().toString(36).substring(2, 7)
       
-      await firestoreSet(firestoreDoc(db, COLLECTIONS.CLIENTS, key), {
+      await firestoreSet(firestoreDoc(db, COLLECTIONS.CLIENTS, docId), {
         ...newCustomer,
+        id: docId,
         slug: finalSlug,
         dni: newCustomer.dni.trim().toUpperCase(),
         email: newCustomer.email.toLowerCase().trim(),
@@ -554,7 +565,11 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
     const filesArray = Array.from(e.target.files || [])
     if (filesArray.length === 0 || !editingCustomer) return
 
-    const clientKey = editingCustomer.id || (editingCustomer.dni || editingCustomer.email || editingCustomer.phone).trim().toUpperCase()
+    const clientKey = editingCustomer.id || editingCustomer.originalId
+    if (!clientKey) {
+        toast({ title: 'Error', description: 'ID de cliente no encontrado.', variant: 'destructive' })
+        return
+    }
     setIsUploading(true)
     setIsCancelUploadRequested(false)
     uploadControllerRef.current = false
@@ -1525,11 +1540,29 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                                        <div className="grid grid-cols-2 gap-3">
                                           <div className="space-y-1">
                                             <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Título de Galería</Label>
-                                            <Input value={editingCustomer.gallerySettings?.galleryTitle || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, galleryTitle: e.target.value } })} className="rounded-[1.25rem] h-11 text-[13px] font-bold border-slate-100 px-4 bg-white focus:bg-white transition-all shadow-sm" />
+                                            <Input 
+                                              value={editingCustomer.gallerySettings?.galleryTitle || ''} 
+                                              onChange={(e) => {
+                                                const title = e.target.value;
+                                                setEditingCustomer({ 
+                                                  ...editingCustomer, 
+                                                  slug: generateSlug(title),
+                                                  gallerySettings: { 
+                                                    ...editingCustomer.gallerySettings, 
+                                                    galleryTitle: title 
+                                                  } 
+                                                });
+                                              }} 
+                                              className="rounded-[1.25rem] h-11 text-[13px] font-bold border-slate-100 px-4 bg-white focus:bg-white transition-all shadow-sm" 
+                                            />
                                           </div>
                                           <div className="space-y-1">
                                             <Label className="text-[10px] font-black uppercase text-slate-400 pl-1">Slug URL</Label>
-                                            <Input value={editingCustomer.slug || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} className="rounded-[1.25rem] h-11 text-[13px] font-bold bg-slate-50 border-slate-100 px-4 text-slate-500 shadow-sm" />
+                                            <Input 
+                                              value={editingCustomer.slug || ''} 
+                                              onChange={(e) => setEditingCustomer({ ...editingCustomer, slug: generateSlug(e.target.value) })} 
+                                              className="rounded-[1.25rem] h-11 text-[13px] font-bold bg-slate-50 border-slate-100 px-4 text-slate-500 shadow-sm" 
+                                            />
                                           </div>
                                        </div>
 
@@ -1562,7 +1595,13 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                                     
                                     // 1. Obtener nombres de pedidos
                                     if (editingCustomer.orders) {
-                                      names = [...names, ...editingCustomer.orders.flatMap((o: any) => o.items.flatMap((i: any) => (i.note || '').split(/[,; \n]+/).map((s: string) => s.trim().replace(/\.[^/.]+$/, "")).filter((s: string) => s.length > 0)))];
+                                      names = [...names, ...editingCustomer.orders.flatMap((o: any) => 
+                                        o.items.flatMap((i: any) => 
+                                          (i.note || i.notes || '').split(/[|,,; \n]+/)
+                                            .map((s: string) => s.trim().replace(/\.[^/.]+$/, ""))
+                                            .filter((s: string) => s.length > 0 && !s.startsWith('http') && !s.includes('FOTO:'))
+                                        )
+                                      )];
                                     }
                                     
                                     // 2. Obtener nombres de la selección directa (Caso Vero Martinez)
@@ -1579,29 +1618,73 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                                     toast({ title: '¡Copiado!', description: `¡Copiados ${uniqueNames.length} nombres para Lightroom!` });
                                   }} className="rounded-xl bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-500 hover:text-white font-black text-[10px] h-8 shadow-sm"><Copy className="h-3 w-3 mr-2" /> COPIAR LISTA</Button>
                                </div>
-                               <div className="bg-white/80 rounded-2xl p-4 border border-emerald-100 max-h-[120px] overflow-y-auto custom-scrollbar">
-                                  <p className="text-[10px] font-bold text-emerald-800 leading-relaxed font-mono break-all line-clamp-4">
-                                     {(() => {
-                                        let names: string[] = [];
-                                        
-                                        // 1. Pedidos
-                                        if (editingCustomer.orders) {
-                                          names = [...names, ...editingCustomer.orders.flatMap((o: any) => o.items.flatMap((i: any) => (i.note || '').split(/[,; \n]+/).map((s: string) => s.trim().replace(/\.[^/.]+$/, "")).filter((s: string) => s.length > 0)))];
-                                        }
-                                        
-                                        // 2. Selección directa (Caso Vero Martinez)
-                                        if (editingCustomer.gallerySettings?.selectionConfirmed && editingCustomer.gallerySettings?.lastSelection && editingCustomer.gallerySettings?.photos) {
-                                          const selectedIds = new Set(editingCustomer.gallerySettings.lastSelection);
-                                          const directNames = editingCustomer.gallerySettings.photos
-                                            .filter((p: any) => selectedIds.has(p.id))
-                                            .map((p: any) => p.name || p.fileName?.replace(/\.[^/.]+$/, "") || "");
-                                          names = [...names, ...directNames];
-                                        }
-                                        
-                                        return [...new Set(names.filter(n => n.length > 0))].join(", ") || "Esperando selección...";
-                                     })()}
-                                  </p>
-                               </div>
+                                <div className="bg-white/80 rounded-2xl p-4 border border-emerald-100 max-h-[220px] overflow-y-auto custom-scrollbar">
+                                   {(() => {
+                                      const selectedPhotoNames = new Set<string>();
+                                      const selectedPhotoObjects: any[] = [];
+                                      
+                                      if (editingCustomer.orders) {
+                                        editingCustomer.orders.forEach((o: any) => {
+                                          o.items.forEach((i: any) => {
+                                            const itemNotes = i.note || i.notes || '';
+                                            if (itemNotes) {
+                                              itemNotes.split(/[|,,; \n]+/).forEach((s: string) => {
+                                                const cleanName = s.trim().replace(/\.[^/.]+$/, "");
+                                                if (cleanName && !cleanName.startsWith('http') && !cleanName.includes('FOTO:')) {
+                                                  selectedPhotoNames.add(cleanName);
+                                                }
+                                              });
+                                            }
+                                          });
+                                        });
+                                      }
+                                      
+                                      if (editingCustomer.gallerySettings?.selectionConfirmed && editingCustomer.gallerySettings?.lastSelection && editingCustomer.gallerySettings?.photos) {
+                                        const directIds = new Set(editingCustomer.gallerySettings.lastSelection);
+                                        editingCustomer.gallerySettings.photos.forEach((p: any) => {
+                                          if (directIds.has(p.id)) {
+                                            selectedPhotoNames.add(p.name || p.fileName?.replace(/\.[^/.]+$/, ""));
+                                          }
+                                        });
+                                      }
+
+                                      if (editingCustomer.gallerySettings?.photos) {
+                                        editingCustomer.gallerySettings.photos.forEach((p: any) => {
+                                          const pName = p.name || p.fileName?.replace(/\.[^/.]+$/, "");
+                                          if (selectedPhotoNames.has(pName)) {
+                                            selectedPhotoObjects.push(p);
+                                          }
+                                        });
+                                      }
+                                      
+                                      const namesArray = Array.from(selectedPhotoNames);
+                                      if (namesArray.length === 0) {
+                                        return <div className="text-[10px] font-bold text-emerald-800/50 italic py-2">Esperando selección...</div>;
+                                      }
+
+                                      return (
+                                        <div className="text-[11px] font-mono text-emerald-800/80 leading-relaxed bg-white/50 p-3 rounded-xl border border-dashed border-emerald-200">
+                                          {namesArray.join(', ')}
+                                        </div>
+                                      );
+                                   })()}
+                                </div>
+                               {editingCustomer.gallerySettings?.selectionItems && editingCustomer.gallerySettings.selectionItems.length > 0 && (
+                                  <div className="p-3 bg-white/50 rounded-[1.25rem] border border-orange-100/50 text-[10px] space-y-2 shadow-sm mb-2">
+                                     <div className="space-y-1.5">
+                                        <div className="flex items-center gap-1.5 text-orange-600 font-black uppercase text-[8px] tracking-widest pl-1">
+                                           <Package className="h-3 w-3" /> ARTÍCULOS DE TIENDA (SELECCIONADOS)
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                           {editingCustomer.gallerySettings.selectionItems.map((i: any, idx: number) => (
+                                              <Badge key={idx} variant="outline" className="bg-orange-50/80 text-orange-700 border-orange-100 text-[9px] font-black py-1 px-3 rounded-lg shadow-sm">
+                                                 {i.quantity}x {i.name} {i.variantName ? `· ${i.variantName}` : ''}
+                                              </Badge>
+                                           ))}
+                                        </div>
+                                      </div>
+                                   </div>
+                                )}
                                {editingCustomer.orders && (
                                    <div className="space-y-2 pt-1">
                                       {editingCustomer.orders.map((o: any) => {
@@ -1628,11 +1711,29 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                                                         <Package className="h-3 w-3" /> PRODUCTOS ADICIONALES
                                                      </div>
                                                      <div className="flex flex-wrap gap-1.5">
-                                                        {extraProducts.map((i: any, idx: number) => (
-                                                           <Badge key={idx} variant="outline" className="bg-orange-50/80 text-orange-700 border-orange-100 text-[9px] font-black py-1 px-3 rounded-lg shadow-sm">
-                                                              {i.quantity}x {i.productName} {i.variantName ? `· ${i.variantName}` : ''}
-                                                           </Badge>
-                                                        ))}
+                                                        {extraProducts.map((i: any, idx: number) => {
+                                                            const itemPhotoUrl = i.fileUrl || i.notes?.split(' | ').find((p: any) => p.trim().startsWith('FOTO:'))?.split('FOTO: ')[1];
+                                                            
+                                                            return (
+                                                              <Badge key={idx} variant="outline" className="bg-orange-50/80 text-orange-700 border-orange-100 text-[9px] font-black py-1 px-2 pr-3 rounded-lg shadow-sm flex items-center gap-2">
+                                                                {itemPhotoUrl && (
+                                                                  <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 border border-orange-200 shadow-sm">
+                                                                    <img 
+                                                                      src={itemPhotoUrl} 
+                                                                      alt={i.productName || 'Miniatura'} 
+                                                                      className="w-full h-full object-cover"
+                                                                    />
+                                                                  </div>
+                                                                )}
+                                                                <div className="flex flex-col">
+                                                                  <span className="leading-tight">{i.productName} (x{i.quantity})</span>
+                                                                  {i.notes && !i.notes.includes('FOTO:') && (
+                                                                    <span className="text-[7px] text-orange-400 font-bold italic truncate max-w-[120px]">{i.notes}</span>
+                                                                  )}
+                                                                </div>
+                                                              </Badge>
+                                                            );
+                                                         })}
                                                      </div>
                                                   </div>
                                                )}
@@ -1765,8 +1866,9 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                           }
                         }
 
-                        const oldKey = (editingCustomer.id || editingCustomer.originalId).toString().toUpperCase()
-                        const newKey = (editingCustomer.slug || editingCustomer.email).toLowerCase().trim() // CAMBIO: Ahora el ID único es el SLUG para permitir multigaleria
+                        const docId = editingCustomer.id || editingCustomer.originalId
+                        const docRef = doc(db, COLLECTIONS.CLIENTS, docId)
+                        
                         const data = {
                           name: editingCustomer.name,
                           dni: (editingCustomer.dni || '').toUpperCase().trim(),
@@ -1777,12 +1879,10 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                           cashEnabled: !!editingCustomer.cashEnabled,
                           updatedAt: serverTimestamp()
                         }
-                        if (oldKey !== newKey) {
-                          await deleteDoc(doc(db, COLLECTIONS.CLIENTS, oldKey))
-                          await setDoc(doc(db, COLLECTIONS.CLIENTS, newKey), { ...data, createdAt: editingCustomer.createdAt || serverTimestamp() })
-                        } else {
-                          await updateDoc(doc(db, COLLECTIONS.CLIENTS, oldKey), data)
-                        }
+
+                        // Actualización SIMPLE sin borrar y recrear (evita duplicados y pérdida de fotos por cambio de ID)
+                        await updateDoc(docRef, data)
+
                         toast({ title: 'Éxito', description: 'Cliente actualizado' })
                         await reloadFirebase()
                       } catch (e) {
@@ -1838,7 +1938,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                   value={newCustomer.name} 
                   onChange={(e) => {
                     const name = e.target.value;
-                    const slug = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+                    const slug = generateSlug(name);
                     setNewCustomer({...newCustomer, name, slug})
                   }}
                   className="rounded-xl h-11"

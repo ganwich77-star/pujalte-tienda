@@ -36,7 +36,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { db, COLLECTIONS } from '@/lib/firebase'
-import { doc, getDoc, updateDoc, serverTimestamp, query, collection, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, serverTimestamp, query, collection, where, getDocs, addDoc } from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -524,13 +524,12 @@ export default function GalleryPage() {
         `Total seleccionadas: ${favoritesList.length}\n\n` +
         `FOTOS SELECCIONADAS:\n${favoritesList.join(', ')}\n\n` +
         `COMENTARIOS:\n${photoWithNotesArr.length > 0 ? photoWithNotesArr.join('\n') : 'Sin comentarios'}\n\n` +
-        `ARTÍCULOS DE TIENDA:\n${extraItems.join('\n')}\n` +
-        `----------------------------------------\n` +
-        `LISTA PARA COPIAR:\n${favoritesList.join(', ')}`;
+        `ARTÍCULOS DE TIENDA:\n${extraItems.join('\n')}`;
 
       await updateDoc(docRef, {
         'gallerySettings.lastSelection': Array.from(favorites),
         'gallerySettings.photoNotes': photoNotes,
+        'gallerySettings.selectionItems': cartItems, // Guardamos los artículos de tienda seleccionados
         'gallerySettings.lastUpdate': serverTimestamp(),
         'gallerySettings.selectionConfirmed': true
       })
@@ -545,6 +544,44 @@ export default function GalleryPage() {
           summary: finalSummary
         })
       })
+
+      // --- PEPE: CREACIÓN DE PEDIDO OFICIAL (MySQL via API) ---
+      if (cartItems && cartItems.length > 0) {
+        try {
+          await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              clientId: slug.toUpperCase(),
+              total: cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0),
+              status: 'pending',
+              paymentMethod: 'cash', // O el método que prefieras por defecto
+              notes: `Confirmación desde galería ${slug}.`,
+              customer: {
+                firstName: client?.name || 'Cliente',
+                lastName: '',
+                email: client?.email || '',
+                phone: client?.phone || '',
+                address: client?.address || 'Recogida en estudio'
+              },
+              items: cartItems.map(item => ({
+                id: item.id,
+                productName: item.name,
+                variantName: item.variantName || null,
+                quantity: item.quantity,
+                price: item.price,
+                notes: item.notes || null,
+                fileUrl: item.fileUrl || item.image || null,
+                fileName: item.fileName || null,
+                image: item.image || item.fileUrl || null
+              }))
+            })
+          });
+        } catch (error) {
+          console.error("Error al crear el pedido oficial:", error);
+        }
+      }
+      // -------------------------------------------------------
       
       setSummaryText(finalSummary);
       setShowSummary(true);
@@ -750,7 +787,7 @@ export default function GalleryPage() {
       return;
     }
 
-    const finalPrice = variant ? variant.price : product.price;
+    const finalPrice = variant?.price ?? (product.price || 0);
 
     // Construir nota con opciones personalizadas
     let customOptsString = Object.entries(selectedCustomOptions)
@@ -783,6 +820,8 @@ export default function GalleryPage() {
         price: finalPrice,
         quantity: 1,
         image: photoToBuy.url,
+        fileName: (photoToBuy.fileName || '').replace(/\.(jpg|jpeg|png|webp|gif|mp4|mov|heic|heif)$/i, ''),
+        fileUrl: photoToBuy.url,
         productId: product.id,
         variantId: variant?.id,
         variantName: variant?.name,

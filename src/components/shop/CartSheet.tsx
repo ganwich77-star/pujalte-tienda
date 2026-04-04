@@ -55,7 +55,7 @@ import { toast } from 'sonner'
 
 export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen: boolean, onClose: () => void, clientId?: string | null, galleryTitle?: string }) {
   const { items, removeItem, updateQuantity, clearCart, getTotal, getItemCount, updateItem } = useCartStore()
-  const { isLoggedIn, user: loggedUser } = useUserStore()
+  const { isLoggedIn, user: loggedUser, login } = useUserStore()
   const { config } = useConfig()
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'checkout' | 'payment' | 'success'>('cart')
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'bizum' | 'cash'>('card')
@@ -126,14 +126,53 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
 
   const handleNextStep = async () => {
     if (checkoutStep === 'cart') {
-      // Si ya está logueado o venimos de una galería identificada
-      if ((isLoggedIn && loggedUser) || clientId) {
+      // Prioridad 1: Sesión ya activa en el Store
+      if (isLoggedIn && loggedUser) {
         setProcessingPayment(true);
         try {
-          // Intentamos recuperar los datos del cliente por su DNI/ID (clientId)
-          const targetDni = (loggedUser?.dni || clientId || '').toUpperCase();
+          // Intentamos refrescar datos pero si falla, seguimos con los del store
+          const targetDni = (loggedUser.dni || '').toUpperCase();
           const response = await fetch(`/api/customers/${targetDni}`);
           
+          if (response.ok) {
+            const customer = await response.json();
+            setShippingData({
+              firstName: customer.firstName || loggedUser.name?.split(' ')[0] || '',
+              lastName: customer.lastName || loggedUser.name?.split(' ').slice(1).join(' ') || '',
+              email: customer.email || loggedUser.email || '',
+              phone: customer.phone || loggedUser.phone || '',
+              address: customer.address || loggedUser.address || '',
+              city: customer.city || '',
+              zipCode: customer.zipCode || '',
+              dni: targetDni
+            });
+          } else {
+             // Si el fetch falla pero está logueado, rellenamos lo que podamos del store
+             setShippingData(prev => ({
+               ...prev,
+               firstName: loggedUser.name?.split(' ')[0] || prev.firstName,
+               lastName: loggedUser.name?.split(' ').slice(1).join(' ') || prev.lastName,
+               email: loggedUser.email || prev.email,
+               phone: loggedUser.phone || prev.phone,
+               address: loggedUser.address || prev.address,
+               dni: targetDni
+             }));
+          }
+          setCheckoutStep('payment');
+        } catch (error) {
+          console.error("Error recuperando datos del cliente:", error);
+          setCheckoutStep('payment'); // No detenemos la venta por un error de red si ya está logueado
+        } finally {
+          setProcessingPayment(false);
+        }
+        return;
+      }
+
+      // Prioridad 2: Galería identificada (clientId)
+      if (clientId) {
+        setProcessingPayment(true);
+        try {
+          const response = await fetch(`/api/customers/${clientId.toUpperCase()}`);
           if (response.ok) {
             const customer = await response.json();
             setShippingData({
@@ -144,32 +183,24 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
               address: customer.address || '',
               city: customer.city || '',
               zipCode: customer.zipCode || '',
-              dni: customer.dni || targetDni
+              dni: clientId.toUpperCase()
             });
-            
-            // ¡SALTO DIRECTO AL PAGO! Eliminamos la pantalla de "Tus Datos"
             setCheckoutStep('payment');
           } else {
-            // Si no existe en la base de datos pero tiene clientId, 
-            // le dejamos en 'payment' también para no frenar la venta
-            // Usamos los datos mínimos si no los tenemos
-            if (clientId) {
-              setShippingData(prev => ({ ...prev, dni: clientId.toUpperCase() }));
-              setCheckoutStep('payment'); 
-            } else {
-              setIsAuthModalOpen(true);
-            }
+            // Si es galería pero no está en la DB, le pedimos datos manuales o saltamos al pago según estrategia
+            setShippingData(prev => ({ ...prev, dni: clientId.toUpperCase() }));
+            setCheckoutStep('payment');
           }
         } catch (error) {
-          console.error("Error recuperando datos del cliente:", error);
-          if (clientId) setCheckoutStep('checkout');
-          else setIsAuthModalOpen(true);
+          setCheckoutStep('payment');
         } finally {
           setProcessingPayment(false);
         }
-      } else {
-        setIsAuthModalOpen(true);
+        return;
       }
+
+      // Prioridad 3: Usuario anónimo -> Mostrar modal
+      setIsAuthModalOpen(true);
     } else if (checkoutStep === 'checkout') {
       if (!shippingData.firstName || !shippingData.lastName || !shippingData.email || !shippingData.address || !shippingData.dni) {
         toast.error("Por favor, rellena todos los campos obligatorios")
@@ -200,6 +231,16 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
           dni: customer.dni || dniLogin
         })
         toast.success(`¡Bienvenido de nuevo, ${customer.firstName}!`)
+        
+        // PERSISTIMOS EN EL STORE GLOBAL PARA QUE NO VUELVA A PREGUNTAR
+        login({
+          name: `${customer.firstName} ${customer.lastName}`,
+          dni: customer.dni || dniLogin,
+          email: customer.email,
+          phone: customer.phone,
+          address: customer.address
+        })
+
         setIsAuthModalOpen(false)
         setCheckoutStep('checkout')
       } else {
@@ -223,13 +264,15 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
         address: shippingData.address,
         notes: "",
         items: items.map(item => ({
-          productId: item.id,
+          productId: item.productId || item.id,
           productName: item.name,
           quantity: item.quantity,
           price: item.price,
           variantId: item.variantId,
           variantName: item.variantName,
-          notes: item.notes
+          notes: item.notes,
+          fileName: item.fileName,
+          fileUrl: item.fileUrl
         })),
         paymentMethod: paymentMethod, // 'card' o 'bizum'
         customFields: {
@@ -266,11 +309,13 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
     try {
       const orderData = {
         items: items.map(item => ({
-          productId: item.id,
+          productId: item.productId || item.id,
           productName: item.name,
           quantity: item.quantity,
           price: item.price,
-          note: item.notes 
+          notes: item.notes,
+          fileName: item.fileName,
+          fileUrl: item.fileUrl
         })),
         customer: shippingData,
         total: getTotal(),
@@ -708,80 +753,117 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
       </Dialog>
 
       <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
-        <DialogContent className="sm:max-w-[500px] rounded-[40px] p-0 border-none bg-white overflow-hidden shadow-2xl">
+        <DialogContent className="sm:max-w-[450px] rounded-[40px] p-0 border-none bg-white overflow-hidden shadow-2xl z-[300]">
           <DialogHeader className="sr-only">
             <DialogTitle>Acceso al Pedido</DialogTitle>
           </DialogHeader>
           <div className="p-8 pt-10">
-            <div className="mb-8 text-center text-center">
+            <div className="mb-8 text-center">
               <div className="h-20 w-20 rounded-[28px] bg-gradient-to-br from-[#4A7C59] to-[#3D664A] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#4A7C59]/20 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
                 <Users className="h-10 w-10 text-white" />
               </div>
-              <p className="text-3xl font-black text-slate-900 leading-tight mb-2">¡Bienvenido!</p>
+              <p className="text-3xl font-black text-slate-900 leading-tight mb-2 italic">¡Hola!</p>
               <DialogDescription className="text-slate-500 text-sm font-medium leading-relaxed max-w-[320px] mx-auto">
-                ¿Has comprado antes con nosotros?
+                Identifícate para completar tu pedido
               </DialogDescription>
             </div>
 
             <div className="space-y-4">
-              {!showDniInput ? (
-                <>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setIsAuthModalOpen(false)
-                      setCheckoutStep('checkout')
-                    }}
-                    className="w-full h-16 rounded-[24px] border-2 border-orange-100 hover:border-orange-500 hover:bg-orange-50 text-lg font-black uppercase text-orange-600 transition-all flex items-center justify-center px-8"
-                  >
-                    <span>Soy nuevo cliente</span>
-                  </Button>
-
-                  <Button 
-                    onClick={() => setShowDniInput(true)}
-                    className="w-full h-16 rounded-[24px] bg-[#4A7C59] hover:bg-[#3D664A] text-white text-lg font-black uppercase transition-all flex items-center justify-center px-8 shadow-lg shadow-[#4A7C59]/20"
-                  >
-                    <span>Ya he comprado antes</span>
-                  </Button>
-                </>
-              ) : (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="space-y-4"
+                  className="space-y-5"
                 >
-                  <div className="relative group">
-                    <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-2 block">DNI/NIE</Label>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Tu Nombre Completo</Label>
                     <div className="relative">
-                      <Fingerprint className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-[#4A7C59]" />
+                      <Users className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
                       <Input 
-                        autoFocus
-                        value={dniLogin}
-                        onChange={(e) => setDniLogin(e.target.value)}
-                        placeholder="12345678X"
-                        className="pl-14 h-16 rounded-[24px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] text-lg font-bold transition-all"
-                        onKeyDown={(e) => e.key === 'Enter' && handleDniLogin()}
+                        value={shippingData.firstName}
+                        onChange={(e) => setShippingData({...shippingData, firstName: e.target.value, lastName: ''})}
+                        placeholder="NOMBRE Y APELLIDOS..."
+                        className="pl-14 h-16 rounded-[24px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] text-sm font-bold transition-all uppercase"
                       />
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Tu DNI o NIE</Label>
+                    <div className="relative">
+                      <Fingerprint className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+                      <Input 
+                        value={dniLogin || shippingData.dni}
+                        onChange={(e) => {
+                          const val = e.target.value.toUpperCase();
+                          setDniLogin(val);
+                          setShippingData(prev => ({ ...prev, dni: val }));
+                        }}
+                        placeholder="12345678X"
+                        className="pl-14 h-16 rounded-[24px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#4A7C59]/10 focus-visible:border-[#4A7C59] text-lg font-black transition-all"
+                      />
+                    </div>
+                  </div>
+
                   <Button 
-                    onClick={handleDniLogin}
-                    className="w-full h-16 rounded-[24px] bg-[#4A7C59] hover:bg-[#3D664A] text-white text-lg font-black uppercase transition-all shadow-[0_15px_30px_-10px_rgba(74,124,89,0.3)]"
+                    onClick={async () => {
+                      if (!shippingData.firstName || (!dniLogin && !shippingData.dni)) {
+                        toast.error("Por favor, rellena tu nombre y DNI");
+                        return;
+                      }
+
+                      const targetDni = (dniLogin || shippingData.dni).toUpperCase();
+                      let customerExisted = false;
+
+                      try {
+                        const res = await fetch(`/api/customers/${targetDni}`);
+                        if (res.ok) {
+                          const customer = await res.json();
+                          setShippingData({
+                            firstName: customer.firstName || '',
+                            lastName: customer.lastName || '',
+                            email: customer.email || '',
+                            phone: customer.phone || '',
+                            address: customer.address || '',
+                            city: customer.city || '',
+                            zipCode: customer.zipCode || '',
+                            dni: customer.dni || targetDni
+                          });
+                          customerExisted = true;
+                          toast.success(`¡Hola de nuevo, ${customer.firstName}!`);
+                        } else {
+                          // Si es nuevo, aseguramos que el DNI y nombre que ha puesto se queden grabados
+                          setShippingData(prev => ({
+                            ...prev,
+                            firstName: shippingData.firstName,
+                            dni: targetDni
+                          }));
+                        }
+                      } catch (e) {
+                         console.error("Error al buscar cliente:", e);
+                      }
+                      
+                      // PERSISTIMOS EN EL STORE GLOBAL PARA QUE NO VUELVA A PREGUNTAR
+                      login({
+                        name: customerExisted ? `${shippingData.firstName} ${shippingData.lastName}` : shippingData.firstName,
+                        dni: targetDni,
+                        email: shippingData.email,
+                        phone: shippingData.phone,
+                        address: shippingData.address
+                      });
+
+                      setIsAuthModalOpen(false);
+                      // DIRECTO AL PAGO SIEMPRE, SIN PANTALLAS INTERMEDIAS
+                      setCheckoutStep('payment');
+                    }}
+                    className="w-full h-16 rounded-[24px] bg-[#4A7C59] hover:bg-[#3D664A] text-white text-lg font-black uppercase transition-all shadow-[0_15px_30px_-10px_rgba(74,124,89,0.3)] mt-2"
                   >
-                    Acceder
+                    Acceder ahora
                   </Button>
-                  <button 
-                    onClick={() => setShowDniInput(false)}
-                    className="w-full text-center text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    Volver atrás
-                  </button>
                 </motion.div>
-              )}
             </div>
             
-            <p className="mt-8 text-[11px] text-center text-slate-400 font-medium leading-relaxed px-4">
-              Si tienes problemas, contacta con nosotros por WhatsApp.
+            <p className="mt-8 text-[10px] text-center text-slate-400 font-medium leading-relaxed px-4">
+              La tecnología al servicio de tus recuerdos.
             </p>
           </div>
           <div className="h-1.5 w-full bg-gradient-to-r from-[#4A7C59]/0 via-[#4A7C59]/30 to-[#4A7C59]/0" />

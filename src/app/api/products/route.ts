@@ -86,7 +86,8 @@ export async function POST(request: Request) {
       stepQuantity: parseInt(body.stepQuantity) || 1,
       tierPricing: typeof body.tierPricing === 'object' ? JSON.stringify(body.tierPricing) : (toStr(body.tierPricing) || "[]"),
       customOptions: typeof body.customOptions === 'object' ? JSON.stringify(body.customOptions) : (toStr(body.customOptions) || "[]"),
-      packItems: typeof body.packItems === 'object' ? JSON.stringify(body.packItems) : (toStr(body.packItems) || "[]")
+      packItems: Array.isArray(body.packItems) ? JSON.stringify(body.packItems) : (toStr(body.packItems) || "[]"),
+      fotosIncluidas: body.fotosIncluidas !== undefined ? Math.max(0, parseInt(String(body.fotosIncluidas)) || 0) : 1
     };
 
     const keysArr = Object.keys(fieldsToInsert);
@@ -145,8 +146,9 @@ export async function PUT(request: Request) {
     if (body.description !== undefined) f.description = toStr(body.description);
     if (body.price !== undefined) f.price = toNum(body.price);
     if (body.salePrice !== undefined) f.salePrice = (body.salePrice === null || body.salePrice === undefined || body.salePrice === '') ? null : toNum(body.salePrice);
-    if (body.image !== undefined) f.image = toStr(body.image);
-    if (body.stock !== undefined) f.stock = parseInt(body.stock) || 0;
+    if (body.image) f.image = toStr(body.image);
+    if (body.src) f.src = toStr(body.src);
+    if (body.stock !== undefined) f.stock = parseInt(String(body.stock)) || 0;
     if (body.active !== undefined) f.active = toBool(body.active);
     if (body.showPrice !== undefined) f.showPrice = toBool(body.showPrice);
     if (body.isPack !== undefined) f.isPack = toBool(body.isPack);
@@ -161,7 +163,10 @@ export async function PUT(request: Request) {
     if (body.stepQuantity !== undefined) f.stepQuantity = parseInt(body.stepQuantity) || 1;
     if (body.tierPricing !== undefined) f.tierPricing = typeof body.tierPricing === 'object' ? JSON.stringify(body.tierPricing) : (toStr(body.tierPricing) || "[]");
     if (body.customOptions !== undefined) f.customOptions = typeof body.customOptions === 'object' ? JSON.stringify(body.customOptions) : (toStr(body.customOptions) || "[]");
-    if (body.packItems !== undefined) f.packItems = typeof body.packItems === 'object' ? JSON.stringify(body.packItems) : (toStr(body.packItems) || "[]");
+    if (body.packItems !== undefined) f.packItems = Array.isArray(body.packItems) ? JSON.stringify(body.packItems) : (toStr(body.packItems) || "[]");
+    if (body.fotosIncluidas !== undefined && body.fotosIncluidas !== null && body.fotosIncluidas !== '') {
+      f.fotosIncluidas = Math.max(1, parseInt(String(body.fotosIncluidas)) || 1);
+    }
 
     const keys = Object.keys(f);
     const setClause = keys.map(k => `\`${k}\` = ?`).join(', ');

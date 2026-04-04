@@ -96,7 +96,8 @@ export async function POST(request: NextRequest) {
             price: parseFloat(String(item.price)) || 0,
             note: item.notes || item.note || "",
             fileUrl: item.fileUrl || null,
-            fileName: item.fileName || null
+            fileName: item.fileName || null,
+            fotosIncluidas: parseInt(String(item.fotosIncluidas)) || 1
           }))
         }
       },
@@ -192,7 +193,10 @@ export async function PUT(request: NextRequest) {
             variantName: item.variantName || null,
             quantity: parseInt(String(item.quantity)) || 1,
             price: parseFloat(String(item.price)) || 0,
-            note: item.note || item.notes || ""
+            note: item.note || item.notes || "",
+            fileName: item.fileName || null,
+            fileUrl: item.fileUrl || null,
+            fotosIncluidas: parseInt(String(item.fotosIncluidas)) || 1
           }))
         });
       }
@@ -209,5 +213,27 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating order in MySQL:', error);
     return NextResponse.json({ error: 'Error al actualizar el pedido' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const data = await request.json();
+    const { id, status } = data;
+
+    if (!id || !status) {
+      return NextResponse.json({ error: 'ID y estado requeridos' }, { status: 400 });
+    }
+
+    const updatedOrder = await db.order.update({
+      where: { id },
+      data: { status },
+      include: { items: true }
+    });
+
+    return NextResponse.json(updatedOrder);
+  } catch (error) {
+    console.error('Error updating order status in MySQL:', error);
+    return NextResponse.json({ error: 'Error al actualizar el estado del pedido' }, { status: 500 });
   }
 }

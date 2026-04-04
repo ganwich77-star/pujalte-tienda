@@ -560,7 +560,14 @@ export function AdminPanel(props: AdminPanelProps) {
               {activeTab === 'l-products' && (
                 <LandingProductsTab
                   config={config as any}
-                  setConfig={(newCfg: any) => onUpdateConfig(newCfg)}
+                  setConfig={(newCfg: any) => {
+                    if (typeof newCfg === 'function') {
+                      const updated = newCfg(config);
+                      onUpdateConfig(updated);
+                    } else {
+                      onUpdateConfig(newCfg);
+                    }
+                  }}
                   categories={config.categorias || []}
                   handleFileUpload={props.onFileUpload as any}
                   injectPreset={() => {}}

@@ -36,6 +36,7 @@ export interface GalleryImage {
   tierPricing?: string;
   supplierId?: string;
   fotosIncluidas?: number;
+  customOptions?: any;
 }
 
 export interface Testimonial {

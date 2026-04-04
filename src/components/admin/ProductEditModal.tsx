@@ -8,10 +8,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  Trash2, Upload, LayoutGrid, Eye, EyeOff, Package, Pencil, 
+  Camera, Trash2, Upload, LayoutGrid, Eye, EyeOff, Package, Pencil, 
   CheckCircle2, Euro, Layers, Scale, Hash, PlusCircle, X,
   Sparkles, ArrowRight, BarChart3, Clock, Layers2, ShieldCheck,
-  Percent, Tag, Info, AlertCircle, Plus, ChevronDown, Star, Truck
+  Percent, Tag, Info, AlertCircle, Plus, ChevronDown, Star, Truck, Palette
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,24 +71,27 @@ export default function ProductEditModal({
 
   useEffect(() => {
     if (product && isOpen) {
-      setActiveTab("variantes");
-      setEditedProduct({ ...product });
-      try {
-        let tiers: any[] = [];
-        if (product.tierPricing) {
-          tiers = typeof product.tierPricing === 'string' 
-            ? JSON.parse(product.tierPricing) 
-            : product.tierPricing;
+      const isDifferent = !editedProduct || String(editedProduct.id) !== String(product.id);
+      
+      if (isDifferent) {
+        setActiveTab("variantes");
+        setEditedProduct({ ...product });
+        try {
+          let tiers: any[] = [];
+          if (product.tierPricing) {
+            tiers = typeof product.tierPricing === 'string' 
+              ? JSON.parse(product.tierPricing) 
+              : product.tierPricing;
+          }
+          const normalizedTiers = (Array.isArray(tiers) ? tiers : []).map(t => ({
+            minQty: Number(t.minQty || t.qty || 0),
+            price: Number(t.price || 0)
+          }));
+          setTierPrices(normalizedTiers);
+        } catch (e) {
+          console.error("Error al cargar tramos:", e);
+          setTierPrices([]);
         }
-        // Normalizar qty -> minQty por si acaso
-        const normalizedTiers = (Array.isArray(tiers) ? tiers : []).map(t => ({
-          minQty: Number(t.minQty || t.qty || 0),
-          price: Number(t.price || 0)
-        }));
-        setTierPrices(normalizedTiers);
-      } catch (e) {
-        console.error("Error al cargar tramos:", e);
-        setTierPrices([]);
       }
     }
   }, [product, isOpen]);
@@ -123,9 +126,11 @@ export default function ProductEditModal({
       ...editedProduct,
       precio: parseSafeNumber(editedProduct.precio),
       salePrice: editedProduct.salePrice ? parseSafeNumber(editedProduct.salePrice) : undefined,
-      tierPricing: validTiers.length > 0 ? JSON.stringify(validTiers) : undefined
+      tierPricing: validTiers.length > 0 ? JSON.stringify(validTiers) : undefined,
+      fotosIncluidas: Math.max(0, Math.round(parseSafeNumber(editedProduct.fotosIncluidas)))
     };
 
+    console.log("💾 Guardando producto con fotosIncluidas:", finalProduct.fotosIncluidas);
     onSave(finalProduct);
     onClose();
   };
@@ -156,7 +161,7 @@ export default function ProductEditModal({
             </div>
             <div>
               <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest italic">Editor Pro</p>
-              <p className="text-xs font-bold text-white uppercase italic">Pujalte Studio</p>
+              <DialogTitle className="text-xs font-bold text-white uppercase italic">Pujalte Studio</DialogTitle>
             </div>
           </div>
 
@@ -178,6 +183,12 @@ export default function ProductEditModal({
               onClick={() => setActiveTab('precios')}
               icon={<BarChart3 className="h-4 w-4" />}
               label="Precios"
+            />
+            <SidebarTab 
+              active={activeTab === 'personalizacion'} 
+              onClick={() => setActiveTab('personalizacion')}
+              icon={<Palette className="h-4 w-4" />}
+              label="Personaliza"
             />
           </nav>
 
@@ -366,6 +377,13 @@ export default function ProductEditModal({
                         icon={<Percent className="h-4 w-4 text-emerald-500" />}
                         suffix="€"
                         highlight
+                     />
+                     <CompactPriceControl 
+                        label="FOTOS INCLUIDAS"
+                        value={editedProduct.fotosIncluidas || 0}
+                        onChange={(val) => updateProduct({ fotosIncluidas: val })}
+                        icon={<Camera className="h-4 w-4 text-purple-500" />}
+                        suffix="UD"
                      />
                   </div>
 
@@ -568,6 +586,136 @@ export default function ProductEditModal({
                   </div>
                 </motion.div>
               )}
+
+              {activeTab === 'personalizacion' && (
+                <motion.div 
+                  key="personalizacion"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-8"
+                >
+                  <div className="bg-white p-8 rounded-[36px] border-2 border-slate-100 shadow-sm space-y-8">
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="h-16 w-16 bg-orange-600 rounded-[24px] flex items-center justify-center shadow-lg text-white rotate-6">
+                             <Palette className="h-8 w-8" />
+                          </div>
+                          <div>
+                             <h4 className="font-black text-slate-900 uppercase tracking-tighter text-lg italic">Opciones de Forma</h4>
+                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Personaliza las formas disponibles para este producto</p>
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            let options: any[] = [];
+                            try {
+                              if (editedProduct.customOptions) {
+                                options = typeof editedProduct.customOptions === 'string' 
+                                  ? JSON.parse(editedProduct.customOptions) 
+                                  : editedProduct.customOptions;
+                              }
+                            } catch (e) { options = []; }
+                            
+                            options.push({ title: 'FORMA', values: [], required: true });
+                            updateProduct({ customOptions: JSON.stringify(options) });
+                          }}
+                          size="sm"
+                          className="h-10 bg-orange-600 hover:bg-black rounded-xl px-6 font-black uppercase text-[9px] tracking-widest italic shadow-lg shadow-orange-100"
+                        >
+                           <PlusCircle className="h-3.5 w-3.5 mr-2" />
+                           AÑADIR FORMA
+                        </Button>
+                     </div>
+
+                     <div className="space-y-4">
+                        {(() => {
+                          let options: any[] = [];
+                          try {
+                            if (editedProduct.customOptions) {
+                              options = typeof editedProduct.customOptions === 'string' 
+                                ? JSON.parse(editedProduct.customOptions) 
+                                : editedProduct.customOptions;
+                            }
+                          } catch (e) { options = []; }
+                          
+                          if (options.length === 0) {
+                            return (
+                              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl p-12 bg-slate-50/20">
+                                 <Palette className="h-10 w-10 text-slate-200 mb-4" />
+                                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">No hay formas configuradas para este producto</p>
+                              </div>
+                            );
+                          }
+
+                          return options.map((opt: any, idx: number) => (
+                            <div key={idx} className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100 hover:bg-white hover:shadow-xl transition-all group/opt">
+                               <div className="flex flex-col md:flex-row gap-6">
+                                  <div className="flex-1 space-y-4">
+                                     <div className="flex items-center gap-4">
+                                        <div className="flex-1">
+                                           <Label className="text-[7px] font-black text-slate-300 uppercase tracking-widest ml-1">Título de la Opción</Label>
+                                           <Input 
+                                              value={opt.title || ''}
+                                              onChange={(e) => {
+                                                const newOpts = [...options];
+                                                newOpts[idx].title = e.target.value.toUpperCase();
+                                                updateProduct({ customOptions: JSON.stringify(newOpts) });
+                                              }}
+                                              className="h-11 border-none bg-white rounded-xl font-black text-xs uppercase px-5 italic tracking-tighter"
+                                              placeholder="NOMBRE (EJ: FORMA, MATERIAL...)"
+                                           />
+                                        </div>
+                                        <div className="shrink-0 flex flex-col items-end gap-2 pr-2">
+                                           <Label className="text-[7px] font-black text-slate-300 uppercase tracking-widest">Es Obligatoria</Label>
+                                           <Switch 
+                                              checked={opt.required} 
+                                              onCheckedChange={(checked) => {
+                                                const newOpts = [...options];
+                                                newOpts[idx].required = checked;
+                                                updateProduct({ customOptions: JSON.stringify(newOpts) });
+                                              }}
+                                              className="scale-90 data-[state=checked]:bg-orange-600" 
+                                           />
+                                        </div>
+                                     </div>
+                                     
+                                     <div className="space-y-1">
+                                        <Label className="text-[7px] font-black text-slate-300 uppercase tracking-widest ml-1">Valores disponibles (Separa por comas)</Label>
+                                        <Input 
+                                          value={opt.values?.join(', ') || ''} 
+                                          onChange={(e) => {
+                                            const newOpts = [...options];
+                                            newOpts[idx].values = e.target.value.split(',').map((v: string) => v.trim()).filter((v: string) => v !== '');
+                                            updateProduct({ customOptions: JSON.stringify(newOpts) });
+                                          }}
+                                          className="h-11 border-none bg-white rounded-xl font-bold text-xs uppercase px-5 italic"
+                                          placeholder="CIRCULO, CORAZÓN, RECTÁNGULO..." 
+                                        />
+                                     </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-center px-4">
+                                     <Button 
+                                       variant="ghost" 
+                                       size="icon" 
+                                       onClick={() => {
+                                         const newOpts = [...options];
+                                         newOpts.splice(idx, 1);
+                                         updateProduct({ customOptions: JSON.stringify(newOpts) });
+                                       }}
+                                       className="h-12 w-12 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+                                     >
+                                        <Trash2 className="h-5 w-5" />
+                                     </Button>
+                                  </div>
+                               </div>
+                            </div>
+                          ));
+                        })()}
+                     </div>
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
           </div>
 
@@ -678,8 +826,11 @@ function CompactPriceControl({ label, value, onChange, icon, suffix, highlight }
           <Input 
             type="number"
             step="any"
-            value={value || ''} 
-            onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+            value={value === 0 ? '' : value} 
+            onChange={(e) => {
+              const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
+              onChange(isNaN(val) ? 0 : val);
+            }}
             className={`h-12 border-none bg-slate-50/50 rounded-xl font-black text-xl text-center focus:bg-white no-spinner transition-all italic tracking-tighter ${highlight ? 'text-emerald-500' : ''}`}
             placeholder="0"
           />

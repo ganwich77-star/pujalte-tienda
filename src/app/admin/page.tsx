@@ -45,7 +45,8 @@ export default function AdminPage() {
     stepQuantity: 1,
     tierPricing: [],
     customOptions: null,
-    supplierId: null
+    supplierId: null,
+    fotosIncluidas: 1
   })
 
   useEffect(() => {
@@ -88,9 +89,15 @@ export default function AdminPage() {
       if (res.ok) {
         toast({ title: 'Éxito', description: 'Producto guardado correctamente.' })
         setIsProductDialogOpen(false)
-        setProducts(await fetch('/api/products?admin=true').then(r => r.json()))
+        const freshRes = await fetch('/api/products?admin=true&t=' + Date.now());
+        if (freshRes.ok) setProducts(await freshRes.json())
+      } else {
+        toast({ title: 'Error', description: 'No se pudo guardar el producto.', variant: 'destructive' })
       }
-    } catch (e) { console.error(e) } finally { setIsSaving(false) }
+    } catch (e) { 
+      console.error(e)
+      toast({ title: 'Error de red', description: 'Fallo al conectar con el servidor.', variant: 'destructive' })
+    } finally { setIsSaving(false) }
   }
 
   const handleDeleteProduct = async (id: string) => {
@@ -220,48 +227,54 @@ export default function AdminPage() {
             name: '', price: 0, description: '', categoryId: 'social', image: '', stock: 99, active: true, 
             showPrice: true, isPack: false, hasVariants: false, variantType: '', variantBehavior: 'replace',
             variants: [], isNew: false, salePrice: null, minQuantity: 1, stepQuantity: 1, tierPricing: [],
-            customOptions: null, supplierId: null
+            customOptions: null, supplierId: null, fotosIncluidas: 1
           }); 
           setIsProductDialogOpen(true) 
         }}
         onEditProduct={(p) => { 
-          // Procesar campos JSON si vienen como string desde la API o Firestore
+          // Clonar para evitar mutaciones directas
           const processedProduct = { ...p };
           
-          // Asegurar que el ID sea string
+          // Asegurar campos básicos y prevenir pérdida de imagen
           if (processedProduct.id) processedProduct.id = String(processedProduct.id);
+          processedProduct.image = (p as any).image || (p as any).src || '';
+          processedProduct.fotosIncluidas = (p.fotosIncluidas !== undefined && p.fotosIncluidas !== null) ? Number(p.fotosIncluidas) : 1;
+          if (isNaN(processedProduct.fotosIncluidas)) processedProduct.fotosIncluidas = 1;
 
           try {
-            // Procesar tierPricing
-            if (typeof processedProduct.tierPricing === 'string' && processedProduct.tierPricing.trim() !== '' && processedProduct.tierPricing.trim() !== 'null') {
-              processedProduct.tierPricing = JSON.parse(processedProduct.tierPricing);
-            } else if (!Array.isArray(processedProduct.tierPricing)) {
-              processedProduct.tierPricing = [];
+            // Normalizar tierPricing (debe ser Array)
+            if (typeof processedProduct.tierPricing === 'string') {
+              const trimmed = processedProduct.tierPricing.trim();
+              processedProduct.tierPricing = (trimmed === '' || trimmed === 'null' || trimmed === '[]') 
+                ? [] 
+                : JSON.parse(processedProduct.tierPricing);
             }
+            if (!Array.isArray(processedProduct.tierPricing)) processedProduct.tierPricing = [];
 
-            // Procesar customOptions
-            if (typeof processedProduct.customOptions === 'string' && processedProduct.customOptions.trim() !== '' && processedProduct.customOptions.trim() !== 'null') {
-              processedProduct.customOptions = JSON.parse(processedProduct.customOptions);
-            } else if (!processedProduct.customOptions || (typeof processedProduct.customOptions === 'string' && processedProduct.customOptions.trim() === 'null')) {
-              processedProduct.customOptions = "[]";
+            // Normalizar customOptions (debe ser Array)
+            if (typeof processedProduct.customOptions === 'string') {
+              const trimmed = processedProduct.customOptions.trim();
+              if (trimmed === '' || trimmed === 'null' || trimmed === '[]') {
+                (processedProduct as any).customOptions = [];
+              } else {
+                try { (processedProduct as any).customOptions = JSON.parse(processedProduct.customOptions); } catch(e) { (processedProduct as any).customOptions = []; }
+              }
             }
+            if (!Array.isArray(processedProduct.customOptions)) (processedProduct as any).customOptions = [];
 
-            // Asegurar variants
-            if (!Array.isArray(processedProduct.variants)) {
-              processedProduct.variants = [];
-            }
+            // Asegurar variantes
+            if (!Array.isArray(processedProduct.variants)) processedProduct.variants = [];
           } catch (e) {
             console.error('Error procesando datos del producto:', e);
-            if (!processedProduct.tierPricing) (processedProduct as any).tierPricing = [];
-            if (!processedProduct.customOptions) (processedProduct as any).customOptions = "[]";
-            if (!processedProduct.variants) processedProduct.variants = [];
+            (processedProduct as any).tierPricing = [];
+            (processedProduct as any).customOptions = [];
+            processedProduct.variants = [];
           }
           
           setEditingProduct(processedProduct); 
           setProductForm(processedProduct); 
           setIsProductDialogOpen(true) 
         }}
-        onUpdateProductField={(id, f, v) => setProducts(products.map(p => p.id === id ? { ...p, [f]: v } : p))}
         onUpdateStatus={async (id, s) => {
           await fetch('/api/orders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: s }) })
           setOrders(orders.map(o => o.id === id ? { ...o, status: s } : o))
@@ -271,7 +284,10 @@ export default function AdminPage() {
         onFileUpload={handleFileUpload}
         onDownloadTemplate={() => window.open('/template.csv')}
         onSaveConfig={handleSaveConfig}
-        onUpdateConfig={setConfig}
+        onUpdateConfig={(c) => { setConfig(c); handleSaveConfig(c); }}
+        onUpdateProductField={(id, f, v) => {
+          setProducts(prev => prev.map(p => p.id === id ? { ...p, [f]: v } : p));
+        }}
         onRefreshCategories={async () => setCategories(await fetch('/api/categories').then(r => r.json()))}
         addVariant={() => { 
           const v = [...(productForm.variants || [])]; 
@@ -308,7 +324,8 @@ export default function AdminPage() {
           stepQuantity: 1,
           tierPricing: [],
           customOptions: null,
-          supplierId: null
+          supplierId: null,
+          fotosIncluidas: 1
         })}
         onLogout={() => {
           localStorage.removeItem('pujalte_fast_access')

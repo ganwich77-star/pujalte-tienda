@@ -58,12 +58,15 @@ export interface Supplier {
 
 export interface OrderItem {
   id: string
+  productId?: string | null
   productName: string
   variantName: string | null
   quantity: number
   price: number
   note?: string | null
   fotosIncluidas?: number
+  fileUrl?: string | null
+  fileName?: string | null
 }
 
 export interface Order {

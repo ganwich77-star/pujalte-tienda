@@ -545,7 +545,7 @@ export function ProductsTab({
       const imageUrl = uploadData.url
 
       if (cropForForm) {
-        setProductForm({ ...productForm, image: imageUrl })
+        setProductForm((prev: any) => ({ ...prev, image: imageUrl }))
         setCropForForm(false)
       } else if (croppingProduct) {
         onUpdateProductField(croppingProduct.id, 'image', imageUrl)
@@ -848,7 +848,7 @@ export function ProductsTab({
                   <ImageIcon className="h-5 w-5 text-black" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white uppercase tracking-tight leading-none">Ajustar Imagen</h3>
+                  <DialogTitle className="text-lg font-bold text-white uppercase tracking-tight leading-none">Ajustar Imagen</DialogTitle>
                   <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">Laboratorio Digital</p>
                 </div>
               </div>
@@ -942,8 +942,8 @@ export function ProductsTab({
                           onClick={() => formImageInputRef.current?.click()}
                         >
                           <div className="w-full h-full rounded-full overflow-hidden border-2 border-slate-50 shadow-md transition-transform group-hover:scale-[1.02] cursor-pointer bg-slate-50">
-                            {productForm.image ? (
-                              <img src={fixPath(productForm.image)} alt="Preview" className="w-full h-full object-cover" />
+                            {(productForm.image || productForm.src) ? (
+                              <img src={fixPath(productForm.image || productForm.src)} alt="Preview" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex flex-col items-center justify-center text-slate-200">
                                 <ImageIcon className="h-8 w-8 opacity-20" />
@@ -956,7 +956,7 @@ export function ProductsTab({
                         </div>
 
                         <div
-                          onClick={() => setProductForm({...productForm, isNew: !productForm.isNew})}
+                          onClick={() => setProductForm((prev: any) => ({...prev, isNew: !prev.isNew}))}
                           className={`w-full rounded-2xl p-3 border transition-all cursor-pointer flex items-center justify-between select-none ${
                             productForm.isNew
                               ? 'bg-amber-50 border-amber-200 shadow-sm'
@@ -971,7 +971,7 @@ export function ProductsTab({
                           </div>
                           <Switch
                             checked={!!productForm.isNew}
-                            onCheckedChange={(checked) => setProductForm({...productForm, isNew: checked})}
+                            onCheckedChange={(checked) => setProductForm((prev: any) => ({...prev, isNew: checked}))}
                             className="scale-75 data-[state=checked]:bg-amber-500"
                           />
                         </div>
@@ -981,10 +981,10 @@ export function ProductsTab({
                           <div
                             onClick={() => {
                               const isOffered = !!productForm.salePrice;
-                              setProductForm({
-                                ...productForm,
-                                salePrice: isOffered ? null : (productForm.price ? productForm.price * 0.9 : 0)
-                              })
+                              setProductForm((prev: any) => ({
+                                ...prev,
+                                salePrice: isOffered ? null : (prev.price ? prev.price * 0.9 : 0)
+                              }))
                             }}
                             className={`w-full rounded-2xl p-3 border transition-all cursor-pointer flex items-center justify-between select-none ${
                               productForm.salePrice
@@ -1000,7 +1000,7 @@ export function ProductsTab({
                             </div>
                             <Switch
                               checked={!!productForm.salePrice}
-                              onCheckedChange={(checked) => setProductForm({...productForm, salePrice: checked ? (productForm.price ? productForm.price * 0.9 : 0) : null})}
+                              onCheckedChange={(checked) => setProductForm((prev: any) => ({...prev, salePrice: checked ? (prev.price ? prev.price * 0.9 : 0) : null}))}
                               className="scale-75 data-[state=checked]:bg-emerald-500"
                             />
                           </div>
@@ -1015,7 +1015,7 @@ export function ProductsTab({
                                 <Input
                                   type="number" step="0.01"
                                   value={productForm.salePrice || ''}
-                                  onChange={(e) => setProductForm({...productForm, salePrice: e.target.value ? Number(e.target.value) : 0})}
+                                  onChange={(e) => setProductForm((prev: any) => ({...prev, salePrice: e.target.value ? Number(e.target.value) : 0}))}
                                   className="rounded-xl h-9 text-xs font-black bg-emerald-50/50 border-emerald-100 text-emerald-800 pl-3 pr-8 focus:bg-white transition-all italic text-center"
                                   placeholder="0.00"
                                 />
@@ -1023,6 +1023,29 @@ export function ProductsTab({
                               </div>
                             </motion.div>
                           )}
+
+                          {/* FOTOS INCLUIDAS: ACCESO RÁPIDO */}
+                          <div className="w-full space-y-2 pt-2 border-t border-slate-100/50 mt-2">
+                             <div className="flex items-center gap-2 mb-1 px-1">
+                                <ImageIcon className="h-3 w-3 text-[#4A7C59]" />
+                                <Label className="text-[7.5px] font-black text-[#4A7C59] uppercase tracking-widest italic leading-none">Fotos Incluidas</Label>
+                             </div>
+                             <div className="relative group">
+                                <Input
+                                  type="number"
+                                  value={productForm.fotosIncluidas === 0 ? '' : (productForm.fotosIncluidas || '')}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '' ? 0 : parseInt(e.target.value);
+                                    setProductForm((prev: any) => ({...prev, fotosIncluidas: isNaN(val) ? 0 : val}));
+                                  }}
+                                  className="rounded-2xl h-12 text-sm font-black bg-emerald-50/30 border-emerald-100/50 text-center px-1 focus:bg-white focus:ring-8 focus:ring-emerald-500/5 transition-all shadow-inner no-spinner text-[#4A7C59]"
+                                  placeholder="1"
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[7px] font-black text-emerald-600 bg-white px-2 py-0.5 rounded-md border border-emerald-100 shadow-sm uppercase tracking-widest italic">
+                                  FOTOS
+                                </div>
+                             </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1033,9 +1056,12 @@ export function ProductsTab({
                         <div className="space-y-1.5 min-w-0">
                           <Label className="text-[9px] font-black text-blue-300 uppercase tracking-widest ml-1">Nombre Comercial</Label>
                           <Input
-                            value={productForm.name}
-                            onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                            className="rounded-xl h-11 text-sm font-black bg-white border-transparent px-4 focus:bg-white focus:border-blue-100 transition-all uppercase shadow-sm"
+                            value={productForm.name || ''}
+                            onChange={(e) => {
+                              const newVal = e.target.value.toUpperCase();
+                              setProductForm((prev: any) => ({...prev, name: newVal}));
+                            }}
+                            className="rounded-xl h-11 text-sm font-black bg-white border-transparent px-4 focus:bg-white focus:border-blue-100 transition-all shadow-sm"
                             placeholder="NOMBRE..."
                           />
                         </div>
@@ -1046,7 +1072,10 @@ export function ProductsTab({
                               type="number"
                               step="0.01"
                               value={productForm.price || ''}
-                              onChange={(e) => setProductForm({...productForm, price: Number(e.target.value)})}
+                              onChange={(e) => {
+                                 const val = e.target.value === '' ? 0 : Number(e.target.value);
+                                 setProductForm((prev: any) => ({ ...prev, price: isNaN(val) ? 0 : val }));
+                               }}
                               style={{ height: '44px', minHeight: '44px' }}
                               className="rounded-xl !h-[44px] text-md font-black bg-white border border-slate-100 pl-3 pr-8 text-right shadow-sm group-hover/price:shadow-md transition-all w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               placeholder="0"
@@ -1183,24 +1212,7 @@ export function ProductsTab({
                           {activePromoTab === 'quantities' && (
                             <div className="p-5 space-y-6">
                               <div className="grid grid-cols-2 gap-3">
-                                {/* CAMPO CRÍTICO: FOTOS INCLUIDAS */}
-                                <div className="space-y-1.5 col-span-2">
-                                  <Label className="text-[7.5px] font-black text-[#4A7C59] uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                                    <ImageIcon className="h-3 w-3" /> FOTOS INCLUIDAS POR PRODUCTO
-                                  </Label>
-                                  <div className="relative group">
-                                    <Input
-                                      type="number"
-                                      value={productForm.fotosIncluidas ?? 1}
-                                      onChange={(e) => setProductForm({...productForm, fotosIncluidas: Math.max(0, Number(e.target.value))})}
-                                      className="rounded-2xl h-14 text-lg font-black bg-emerald-50/30 border-emerald-100/50 text-center px-1 focus:bg-white focus:ring-8 focus:ring-emerald-500/5 transition-all shadow-inner [appearance:textfield] text-[#4A7C59]"
-                                      placeholder="1"
-                                    />
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-600 bg-white px-3 py-1 rounded-lg border border-emerald-100 shadow-sm uppercase tracking-widest">
-                                      FOTOS
-                                    </div>
-                                  </div>
-                                </div>
+                                {/* FOTOS MOVIDO A SIDEBAR */}
 
                                 <div className="space-y-1.5">
                                   <Label className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest ml-1">Mínimo Inicial</Label>
