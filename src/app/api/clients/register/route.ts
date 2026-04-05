@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     // Para simplificar, siempre guardamos/actualizamos los datos actuales
     const clientData = {
       dni: clientDni,
-      name,
+      name: name.toUpperCase().trim(),
       email,
       phone: phone || '',
       address: address || '',

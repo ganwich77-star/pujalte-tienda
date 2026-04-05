@@ -460,7 +460,8 @@ export function ShopHeader({
                 placeholder="TU NOMBRE COMPLETO..."
                 required
                 value={loginName}
-                onChange={(e) => setLoginName(e.target.value.toUpperCase())}
+                onChange={(e) => setLoginName(e.target.value.toUpperCase().trimStart())}
+                onBlur={(e) => setLoginName(e.target.value.trim())}
                 className="h-11 rounded-xl pl-10 bg-slate-50 border-0 font-black text-xs focus-visible:ring-1 focus-visible:ring-[#4A7C59]/20 uppercase"
               />
             </div>
@@ -471,7 +472,7 @@ export function ShopHeader({
                 required
                 value={loginDni}
                 onChange={(e) => {
-                  setLoginDni(e.target.value)
+                  setLoginDni(e.target.value.toUpperCase().trim())
                   setLoginError(null)
                 }}
                 className={cn(

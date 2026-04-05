@@ -586,7 +586,7 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">DNI/NIE</Label>
-                        <Input value={shippingData.dni} onChange={(e) => setShippingData({...shippingData, dni: e.target.value})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="12345678X" />
+                        <Input value={shippingData.dni} onChange={(e) => setShippingData({...shippingData, dni: e.target.value.toUpperCase().trim()})} className="h-12 rounded-xl bg-white border-slate-100 font-bold" placeholder="12345678X" />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
