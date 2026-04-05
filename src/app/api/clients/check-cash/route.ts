@@ -39,12 +39,28 @@ export async function GET(req: Request) {
     const candidates: any[] = []
 
     querySnapshot.forEach((doc) => {
+      const data = doc.data()
       const docId = doc.id.toUpperCase().trim()
       const docIdNumeric = docId.replace(/[^0-9]/g, '')
       
-      // Si hay match exacto o match numérico
-      if (docId === exactDni || docIdNumeric === numericDni) {
-        candidates.push({ id: doc.id, ...doc.data() })
+      // Soporte para IDs con sufijo (ej: "48427310_7juw8")
+      const docIdPrefix = docId.split('_')[0]
+      const docIdPrefixNumeric = docIdPrefix.replace(/[^0-9]/g, '')
+      
+      // Campo dni explícito (si existe)
+      const dbDniField = (data.dni || '').toUpperCase().trim()
+      const dbDniFieldNumeric = dbDniField.replace(/[^0-9]/g, '')
+
+      const isMatch = 
+        docId === exactDni || 
+        docIdPrefix === exactDni ||
+        docIdNumeric === numericDni ||
+        docIdPrefixNumeric === numericDni ||
+        dbDniField === exactDni ||
+        dbDniFieldNumeric === numericDni
+
+      if (isMatch) {
+        candidates.push({ id: doc.id, ...data })
       }
     })
 
