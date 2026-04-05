@@ -164,7 +164,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
     setShowGallerySelector(true)
 
     try {
-      const docRef = doc(db, COLLECTIONS.CLIENTS, user.dni.toUpperCase().trim())
+      const docRef = doc(db, COLLECTIONS.CLIENTS, user.dni)
       const docSnap = await getDoc(docRef)
       
       if (docSnap.exists()) {

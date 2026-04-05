@@ -314,6 +314,8 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
           productName: item.name,
           quantity: item.quantity,
           price: item.price,
+          variantId: item.variantId,
+          variantName: item.variantName,
           notes: item.notes,
           fileName: item.fileName,
           fileUrl: item.fileUrl

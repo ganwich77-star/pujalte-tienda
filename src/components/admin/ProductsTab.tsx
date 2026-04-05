@@ -5,7 +5,7 @@ import {
   Plus, Package, Edit, Trash2, Eye, EyeOff, ImageIcon,
   ImageOff, Upload, GripVertical, Check, X as CloseIcon, ZoomIn, ZoomOut,
   ArrowUp, ArrowDown, Info, Sparkles, ArrowUpDown, Search, Filter, ShoppingCart,
-  ChevronDown, ChevronUp, Percent, Settings2, Loader2, Palette
+  ChevronDown, ChevronUp, Percent, Settings2, Loader2, Palette, Star
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Checkbox } from "@/components/ui/checkbox"
@@ -972,7 +972,31 @@ export function ProductsTab({
                           <Switch
                             checked={!!productForm.isNew}
                             onCheckedChange={(checked) => setProductForm((prev: any) => ({...prev, isNew: checked}))}
+                            onClick={(e) => e.stopPropagation()}
                             className="scale-75 data-[state=checked]:bg-amber-500"
+                          />
+                        </div>
+
+                        {/* FAVORITO */}
+                        <div
+                          onClick={() => setProductForm((prev: any) => ({...prev, isFeatured: !prev.isFeatured}))}
+                          className={`w-full rounded-2xl p-3 border transition-all cursor-pointer flex items-center justify-between select-none ${
+                            productForm.isFeatured
+                              ? 'bg-blue-50 border-blue-200 shadow-sm'
+                              : 'bg-slate-50 border-slate-100 opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Star className={`h-4 w-4 ${productForm.isFeatured ? 'text-blue-500' : 'text-slate-300'}`} />
+                            <Label className={`text-[9px] font-black uppercase cursor-pointer tracking-tight ${
+                                productForm.isFeatured ? 'text-blue-800' : 'text-slate-400'
+                            }`}>Favorito</Label>
+                          </div>
+                          <Switch
+                            checked={!!productForm.isFeatured}
+                            onCheckedChange={(checked) => setProductForm((prev: any) => ({...prev, isFeatured: checked}))}
+                            onClick={(e) => e.stopPropagation()}
+                            className="scale-75 data-[state=checked]:bg-blue-600"
                           />
                         </div>
 
@@ -1001,6 +1025,7 @@ export function ProductsTab({
                             <Switch
                               checked={!!productForm.salePrice}
                               onCheckedChange={(checked) => setProductForm((prev: any) => ({...prev, salePrice: checked ? (prev.price ? prev.price * 0.9 : 0) : null}))}
+                              onClick={(e) => e.stopPropagation()}
                               className="scale-75 data-[state=checked]:bg-emerald-500"
                             />
                           </div>
