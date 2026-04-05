@@ -19,11 +19,15 @@ import {
   Filter,
   Plus,
   ChevronDown,
-  UserPlus
+  UserPlus,
+  Settings,
+  Layers,
+  Sparkles
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
 import { 
   Dialog, 
   DialogContent, 
@@ -55,12 +59,25 @@ interface GalleriesTabProps {
   onEditCustomerGallery: (customer: any) => void
   onAddCustomer: () => void
   initialFilter?: string
+  config: any
+  onUpdateConfig: (config: any) => void
+  onSaveConfig: (config?: any) => void
 }
 
-export function GalleriesTab({ onEditCustomerGallery, onAddCustomer, initialFilter = 'all' }: GalleriesTabProps) {
+export function GalleriesTab({ 
+  onEditCustomerGallery, 
+  onAddCustomer, 
+  initialFilter = 'all', 
+  config,
+  onUpdateConfig,
+  onSaveConfig
+}: GalleriesTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [actionFilter, setActionFilter] = useState(initialFilter)
+  const [sessionFilter, setSessionFilter] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [sortBy, setSortBy] = useState<'updatedAt' | 'status' | 'name'>('updatedAt')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
@@ -120,7 +137,9 @@ export function GalleriesTab({ onEditCustomerGallery, onAddCustomer, initialFilt
     if (actionFilter === 'TERMINADA') return manualStatus === 'TERMINADA';
     if (actionFilter === 'LABORATORIO') return manualStatus === 'ENVIADA A LABORATORIO';
     if (actionFilter === 'ARCHIVADA') return manualStatus === 'ARCHIVADA';
-    
+    // Filtro por tipo de sesión (categoría)
+    if (sessionFilter !== 'all' && c.gallerySettings?.sessionType !== sessionFilter) return false;
+
     return true;
   }).sort((a, b) => {
     if (sortBy === 'name') {
@@ -302,13 +321,54 @@ export function GalleriesTab({ onEditCustomerGallery, onAddCustomer, initialFilt
             </div>
           </div>
           
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setIsSettingsOpen(true)}
+              size="sm"
+              variant="outline"
+              className="h-10 w-10 p-0 rounded-xl bg-white border-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all active:scale-95 shadow-sm"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button 
+              onClick={() => setIsSelectCustomerModalOpen(true)}
+              size="sm"
+              className="h-10 px-4 rounded-xl bg-slate-900 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-[9px] gap-2 transition-all shadow-lg active:scale-95"
+            >
+              <Plus className="h-4 w-4" /> Añadir
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Selector de Categorías (Session types) */}
+      <div className="px-4 sm:px-0">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar">
           <Button 
-            onClick={() => setIsSelectCustomerModalOpen(true)}
-            size="sm"
-            className="h-10 px-4 rounded-xl bg-slate-900 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-[9px] gap-2 transition-all shadow-lg active:scale-95"
+            variant={sessionFilter === 'all' ? 'default' : 'ghost'}
+            onClick={() => setSessionFilter('all')}
+            className={cn(
+              "rounded-xl h-10 px-6 font-black uppercase tracking-widest text-[10px] transition-all shrink-0",
+              sessionFilter === 'all' ? "bg-slate-900 text-white shadow-lg" : "bg-white border-slate-100 text-slate-400 hover:bg-slate-50"
+            )}
           >
-            <Plus className="h-4 w-4" /> Añadir
+            <LayoutGrid className="h-4 w-4 mr-2" />
+            TODOS
           </Button>
+          
+          {config?.sessionTypes?.map((type: string) => (
+            <Button
+              key={type}
+              variant={sessionFilter === type ? 'default' : 'ghost'}
+              onClick={() => setSessionFilter(type)}
+              className={cn(
+                "rounded-xl h-10 px-6 font-black uppercase tracking-widest text-[10px] transition-all shrink-0",
+                sessionFilter === type ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20" : "bg-white border-slate-100 text-slate-400 hover:bg-slate-50"
+              )}
+            >
+              {type}
+            </Button>
+          ))}
         </div>
       </div>
 
@@ -446,7 +506,9 @@ export function GalleriesTab({ onEditCustomerGallery, onAddCustomer, initialFilt
                       <div>
                         <h4 className="font-black text-slate-900 leading-tight uppercase truncate">{customer.name}</h4>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{customer.dni || 'Sin DNI'}</span>
+                          <span className="text-[9px] font-black text-[#4A7C59] uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-md">
+                            {customer.gallerySettings?.sessionType || 'Sin Categoría'}
+                          </span>
                         </div>
                       </div>
 
@@ -618,11 +680,13 @@ Cualquier duda, ¡escríbeme! 📲
                         </div>
                       </td>
                       <td className="px-2 py-4">
-                         <div className="flex flex-col items-start justify-center">
+                          <div className="flex flex-col items-start justify-center">
                             <p className="text-[13px] font-black text-slate-800 uppercase tracking-tight leading-tight">
                                {customer.gallerySettings?.galleryTitle || 'Galería Sin Título'}
                             </p>
-                            <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-1">Ref: {customer.id.slice(-6).toUpperCase()}</p>
+                            <p className="text-[9px] font-black text-[#4A7C59] uppercase tracking-widest mt-1 bg-emerald-50 px-2 py-0.5 rounded-md">
+                               {customer.gallerySettings?.sessionType || 'Sin Categoría'}
+                            </p>
                          </div>
                       </td>
                       <td className="px-2 py-4">
@@ -784,6 +848,127 @@ Cualquier duda, ¡escríbeme! 📲
             </Button>
             <Button variant="ghost" onClick={() => setIsSelectCustomerModalOpen(false)} className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[10px]">Cerrar</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE AJUSTES DE GALERÍAS */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden border-none rounded-[2.5rem] bg-slate-50 shadow-2xl">
+          <div className="p-8 pb-4 bg-white relative">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-[#4A7C59]/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
+             <DialogTitle className="text-2xl font-black uppercase tracking-tight italic relative z-10 flex items-center gap-3">
+               <Settings className="h-6 w-6 text-[#4A7C59]" /> Ajustes de Galerías
+             </DialogTitle>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 relative z-10">Configura las categorías y el sistema de reportajes</p>
+          </div>
+
+          <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto no-scrollbar">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                 <Layers className="h-4 w-4 text-[#4A7C59]" />
+                 <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Categorías de Reportajes</Label>
+              </div>
+
+              <div className="flex gap-2">
+                <Input 
+                  id="newSessionTypeInGalleries"
+                  placeholder="Ej. Boda, Comunión, Estudio..." 
+                  className="h-12 rounded-2xl bg-white border-slate-200 font-bold uppercase tracking-tight"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const val = e.currentTarget.value.trim().toUpperCase();
+                      if (val && !config.sessionTypes?.includes(val)) {
+                        onUpdateConfig({ 
+                          ...config, 
+                          sessionTypes: [...(config.sessionTypes || []), val] 
+                        });
+                        e.currentTarget.value = '';
+                      }
+                    }
+                  }}
+                />
+                <Button 
+                  type="button"
+                  className="h-12 w-12 rounded-2xl bg-slate-900 hover:bg-[#4A7C59] text-white shadow-lg transition-all shrink-0 active:scale-95"
+                  onClick={() => {
+                      const input = document.getElementById('newSessionTypeInGalleries') as HTMLInputElement;
+                      const val = input.value.trim().toUpperCase();
+                      if (val && !config.sessionTypes?.includes(val)) {
+                        onUpdateConfig({ 
+                          ...config, 
+                          sessionTypes: [...(config.sessionTypes || []), val] 
+                        });
+                        input.value = '';
+                      }
+                  }}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                {config.sessionTypes?.length ? config.sessionTypes.map((type: string) => (
+                  <Badge 
+                    key={type} 
+                    className="bg-white border-slate-100 py-3 px-5 rounded-2xl flex items-center gap-4 group/tag hover:border-[#4A7C59]/30 transition-all shadow-sm border"
+                  >
+                     <span className="text-slate-600 font-black text-[10px] uppercase tracking-widest leading-none">{type}</span>
+                     <button 
+                       type="button"
+                       onClick={() => {
+                         onUpdateConfig({
+                           ...config,
+                           sessionTypes: config.sessionTypes?.filter((t: string) => t !== type)
+                         });
+                       }}
+                       className="text-slate-300 hover:text-red-500 transition-colors"
+                     >
+                       <Trash2 className="h-3.5 w-3.5" />
+                     </button>
+                  </Badge>
+                )) : (
+                  <div className="w-full py-12 text-center border-2 border-dashed border-slate-200 rounded-[2rem] bg-white/50">
+                     <p className="text-[10px] font-black uppercase text-slate-300 tracking-[0.2em]">No hay categorías configuradas</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-5 rounded-[2rem] bg-[#4A7C59]/5 border border-[#4A7C59]/10 flex gap-4 mt-4">
+                 <div className="h-10 w-10 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-sm">
+                   <Sparkles className="h-5 w-5 text-[#4A7C59]" />
+                 </div>
+                 <p className="text-[10px] font-medium text-emerald-800 leading-relaxed italic">
+                   Estas categorías aparecen como botones rápidos en tu panel de galerías para filtrar tus reportajes al instante.
+                 </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-6 bg-white border-t border-slate-50 gap-3">
+            <Button 
+              variant="ghost" 
+              onClick={() => setIsSettingsOpen(false)}
+              className="rounded-2xl h-12 font-black uppercase tracking-widest text-[10px] text-slate-400 hover:bg-slate-50"
+            >
+              Cerrar
+            </Button>
+            <Button 
+              disabled={isSaving}
+              onClick={async () => {
+                setIsSaving(true)
+                try {
+                  await onSaveConfig(config)
+                  setIsSettingsOpen(false)
+                } finally {
+                  setIsSaving(false)
+                }
+              }}
+              className="rounded-2xl h-12 px-8 bg-[#4A7C59] hover:bg-emerald-600 text-white font-black uppercase tracking-widest text-[10px]"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

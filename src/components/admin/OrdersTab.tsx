@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Order } from '@/types'
 import { useState, useMemo, useEffect } from 'react'
+import { toast } from '@/hooks/use-toast'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -22,6 +23,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { db, COLLECTIONS } from '@/lib/firebase'
 import { collection, query, where, getDocs, limit, getDoc, doc } from 'firebase/firestore'
 import { motion, AnimatePresence } from 'framer-motion'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import { v4 as uuidv4 } from 'uuid'
 
 interface OrdersTabProps {
@@ -208,22 +211,61 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
 
   const handleSearchClients = async (val: string) => {
     setDniSearch(val)
-    if (val.length < 3) {
+    if (val.length < 2) {
       setFoundClients([])
       return
     }
     setIsSearching(true)
     try {
-      const q = query(
+      const upperVal = val.toUpperCase();
+      
+      // Búsqueda por DNI (Mayúsculas)
+      const qDni = query(
         collection(db, COLLECTIONS.CLIENTS),
-        where("dni", ">=", val.toUpperCase()),
-        where("dni", "<=", val.toUpperCase() + "\uf8ff"),
+        where("dni", ">=", upperVal),
+        where("dni", "<=", upperVal + "\uf8ff"),
         limit(5)
       )
-      const snap = await getDocs(q)
+      
+      // Búsqueda por NOMBRE (Valor tal cual)
+      const qName = query(
+        collection(db, COLLECTIONS.CLIENTS),
+        where("name", ">=", val),
+        where("name", "<=", val + "\uf8ff"),
+        limit(5)
+      )
+
+      // Búsqueda por NOMBRE (Mayúsculas)
+      const qNameUpper = query(
+        collection(db, COLLECTIONS.CLIENTS),
+        where("name", ">=", upperVal),
+        where("name", "<=", upperVal + "\uf8ff"),
+        limit(5)
+      )
+
+      const [snapDni, snapName, snapNameUpper] = await Promise.all([
+        getDocs(qDni), 
+        getDocs(qName),
+        getDocs(qNameUpper)
+      ])
+      
       const results: any[] = []
-      snap.forEach(doc => results.push({ id: doc.id, ...doc.data() }))
-      setFoundClients(results)
+      const seenIds = new Set<string>()
+
+      const processSnap = (snap: any) => {
+        snap.forEach((doc: any) => {
+          if (!seenIds.has(doc.id)) {
+            results.push({ id: doc.id, ...doc.data() })
+            seenIds.add(doc.id)
+          }
+        })
+      }
+
+      processSnap(snapDni)
+      processSnap(snapName)
+      processSnap(snapNameUpper)
+      
+      setFoundClients(results.slice(0, 10))
     } catch (e) {
       console.error("Error buscando clientes:", e)
     } finally {
@@ -238,12 +280,209 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
       customerName: client.name || editingOrder.customerName,
       customerPhone: client.phone || editingOrder.customerPhone,
       customerEmail: client.email || editingOrder.customerEmail,
-      address: client.address || editingOrder.address || ''
+      address: client.address || editingOrder.address || '',
+      clientId: client.id,
+      customFields: {
+        ...(editingOrder.customFields || {}),
+        dni: client.dni || ''
+      }
     })
-    setDniSearch(client.dni || '')
+    setDniSearch('')
     setFoundClients([])
   }
 
+  // Función para descargar PDF del pedido
+  const generateOrderPDF = async () => {
+    if (!editingOrder) return;
+    setIsSearching(true); // Reutilizamos el loader para el PDF
+ 
+    try {
+      const doc = new jsPDF() as any;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Estilos y Colores
+      const primaryColor: [number, number, number] = [74, 124, 89]; // #4A7C59
+      const secondaryColor: [number, number, number] = [100, 116, 139]; // Slate
+ 
+      // Cabecera
+      doc.setFontSize(22);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PUJALTE FOTOGRAFIA', 15, 20);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Detalle del Pedido / Albarán de Entrega', 15, 27);
+      doc.text(`Fecha: ${new Date(editingOrder.createdAt).toLocaleDateString()}`, pageWidth - 15, 20, { align: 'right' });
+      doc.text(`Referencia: ${editingOrder.id.slice(-8).toUpperCase()}`, pageWidth - 15, 27, { align: 'right' });
+ 
+      // Línea separadora
+      doc.setDrawColor(240, 240, 240);
+      doc.line(15, 35, pageWidth - 15, 35);
+ 
+      // Datos del Cliente
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DATOS DEL CLIENTE', 15, 45);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Nombre: ${editingOrder.customerName}`, 15, 52);
+      const customerDNI = (editingOrder.customFields as any)?.dni || 
+                          (editingOrder.customFields as any)?.DNI || 
+                          (editingOrder.customFields as any)?.identificador ||
+                          ((/^\d+$/.test(editingOrder.customerEmail || '')) ? editingOrder.customerEmail : null) ||
+                          'N/A';
+ 
+      doc.text(`DNI: ${customerDNI}`, 15, 57);
+      doc.text(`Email: ${editingOrder.customerEmail || 'N/A'}`, 15, 62);
+      doc.text(`Teléfono: ${editingOrder.customerPhone || 'N/A'}`, 15, 67);
+      if (editingOrder.address) {
+        doc.text(`Dirección: ${editingOrder.address}`, 15, 72);
+      }
+ 
+      // Tabla de Productos con tipado para evitar errores
+      interface TableItem {
+        num: number;
+        name: string;
+        variant: string;
+        quantity: number;
+        price: string;
+        subtotal: string;
+        image: any;
+        dim: { w: number, h: number };
+      }
+ 
+      const tableData: TableItem[] = await Promise.all(editingOrder.items.map(async (item, index) => {
+        let imgData: string | null = null;
+        let dimensions = { w: 18, h: 14 }; // Defaults
+ 
+        if (item.fileUrl) {
+          try {
+            const res = await fetch(item.fileUrl);
+            const blob = await res.blob();
+            imgData = await new Promise<string | null>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+ 
+            if (imgData) {
+              // Calcular dimensiones reales para evitar deformación
+              const img = new Image();
+              img.src = imgData;
+              await new Promise((resolve) => { img.onload = resolve; });
+              
+              const maxWidth = 18;
+              const maxHeight = 14;
+              const ratio = img.width / img.height;
+              
+              if (ratio > maxWidth / maxHeight) {
+                dimensions.w = maxWidth;
+                dimensions.h = maxWidth / ratio;
+              } else {
+                dimensions.h = maxHeight;
+                dimensions.w = maxHeight * ratio;
+              }
+            }
+          } catch (e) {
+            console.warn("CORS/Fetch error for image in PDF:", item.fileUrl);
+          }
+        }
+ 
+        return {
+          num: index + 1,
+          name: item.productName,
+          variant: item.variantName || 'Estándar',
+          quantity: item.quantity,
+          price: formatPrice(item.price),
+          subtotal: formatPrice(item.price * item.quantity),
+          image: imgData,
+          dim: dimensions
+        };
+      }));
+ 
+      autoTable(doc, {
+        startY: 80,
+        head: [['#', 'Producto / Foto', 'Opción', 'Cant.', 'Precio', 'Subtotal']],
+        body: tableData.map(d => [d.num, d.name, d.variant, d.quantity, d.price, d.subtotal]),
+        headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [250, 250, 250] },
+        bodyStyles: { minCellHeight: 20, valign: 'middle' },
+        margin: { left: 15, right: 15 },
+        didDrawCell: (data: any) => {
+          if (data.section === 'body' && data.column.index === 1) {
+            const rowIdx = data.row.index;
+            const item = tableData[rowIdx];
+            if (item.image) {
+              // Centrar imagen en el rectángulo disponible (18x14)
+              const containerW = 18;
+              const containerH = 14;
+              const offsetX = (containerW - item.dim.w) / 2;
+              const offsetY = (containerH - item.dim.h) / 2;
+              
+              const x = data.cell.x + data.cell.width - 22 + offsetX;
+              const y = data.cell.y + 3 + offsetY;
+              
+              try {
+                doc.addImage(item.image, x, y, item.dim.w, item.dim.h);
+              } catch (e) {
+                console.warn("Error al añadir imagen al PDF:", e);
+              }
+            }
+          }
+        },
+        columnStyles: {
+          0: { cellWidth: 10 },
+          1: { cellWidth: 80 },
+          2: { cellWidth: 30 }
+        }
+      });
+ 
+      // Totales e Información final
+      const finalY = (doc as any).lastAutoTable.finalY + 15;
+      doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setLineWidth(0.5);
+      doc.line(pageWidth - 80, finalY - 5, pageWidth - 15, finalY - 5);
+ 
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`TOTAL PEDIDO:`, pageWidth - 80, finalY);
+      doc.text(formatPrice(editingOrder.total), pageWidth - 15, finalY, { align: 'right' });
+ 
+      if (editingOrder.notes) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+        doc.text('Notas adicionales:', 15, finalY + 10);
+        doc.text(editingOrder.notes, 15, finalY + 15, { maxWidth: 100 });
+      }
+ 
+      const fileName = `pedido_${editingOrder.id.slice(-6)}.pdf`;
+ 
+      // Establecemos metadatos para que el visor del navegador sepa el nombre si se descarga después
+      doc.setProperties({
+        title: fileName,
+        subject: `Pedido ${editingOrder.id}`,
+        author: 'Sistema de Gestión'
+      });
+ 
+      // Abrimos en nueva pestaña para previsualización
+      const blobUrl = doc.output('bloburl');
+      window.open(blobUrl, '_blank');
+ 
+      toast({ title: 'PDF Generado', description: 'Se ha abierto el albarán en una nueva pestaña.' });
+ 
+    } catch (error) {
+      console.error("Error generando PDF:", error);
+      toast({ title: 'Error', description: 'No se pudo generar el PDF.', variant: 'destructive' });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+ 
   // Limpiar búsqueda al cerrar modal
   useEffect(() => {
     if (!isEditDialogOpen) {
@@ -569,7 +808,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                                         >
                                           <ImageIcon className="h-3.5 w-3.5" /> Ver Foto Adjunta
                                         </a>
-                                      ) : (
+                                       ) : (
                                         <div className="text-[10px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100 italic leading-relaxed">
                                           "{item.note}"
                                         </div>
@@ -829,7 +1068,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                                                     >
                                                       <ImageIcon className="h-4 w-4" /> Ver Foto del Pedido
                                                     </a>
-                                                  ) : (
+                                                   ) : (
                                                     <div className="text-[10px] sm:text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100 italic leading-relaxed">
                                                       "{item.note}"
                                                     </div>
@@ -928,11 +1167,24 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-md rounded-3xl border-none p-6 shadow-2xl">
-            <DialogHeader className="gap-2">
-              <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Editar Datos del Cliente</DialogTitle>
-              <DialogDescription className="text-slate-500 font-medium leading-relaxed text-sm">
-                Actualiza la información de entrega y contacto del pedido.
-              </DialogDescription>
+            <DialogHeader className="p-0 border-b border-slate-50 pb-4 mb-2">
+              <div className="flex items-center justify-between w-full">
+                <div>
+                  <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Detalle y Edición del Pedido</DialogTitle>
+                  <DialogDescription className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1 leading-relaxed">
+                    Gestión de productos, cantidades y datos de entrega.
+                  </DialogDescription>
+                </div>
+                <Button 
+                  onClick={generateOrderPDF}
+                  disabled={isSearching}
+                  variant="outline"
+                  className="rounded-2xl border-blue-100 text-blue-600 hover:bg-blue-50 transition-all gap-2 h-11 px-6 font-black text-[10px] uppercase tracking-widest shadow-sm shadow-blue-50 flex items-center justify-center group"
+                >
+                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin text-blue-400" /> : <Eye className="h-4 w-4 transition-transform group-hover:scale-110" />}
+                  Ver Albarán (PDF)
+                </Button>
+              </div>
             </DialogHeader>
             
             {editingOrder && (
@@ -945,12 +1197,12 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                     className="w-full flex items-center justify-between p-3 rounded-xl bg-blue-50/50 border border-blue-100/50 hover:bg-blue-100/50 transition-colors group"
                   >
                     <div className="flex items-center gap-2">
-                      <User className="h-3.5 w-3.5 text-blue-500" />
-                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Vincular Cliente Existente (DNI)</span>
+                       <User className="h-3.5 w-3.5 text-blue-500" />
+                       <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Vincular Cliente Existente (Nombre o DNI)</span>
                     </div>
                     {isClientSearchOpen ? <ChevronUp className="h-3.5 w-3.5 text-blue-400" /> : <ChevronDown className="h-3.5 w-3.5 text-blue-400" />}
                   </button>
-
+ 
                   {isClientSearchOpen && (
                     <motion.div 
                       initial={{ height: 0, opacity: 0 }}
@@ -964,7 +1216,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                           <Input 
                             value={dniSearch}
                             onChange={(e) => handleSearchClients(e.target.value)}
-                            placeholder="Escribe el DNI para buscar..." 
+                            placeholder="Buscar por NOMBRE o DNI..." 
                             className="pl-10 h-11 rounded-xl bg-white border-none shadow-sm font-bold text-xs"
                           />
                           {isSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400" />}
@@ -1003,12 +1255,25 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                               className="h-11 rounded-xl bg-white border-none shadow-sm font-bold text-xs"
                             />
                           </div>
-                          <div className="space-y-2 col-span-2">
-                            <Label className="text-[9px] font-black text-blue-400 uppercase tracking-widest ml-1">Email / DNI</Label>
+                          <div className="space-y-2 col-span-2 sm:col-span-1">
+                            <Label className="text-[9px] font-black text-blue-400 uppercase tracking-widest ml-1">DNI del Cliente</Label>
+                            <Input 
+                              value={(editingOrder.customFields as any)?.dni || ''}
+                              onChange={(e) => setEditingOrder({
+                                ...editingOrder, 
+                                customFields: { ...(editingOrder.customFields || {}), dni: e.target.value }
+                              })}
+                              className="h-11 rounded-xl bg-white border-none shadow-sm font-bold text-xs uppercase"
+                              placeholder="Introduce el DNI..."
+                            />
+                          </div>
+                          <div className="space-y-2 col-span-2 sm:col-span-1">
+                            <Label className="text-[9px] font-black text-blue-400 uppercase tracking-widest ml-1">Email / Usuario</Label>
                             <Input 
                               value={editingOrder.customerEmail || ''}
                               onChange={(e) => setEditingOrder({...editingOrder, customerEmail: e.target.value})}
                               className="h-11 rounded-xl bg-white border-none shadow-sm font-bold text-xs"
+                              placeholder="Introduce el email..."
                             />
                           </div>
                           <div className="space-y-2 col-span-2">
@@ -1078,13 +1343,17 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                           <div className="flex gap-4">
                             {/* MINIATURA DE IMAGEN */}
                             <div className="h-16 w-16 rounded-xl bg-slate-100 flex-shrink-0 overflow-hidden relative border border-slate-100">
-                              {item.fileUrl ? (
-                                <img src={item.fileUrl} alt={item.productName} className="h-full w-full object-cover" />
-                              ) : (
-                                <div className="h-full w-full flex items-center justify-center bg-slate-50">
-                                  <ImageIcon className="h-6 w-6 text-slate-200" />
-                                </div>
-                              )}
+                               {(() => {
+                                 const photoMatch = item.note?.match(/FOTO:\s*(https:\/\/[^\s|]+)/i);
+                                 const finalImg = item.fileUrl || (photoMatch ? photoMatch[1] : null);
+                                 return finalImg ? (
+                                   <img src={finalImg} alt={item.productName} className="h-full w-full object-cover" />
+                                 ) : (
+                                   <div className="h-full w-full flex items-center justify-center bg-slate-50">
+                                     <ImageIcon className="h-6 w-6 text-slate-200" />
+                                   </div>
+                                 );
+                               })()}
                               <div className="absolute top-1 left-1 bg-white/90 backdrop-blur px-1 rounded-md border border-slate-100">
                                 <span className="text-[8px] font-black text-slate-500 uppercase">#{i + 1}</span>
                               </div>
@@ -1199,7 +1468,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                     onClick={handleSaveEdit}
                     className="h-11 px-8 rounded-2xl bg-[#4A7C59] text-white font-black hover:bg-[#3d6649] shadow-xl shadow-[#4A7C59]/20 text-xs flex items-center justify-center gap-2"
                   >
-                    <Save className="h-4 w-4" /> Guardar Cambios del Cliente
+                    <Save className="h-4 w-4" /> Confirmar y Guardar Pedido
                   </Button>
                 </DialogFooter>
               </>

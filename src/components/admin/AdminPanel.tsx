@@ -194,20 +194,29 @@ export function AdminPanel(props: AdminPanelProps) {
     localStorage.setItem('pujalte_admin_dark_mode', String(newVal))
   }
 
-  // Enriquecer pedidos con nombres reales si son "DESCONOCIDO"
+  // Enriquecer pedidos con nombres reales si son descriptores genéricos o si faltan datos
   const enrichedOrders = useMemo(() => {
     return orders.map(order => {
-      if (order.customerName !== 'DESCONOCIDO') return order
+      // Si el nombre es un DNI o genérico, intentamos buscar el nombre real en los clientes de Firebase
+      const nameIsGeneric = !order.customerName || 
+                            order.customerName === 'DESCONOCIDO' || 
+                            order.customerName === 'Cliente sin nombre' || 
+                            order.customerName.startsWith('Cliente DNI:');
+      
+      if (!nameIsGeneric) return order
 
       const fields = (order.customFields || {}) as any
       const dni = (fields.dni || '').trim().toUpperCase()
       const email = (order.customerEmail || '').toLowerCase().trim()
       const phone = (order.customerPhone || '').trim()
       
-      // 1. Intentar por clave directa (ID documento)
-      let match = firebaseClients[dni] || firebaseClients[email] || firebaseClients[phone]
+      // Intentar encontrar al cliente por DNI, Email o Teléfono
+      let match: any = null;
       
-      // 2. Si no hay match directo (ej: ID es DNI pero buscamos por email), buscamos en los valores
+      // 1. Intentar por clave directa (ID documento)
+      match = firebaseClients[dni] || firebaseClients[email] || firebaseClients[phone];
+      
+      // 2. Si no hay match directo, buscamos en los valores
       if (!match) {
         match = Object.values(firebaseClients).find((c: any) => {
           const cDni = (c.dni || '').trim().toUpperCase();
@@ -220,18 +229,28 @@ export function AdminPanel(props: AdminPanelProps) {
       if (match && match.name) {
         return { ...order, customerName: match.name }
       }
+      
+      // Si no hay match pero el nombre empieza por "Cliente DNI:", limpiamos el prefijo para que sea más legible
+      if (order.customerName?.startsWith('Cliente DNI:')) {
+        const pureId = order.customerName.replace('Cliente DNI: ', '');
+        // Si el pureId parece una galería (ej: CP-25-01), lo dejamos claro
+        if (pureId.includes('-')) {
+          return { ...order, customerName: `Galería: ${pureId}` };
+        }
+      }
+
       return order
     })
   }, [orders, firebaseClients])
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'orders', label: 'Pedidos', icon: ShoppingCart },
+    { id: 'galleries', label: 'Galerías', icon: Camera },
+    { id: 'customers', label: 'Clientes', icon: Users },
     { id: 'products', label: 'Productos', icon: LayoutGrid },
     { id: 'categories', label: 'Categorías', icon: Layers },
     { id: 'promos', label: 'Banners', icon: Sparkles },
-    { id: 'orders', label: 'Pedidos', icon: ShoppingCart },
-    { id: 'customers', label: 'Clientes', icon: Users },
-    { id: 'galleries', label: 'Galerías', icon: Camera },
     { id: 'music', label: 'Música', icon: Music },
     { id: 'suppliers', label: 'Proveedores', icon: Truck },
     { id: 'export', label: 'Exportar', icon: Download },
@@ -559,6 +578,9 @@ export function AdminPanel(props: AdminPanelProps) {
                     setReturnTab('galleries')
                     setActiveTab('customers')
                   }}
+                  config={config}
+                  onUpdateConfig={onUpdateConfig}
+                  onSaveConfig={onSaveConfig}
                   initialFilter={activeTab === 'galleries' ? activeFilter : 'all'}
                 />
               )}

@@ -25,17 +25,19 @@ export async function POST(request: NextRequest) {
   console.time('OrderCreation');
   try {
     const data = await request.json();
-    const { items, total, customer, status = 'pending', paymentMethod = 'cash', notes = '' } = data;
+    const { items, total, customer, status = 'pending', paymentMethod = 'cash', notes = '', galleryTitle = '' } = data;
 
-    console.log(`📝 [PEDIDO] Cliente: ${customer?.firstName}, Total: ${total}, Método: ${paymentMethod}`);
+    console.log(`📝 [PEDIDO] Cliente: ${customer?.firstName}, Total: ${total}, Método: ${paymentMethod}, Galería: ${galleryTitle}`);
 
-    // Extraemos datos del cliente de forma segura
-    let cName = customer?.name || "";
-    if (!cName && (customer?.firstName || customer?.lastName)) {
-        cName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+    // Extraemos datos del cliente de forma segura (Prioridad: Nombre Real)
+    let cName = "";
+    if (customer?.firstName || customer?.lastName) {
+      cName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
     }
     
-    // Si sigue vacío, probamos con el DNI del propio objeto customer o de la metadata
+    // Fallbacks si no hay nombres separados
+    cName = cName || customer?.name || data.customerName || "";
+
     const cDni = customer?.dni || data.dni || "";
     if (!cName && cDni) {
         cName = `Cliente DNI: ${cDni}`;
@@ -43,34 +45,54 @@ export async function POST(request: NextRequest) {
     
     cName = cName || 'Cliente sin nombre';
 
-    let cEmail = customer?.email || null;
-    let cPhone = customer?.phone || '';
-    const cAddress = customer?.address || '';
+    let cEmail = customer?.email || data.customerEmail || data.email || null;
+    let cPhone = customer?.phone || data.customerPhone || data.phone || '';
+    const cAddress = customer?.address || data.address || '';
 
-    // PARCHE: Si el nombre está vacío o es genérico, pero tenemos DNI, intentamos recuperar los datos reales del cliente
-    if ((cName === 'Cliente sin nombre' || cName.startsWith('Cliente DNI:')) && cDni) {
-      console.log(`🔎 [PEDIDO] Buscando cliente por DNI: ${cDni}`);
+    // PARCHE: Búsqueda exhaustiva del cliente para completar datos (Email, Teléfono y Nombre Real)
+    let resolvedGalleryTitle = galleryTitle;
+    
+    if (cDni) {
+      console.log(`🔎 [PEDIDO] Buscando cliente por ID/DNI para completar datos: ${cDni}`);
       try {
         const existingClient = await db.client.findFirst({
           where: {
             OR: [
               { dni: cDni },
-              { id: cDni }
+              { id: cDni },
+              // También intentamos por email si lo tenemos, para cruzar datos
+              ...(cEmail ? [{ email: cEmail }] : [])
             ]
           }
         });
         
         if (existingClient) {
-          cName = existingClient.name;
-          cEmail = cEmail || existingClient.email;
-          cPhone = cPhone || existingClient.phone || '';
+          console.log(`✅ [PEDIDO] Cliente encontrado en DB: ${existingClient.name}`);
+          
+          // Si el nombre actual es genérico o el de la DB es más completo, lo usamos
+          if (cName === 'Cliente sin nombre' || cName.startsWith('Cliente DNI:') || cName === 'DESCONOCIDO') {
+            cName = existingClient.name;
+          }
+          
+          // Completamos Email y Teléfono si faltaban
+          if (!cEmail) cEmail = existingClient.email;
+          if (!cPhone) cPhone = existingClient.phone || '';
+          
+          // Si no tenemos título de galería, usamos el nombre del cliente/galería como referencia
+          if (!resolvedGalleryTitle) resolvedGalleryTitle = existingClient.name;
         }
       } catch (e) {
-        console.error('❌ [PEDIDO] Error al recuperar cliente por DNI:', e);
+        console.error('❌ [PEDIDO] Error al recuperar cliente por ID:', e);
       }
     }
 
-    const finalNotes = cDni ? `[DNI: ${cDni}] ${notes || ''}` : (notes || '');
+    // Unificamos notas con info de galería
+    const finalNotesArray: string[] = [];
+    if (resolvedGalleryTitle) finalNotesArray.push(`GALERÍA: ${resolvedGalleryTitle.toUpperCase()}`);
+    if (cDni) finalNotesArray.push(`DNI: ${cDni}`);
+    if (notes) finalNotesArray.push(notes);
+    const finalNotes = finalNotesArray.join(' | ');
+
     const trackingNumber = `PUJ-26-${Math.floor(1000 + Math.random() * 9000)}`;
 
     console.log('💾 [PEDIDO] Guardando en Base de Datos...');
@@ -109,12 +131,15 @@ export async function POST(request: NextRequest) {
     console.log('✅ [PEDIDO] Guardado con éxito. ID:', order.id);
     console.timeEnd('OrderCreation');
 
-    // 2. Enviar correos de notificación (SIN AWAIT para no bloquear al cliente)
-    const isCash = String(paymentMethod).toUpperCase() === 'CASH';
-    console.log('📧 [PEDIDO] Lanzando envío de emails en paralelo...');
-    sendOrderEmails({ ...order, trackingNumber }, isCash).catch(mailError => {
-      console.error('❌ [PEDIDO] Error en segundo plano al enviar emails:', mailError);
-    });
+    // 2. Enviar correos de notificación (A Pepe y al cliente)
+    const isCash = String(paymentMethod).toUpperCase() === 'CASH' || String(paymentMethod).toUpperCase() === 'EFECTIVO' || status === 'pending';
+    
+    console.log(`📧 [PEDIDO] Enviando correos... (isCash: ${isCash}, gallery: ${resolvedGalleryTitle})`);
+    try {
+      await sendOrderEmails(order, isCash, resolvedGalleryTitle);
+    } catch (mailErr) {
+      console.error('❌ [PEDIDO] Error enviando correos:', mailErr);
+    }
     
     return NextResponse.json({ 
         id: order.id,

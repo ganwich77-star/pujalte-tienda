@@ -48,6 +48,16 @@ export function ConfigTab({ config, onUpdateConfig, onSave }: ConfigTabProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
 
+  // Inicializar categorías por defecto si están vacías
+  useState(() => {
+    if (!config.sessionTypes || config.sessionTypes.length === 0) {
+      onUpdateConfig({
+        ...config,
+        sessionTypes: ['COMUNIONES', 'BODAS', 'ESTUDIO', 'EXTERIORES']
+      })
+    }
+  })
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -215,88 +225,6 @@ export function ConfigTab({ config, onUpdateConfig, onSave }: ConfigTabProps) {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* GESTIÓN DE TIPOS DE SESIÓN */}
-          <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-emerald-900/5 overflow-hidden bg-white/60 backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-50 bg-white/80 p-8">
-              <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-                <Layers className="h-4 w-4" /> Categorías de Reportajes (Tipos de Sesión)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-8 space-y-6">
-               <div className="flex gap-2">
-                  <Input 
-                    id="newSessionType"
-                    placeholder="Ej. Boda, Comunión, Estudio..." 
-                    className="h-12 rounded-xl bg-white border-slate-200 font-bold uppercase tracking-tight focus-visible:ring-[#4A7C59]/20"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const val = e.currentTarget.value.trim().toUpperCase();
-                        if (val && !config.sessionTypes?.includes(val)) {
-                          onUpdateConfig({ 
-                            ...config, 
-                            sessionTypes: [...(config.sessionTypes || []), val] 
-                          });
-                          e.currentTarget.value = '';
-                        }
-                      }
-                    }}
-                  />
-                  <Button 
-                    variant="ghost"
-                    className="h-12 w-12 rounded-xl bg-slate-100 hover:bg-[#4A7C59] hover:text-white transition-all shrink-0"
-                    onClick={() => {
-                        const input = document.getElementById('newSessionType') as HTMLInputElement;
-                        const val = input.value.trim().toUpperCase();
-                        if (val && !config.sessionTypes?.includes(val)) {
-                          onUpdateConfig({ 
-                            ...config, 
-                            sessionTypes: [...(config.sessionTypes || []), val] 
-                          });
-                          input.value = '';
-                        }
-                    }}
-                  >
-                    <Plus className="h-5 w-5" />
-                  </Button>
-               </div>
-
-               <div className="flex flex-wrap gap-2">
-                  {config.sessionTypes?.length ? config.sessionTypes.map((type) => (
-                    <Badge 
-                      key={type} 
-                      className="bg-white border-slate-100 py-2.5 px-4 rounded-xl flex items-center gap-3 group/tag hover:border-[#4A7C59]/30 transition-all shadow-sm"
-                    >
-                       <span className="text-slate-600 font-black text-[10px] uppercase tracking-widest">{type}</span>
-                       <button 
-                         onClick={() => {
-                           onUpdateConfig({
-                             ...config,
-                             sessionTypes: config.sessionTypes?.filter(t => t !== type)
-                           });
-                         }}
-                         className="text-slate-300 hover:text-red-500 transition-colors"
-                       >
-                         <Trash2 className="h-3 w-3" />
-                       </button>
-                    </Badge>
-                  )) : (
-                    <div className="w-full py-10 text-center border-2 border-dashed border-slate-100 rounded-3xl">
-                       <p className="text-[10px] font-black uppercase text-slate-300 tracking-[0.2em]">No hay categorías configuradas</p>
-                    </div>
-                  )}
-               </div>
-
-               <div className="p-5 rounded-[1.5rem] bg-emerald-50/50 border border-emerald-100 flex gap-4">
-                  <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">
-                    <Sparkles className="h-5 w-5 text-[#4A7C59]" />
-                  </div>
-                  <p className="text-[10px] font-medium text-emerald-800 leading-relaxed">
-                    Estructura tu trabajo de forma profesional. Estas categorías te permitirán filtrar y ordenar todos tus reportajes automáticamente en el panel de galerías.
-                  </p>
-               </div>
             </CardContent>
           </Card>
         </div>

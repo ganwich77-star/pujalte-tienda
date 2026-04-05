@@ -1977,11 +1977,36 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                                                     <span>{item.productName} {item.variantName ? `(${item.variantName})` : ''}</span>
                                                     <span className="text-[#4A7C59]">x{item.quantity}</span>
                                                  </div>
-                                                 {item.note && (
-                                                   <p className="text-[9px] text-slate-400 italic bg-white p-1.5 rounded-lg border border-slate-50 mt-1">
-                                                      "{item.note}"
-                                                   </p>
-                                                 )}
+                                                 {item.note && (() => {
+                                                   const photoMatch = item.note.match(/FOTO:\s*(https:\/\/[^\s|]+)/i);
+                                                   const imageUrl = photoMatch ? photoMatch[1] : null;
+                                                   const remainingNote = item.note
+                                                     .replace(/FOTO:\s*https:\/\/[^\s|]+/i, '')
+                                                     .replace(/^[\s|]+|[\s|]+$/g, '')
+                                                     .trim();
+
+                                                   return (
+                                                     <div className="mt-2 space-y-2">
+                                                       {imageUrl && (
+                                                         <div className="relative group/photo w-24 h-24 rounded-xl overflow-hidden border-2 border-white shadow-md ring-1 ring-slate-100">
+                                                           <img 
+                                                             src={imageUrl} 
+                                                             alt="Selección" 
+                                                             className="w-full h-full object-cover transition-transform group-hover/photo:scale-110 duration-500 cursor-pointer"
+                                                             onClick={() => window.open(imageUrl, '_blank')}
+                                                           />
+                                                           <div className="absolute inset-0 bg-black/5 group-hover/photo:bg-transparent transition-colors pointer-events-none" />
+                                                         </div>
+                                                       )}
+                                                       {remainingNote && (
+                                                         <p className="text-[9px] text-slate-400 font-bold bg-white/80 backdrop-blur-sm p-2 rounded-xl border border-slate-100 flex items-center gap-1.5 shadow-sm">
+                                                           <div className="w-1 h-3 bg-[#4A7C59]/20 rounded-full" />
+                                                           {remainingNote}
+                                                         </p>
+                                                       )}
+                                                     </div>
+                                                   );
+                                                 })()}
                                               </div>
                                            ))}
                                         </div>

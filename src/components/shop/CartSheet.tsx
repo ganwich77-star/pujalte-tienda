@@ -278,7 +278,8 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
         customFields: {
           dni: shippingData.dni
         },
-        clientId: clientId
+        clientId: clientId,
+        galleryTitle: galleryTitle
       }
 
       const response = await fetch('/api/checkout', {
@@ -321,7 +322,8 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
         total: getTotal(),
         paymentMethod: 'CASH',
         status: 'PENDING',
-        clientId: clientId // Enviamos el slug o id de la galería
+        clientId: clientId, // Enviamos el slug o id de la galería
+        galleryTitle: galleryTitle
       }
 
       const response = await fetch('/api/orders', {

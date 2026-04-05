@@ -77,7 +77,10 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice,
       {
         id: 'orders',
         title: 'Pedidos Pendientes',
-        count: orders.filter(o => o.status === 'pending').length,
+        count: orders.filter(o => {
+          const s = (o.status || '').toLowerCase();
+          return s === 'pending' || s === 'pendiente';
+        }).length,
         icon: ShoppingCart,
         color: 'bg-amber-500',
         tab: 'orders',
@@ -86,18 +89,18 @@ export function DashboardTab({ stats, orders, categories, products, formatPrice,
       {
         id: 'selections',
         title: 'Selecciones OK',
-        count: clients.filter(c => c.gallerySettings?.selectionConfirmed && c.gallerySettings?.lastSelection?.length > 0 && !c.gallerySettings?.selectionReviewed).length,
+        count: clients.filter((c: any) => c.gallerySettings?.selectionConfirmed && (c.gallerySettings?.lastSelection?.length > 0 || c.gallerySettings?.selectionCount > 0) && !c.gallerySettings?.selectionReviewed).length,
         icon: CheckCircle2,
-        color: 'bg-emerald-500',
+        color: 'bg-[#4A7C59]',
         tab: 'galleries',
         description: 'por revisar ahora'
       },
       {
         id: 'empty',
         title: 'Galerías Vacías',
-        count: clients.filter(c => (c.gallerySettings?.photos?.length || 0) === 0 && !c.gallerySettings?.hideEmptyAlert).length,
+        count: clients.filter((c: any) => (c.gallerySettings?.photos?.length || 0) === 0 && !c.gallerySettings?.hideEmptyAlert).length,
         icon: Camera,
-        color: 'bg-blue-500',
+        color: 'bg-slate-400',
         tab: 'customers',
         description: 'sin fotos subidas'
       }

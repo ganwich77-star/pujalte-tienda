@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pujaltefotografia.es'
 
-export const sendOrderEmails = async (order: any, isCash: boolean = false) => {
+export const sendOrderEmails = async (order: any, isCash: boolean = false, galleryTitle?: string) => {
   const { customerName, customerEmail, items, total, id, trackingNumber } = order
 
   const itemsHtml = items.map((item: any) => `
@@ -91,10 +91,11 @@ export const sendOrderEmails = async (order: any, isCash: boolean = false) => {
       <h2 style="color: #ACC3B1; margin: 0 0 20px 0; letter-spacing: 1px; font-size: 20px;">🚀 ${isCash ? 'AVISO: PEDIDO PENDIENTE' : 'NUEVO PEDIDO RECIBIDO'}</h2>
       
       <div style="background: #222; padding: 25px; border-radius: 20px; margin-bottom: 25px; border: 1px solid #333;">
-        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Cliente:</strong><br/> <span style="font-size: 16px; font-weight: bold;">${customerName}</span></p>
-        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Email:</strong><br/> ${customerEmail}</p>
-        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Teléfono:</strong><br/> ${order.customerPhone || 'N/A'}</p>
-        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Dirección:</strong><br/> ${order.address || 'Recogida en tienda'}</p>
+        <p style="margin: 0 0 12px 0;"><strong style="color: #ACC3B1; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Galería:</strong><br/> <span style="font-size: 18px; font-weight: 900; color: #ffffff;">${(galleryTitle || 'Sin especificar').toUpperCase()}</span></p>
+        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Cliente:</strong><br/> <span style="font-size: 16px; font-weight: bold;">${customerName || 'Cliente sin nombre'}</span></p>
+        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Email:</strong><br/> ${customerEmail || 'No proporcionado'}</p>
+        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Teléfono:</strong><br/> ${order.customerPhone || 'No proporcionado'}</p>
+        <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Dirección:</strong><br/> ${order.address || 'Recogida en tienda / No especificada'}</p>
         <p style="margin: 0 0 12px 0;"><strong style="color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Método Pago:</strong><br/> ${isCash ? '💵 EFECTIVO / PAGO MANUAL' : '💳 PASARELA ONLINE'}</p>
         ${order.notes ? `<p style="margin: 0;"><strong style="color: #ff9800; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Notas del Pedido:</strong><br/> <span style="color: #ff9800;">${order.notes}</span></p>` : ''}
       </div>
@@ -131,20 +132,20 @@ export const sendOrderEmails = async (order: any, isCash: boolean = false) => {
     </div>
   `
 
+  const fromEmail = `"Pujalte Creative Studio" <hola@pujaltefotografia.es>`
+
   try {
-    // Solo enviamos al cliente si NO es pago en efectivo (según petición de Jose)
-    if (!isCash) {
+    if (!isCash && customerEmail) {
       await transporter.sendMail({
-        from: `"Pujalte Creative Studio" <${process.env.MAIL_USER || 'pedidos@pujaltefotografia.es'}>`,
+        from: fromEmail,
         to: customerEmail,
         subject: `✅ Pedido Confirmado - ${trackingNumber || id.slice(-6)}`,
         html: customerEmailHtml,
       })
     }
 
-    // Al administrador (Jose) se le avisa SIEMPRE
     await transporter.sendMail({
-      from: isCash ? `"Aviso de Pedido" <${process.env.MAIL_USER || 'hola@pujaltefotografia.es'}>` : `"Gestión de Pedidos" <${process.env.MAIL_USER || 'hola@pujaltefotografia.es'}>`,
+      from: fromEmail,
       to: 'pedidos@pujaltefotografia.es',
       subject: isCash ? `⚠️ PEDIDO PENDIENTE: ${customerName}` : `🚀 NUEVO PEDIDO: ${customerName}`,
       html: adminEmailHtml,

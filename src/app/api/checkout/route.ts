@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
       paymentMethod,
       customFields,
       clientId,
+      galleryTitle = '',
       gateway = 'paycomet'
     } = body
     
@@ -23,6 +24,13 @@ export async function POST(request: NextRequest) {
 
     // 2. Generar número de seguimiento
     const trackingNumber = `PUJ-26-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const cDni = customFields?.dni || "";
+    const finalNotesArray: string[] = [];
+    if (galleryTitle) finalNotesArray.push(`GALERÍA: ${galleryTitle.toUpperCase()}`);
+    if (cDni) finalNotesArray.push(`DNI: ${cDni}`);
+    if (notes) finalNotesArray.push(notes);
+    const finalNotes = finalNotesArray.join(' | ');
 
     // ... Crear el pedido ...
     const order = await db.order.create({
@@ -36,7 +44,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: paymentMethod || 'card',
         paymentStatus: 'pending',
         paymentId: trackingNumber,
-        notes: notes || "",
+        notes: finalNotes,
         customFields: JSON.stringify(customFields || {}),
         clientId: clientId || null,
         items: {
@@ -107,8 +115,8 @@ export async function POST(request: NextRequest) {
           data: { paymentId: paymentOrderRef }
         });
 
-        // 5. Enviar confirmación (opcional en este paso, pero lo mantenemos)
-        sendOrderEmails({ ...order, trackingNumber }).catch(err => console.error("Error enviando email en checkout:", err));
+        // 5. Enviar confirmación (A Pepe y al cliente)
+        sendOrderEmails({ ...order, trackingNumber }, false, galleryTitle).catch(err => console.error("Error enviando email en checkout:", err));
 
         return NextResponse.json({
           success: true,
