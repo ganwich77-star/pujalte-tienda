@@ -1931,7 +1931,28 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                              <Button variant="outline" className="flex-1 rounded-xl h-11 text-[10px] font-black uppercase border-slate-200" onClick={() => window.open(`/galeria/${editingCustomer.slug}?preview=true`, '_blank')}><Eye className="h-4 w-4 mr-2" /> VISTA PREVIA</Button>
                              <Button className="flex-1 bg-[#4A7C59]/10 hover:bg-[#4A7C59] text-[#4A7C59] hover:text-white rounded-xl h-11 text-[10px] font-black uppercase transition-all" onClick={() => {
                                const u = `${window.location.origin}/galeria/${editingCustomer.slug}`;
-                               const m = `¡Hola ${editingCustomer.name}! Ya tienes tu galería: ${u}`;
+                               const m = `👋 ✨ ¡Hola ${editingCustomer.name}!
+
+¡Buenas noticias! ¡ya tienes lista tu galería online! 🎞️📷
+
+Es el momento de revivir esos momentos mágicos. En el siguiente enlace podrás seleccionar tus fotos favoritas y convertirlas en recuerdos tangibles en nuestra tienda:
+
+👉 ${u} ✨
+
+Queremos que vuestro reportaje sea una experiencia inolvidable y que la tecnología os lo ponga muy fácil. 🚀💻
+
+¿Nos ayudas a seguir creciendo? 🌱✨
+
+En PujalteFotografia nos apasiona saber qué piensas. Si te ha gustado nuestro trabajo y el trato recibido, nos harías un favor enorme dejando una reseña en nuestro perfil. 💬🙏
+
+¿Nos regalas 5 estrellas? ⭐⭐⭐⭐⭐ Un comentario contando vuestra experiencia sería el broche de oro perfecto para nosotros. 😜🎁
+
+Puedes hacerlo directamente aquí 👇
+📍 https://g.page/r/CTswPlAvjlLXEAo/review
+
+Cualquier duda, ¡escríbeme! 📲
+
+¡Mil gracias por vuestra confianza y apoyo! 🤗💖`;
                                window.open(`https://api.whatsapp.com/send?phone=${editingCustomer.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(m)}`, '_blank');
                              }}><Send className="h-4 w-4 mr-2" /> WHATSAPP</Button>
                           </div>
