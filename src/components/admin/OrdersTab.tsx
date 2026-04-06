@@ -329,7 +329,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
       
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Nombre: ${editingOrder.customerName}`, 15, 52);
+      doc.text(`Nombre: ${editingOrder.customerName || 'Cliente No Identificado'}`, 15, 52);
       const customerDNI = (editingOrder.customFields as any)?.dni || 
                           (editingOrder.customFields as any)?.DNI || 
                           (editingOrder.customFields as any)?.identificador ||
