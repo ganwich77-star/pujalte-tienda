@@ -374,12 +374,18 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
     const customer = lastOrderDetails?.customer || shippingData;
     const method = lastOrderDetails?.method || (paymentMethod === 'cash' ? 'EFECTIVO / TRANSFERENCIA' : 'PAGADO ONLINE');
 
-    let message = `📸 *¡NUEVA COMPRA DE GALERÍA!* 📸\n\n`;
+    let message = `✅ *¡NUEVA COMPRA DE GALERÍA!* ✅\n\n`;
     message += `Hola *Pujalte Fotografía*, he completado mi pedido desde mi área de cliente. Aquí tienes los detalles:\n\n`;
-    message += `📂 *GALERÍA:* ${galleryName.toUpperCase()}\n`;
-    message += `👤 *CLIENTE:* ${customer.firstName} ${customer.lastName}\n`;
-    message += `📧 *EMAIL:* ${customer.email}\n`;
-    message += `📱 *TEL:* ${customer.phone}\n\n`;
+    message += `📍 *GALERÍA:* ${galleryName.toUpperCase()}\n`;
+    
+    // Fallback de nombre si no viene en 'customer'
+    const fullName = (customer.firstName || customer.lastName) 
+      ? `${customer.firstName} ${customer.lastName}`.trim() 
+      : (isLoggedIn ? loggedUser?.name : 'Cliente Registrado');
+
+    message += `👤 *CLIENTE:* ${fullName}\n`;
+    message += `✉️ *EMAIL:* ${customer.email || (isLoggedIn ? loggedUser?.email : '')}\n`;
+    message += `📞 *TEL:* ${customer.phone || (isLoggedIn ? loggedUser?.phone : '')}\n\n`;
     message += `📦 *DETALLE DEL PEDIDO:*\n`;
     message += `---------------------------------\n`;
 
@@ -394,7 +400,7 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
     });
 
     message += `---------------------------------\n`;
-    message += `💰 *TOTAL A PAGAR: ${formatCurrency(orderTotal)}*\n`;
+    message += `💵 *TOTAL A PAGAR: ${formatCurrency(orderTotal)}*\n`;
     message += `📌 *MÉTODO:* ${method}\n\n`;
     
     if (customer.address) {
@@ -402,7 +408,7 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
     }
 
     message += `💬 "Quedo a la espera de que prepares mi pedido. ¡Muchas gracias!"\n\n`;
-    message += `🚀 _Enviado desde Pujalte Creative Studio_`;
+    message += `✨ _Enviado desde Pujalte Creative Studio_`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${encodedMessage}`, '_blank');
