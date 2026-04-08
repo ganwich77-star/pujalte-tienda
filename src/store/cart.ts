@@ -19,6 +19,8 @@ export interface CartItem {
   // Datos para recálculo dinámico
   basePrice: number
   salePrice?: number
+  stepQuantity?: number
+  minQuantity?: number
   tierPricing?: any // Puede ser string JSON o Array
   variantBehavior?: 'add' | 'replace'
   isDigital?: boolean
@@ -42,7 +44,13 @@ interface CartStore {
 
 // Lógica de cálculo de precio unitario dinámico
 const calculateUnitPrice = (qty: number, item: Partial<CartItem>) => {
+  // Si el item tiene un precio individual asignado (ej: foto digital específica), no aplicamos escalado
+  if (item.hasIndividualPrice) {
+    return Number(item.basePrice);
+  }
+
   let base = item.salePrice ? Number(item.salePrice) : Number(item.basePrice);
+  let hasAppliedTier = false;
   
   if (item.tierPricing) {
     try {
@@ -54,7 +62,12 @@ const calculateUnitPrice = (qty: number, item: Partial<CartItem>) => {
         const applicableTier = [...tiers]
           .sort((a, b) => b.minQty - a.minQty)
           .find(t => qty >= t.minQty);
-        if (applicableTier) base = Number(applicableTier.price);
+        
+        if (applicableTier) {
+          base = Number(applicableTier.price);
+          hasAppliedTier = true;
+          console.log(`[Carrito] Aplicando tramo: ${qty} unidades -> ${base}€`);
+        }
       }
     } catch (e) {
       console.error("Error parsing tiers in cart:", e);
@@ -65,7 +78,9 @@ const calculateUnitPrice = (qty: number, item: Partial<CartItem>) => {
   const vPrice = Number(item.variantPrice || 0);
   if (item.variantId) {
     if (item.variantBehavior === 'replace') {
-      return vPrice;
+      // Si hay un tramo de precio aplicado, el tramo de precio del producto MANDA sobre el precio de la variante
+      // (Asumiendo que el tramo define el precio final por unidad para ese volumen)
+      return hasAppliedTier ? base : vPrice;
     } else {
       return base + vPrice;
     }
@@ -165,8 +180,10 @@ export const useCartStore = create<CartStore>()(
           newItems = currentItems.map((i) => {
             const existingKey = getItemKey(i.id, i.variantId, i.notes)
             if (existingKey === itemKey) {
-               const newUnitPrice = calculateUnitPrice(quantity, i);
-               return { ...i, quantity, price: newUnitPrice };
+               const minQty = i.minQuantity || 1;
+               const finalQty = Math.max(minQty, quantity);
+               const newUnitPrice = calculateUnitPrice(finalQty, i);
+               return { ...i, quantity: finalQty, price: newUnitPrice };
             }
             return i;
           });

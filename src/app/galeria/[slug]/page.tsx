@@ -96,6 +96,8 @@ export default function GalleryPage() {
   const [globalConfig, setGlobalConfig] = useState<any>(null)
   const [isShopModalOpen, setIsShopModalOpen] = useState(false)
   const [photoToBuy, setPhotoToBuy] = useState<any>(null)
+  const [extraPhotos, setExtraPhotos] = useState<any[]>([])
+  const [isPickingExtra, setIsPickingExtra] = useState<number | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [selectedVariant, setSelectedVariant] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -742,10 +744,10 @@ export default function GalleryPage() {
 
   const sendWhatsAppSelection = () => {
     const phone = globalConfig?.whatsappConfig?.phone || "34650494728"; 
-    const galleryName = client?.name || "Galería Privada";
+    const galleryName = client?.gallerySettings?.galleryTitle || client?.name || "Galería Privada";
     
     let message = `✨ *¡NUEVA SELECCIÓN DE FAVORITOS!* ✨\n\n`;
-    message += `Hola *Pujalte Fotografía*, he terminado mi selección en la galería:\n\n`;
+    message += `Hola Pepe, he terminado mi selección en la galería:\n\n`;
     message += `🖼️ *GALERÍA:* ${galleryName.toUpperCase()}\n`;
     message += `👤 *CLIENTE:* ${client?.name}\n\n`;
     message += `📦 *RESUMEN DE SELECCIÓN:*\n`;
@@ -761,6 +763,7 @@ export default function GalleryPage() {
 
   const handleOpenShop = (photo: any, productToSelect?: any) => {
     setPhotoToBuy(photo)
+    setExtraPhotos([])
     setSearchTerm('')
     setSelectedCustomOptions({})
     setZoomedProduct(null) 
@@ -906,6 +909,20 @@ export default function GalleryPage() {
     );
   }
 
+  const getCalculatedUnitPrice = (p: any, qty: number) => {
+    let base = p.price;
+    if (p.tierPricing) {
+      try {
+        const tiers = typeof p.tierPricing === 'string' ? JSON.parse(p.tierPricing) : p.tierPricing;
+        if (Array.isArray(tiers) && tiers.length > 0) {
+          const tier = [...tiers].sort((a: any, b: any) => b.minQty - a.minQty).find((t: any) => qty >= t.minQty);
+          if (tier) base = tier.price;
+        }
+      } catch (e) {}
+    }
+    return base;
+  };
+  
   const handleAddToOrder = (product: any, variant?: any) => {
     if (!photoToBuy) return;
 
@@ -924,11 +941,24 @@ export default function GalleryPage() {
 
     if (missingRequired.length > 0) {
       toast({
-        title: "Selección incompleta",
+        title: "TE FALTA SELECCIONAR VARIANTES",
         description: `Por favor, elige una opción para: ${missingRequired.map(o => o.title).join(', ')}`,
         variant: "destructive"
       });
       return;
+    }
+
+    // Verificar si faltan fotos adicionales para productos que incluyen varias
+    const totalRequired = product.fotosIncluidas || 1;
+    const selectedPhotos = [photoToBuy, ...extraPhotos].filter(Boolean);
+    
+    if (selectedPhotos.length < totalRequired) {
+       toast({
+         title: "Faltan fotos",
+         description: `Este producto requiere ${totalRequired} fotos. Has seleccionado ${selectedPhotos.length}.`,
+         variant: "destructive"
+       });
+       return;
     }
 
     const finalPrice = variant?.price ?? (product.price || 0);
@@ -938,13 +968,19 @@ export default function GalleryPage() {
       .map(([k, v]) => `${k}: ${v}`)
       .join(' | ');
     
-    const finalNotes = `FOTO: ${photoToBuy.url} | Ref: ${photoToBuy.fileName || 'Galería'}${customOptsString ? ` | ${customOptsString}` : ''}`;
+    // Si hay múltiples fotos, las listamos en las notas también para claridad
+    const extraPhotosRef = extraPhotos.length > 0 
+      ? ` | Extras: ${extraPhotos.map(p => p.fileName || 'S/N').join(', ')}`
+      : '';
+
+    const finalNotes = `FOTO: ${photoToBuy.url} | Ref: ${photoToBuy.fileName || 'Galería'}${extraPhotosRef}${customOptsString ? ` | ${customOptsString}` : ''}`;
 
     // COMPORTAMIENTO TOGGLE: Si ya está para esta foto, lo quitamos
     const existing = cartItems.find(item => 
       item.productId === product.id && 
       (variant ? item.variantId === variant.id : !item.variantId) &&
-      item.image === photoToBuy.url
+      item.image === photoToBuy.url &&
+      item.notes === finalNotes // Para que si cambian las fotos extras se considere distinto
     );
 
     if (existing) {
@@ -957,15 +993,21 @@ export default function GalleryPage() {
       const individualPrice = photoToBuy?.price;
       const isDigital = product.id === 'digital-file-product';
 
+      // Concatenamos URLs para el admin
+      const allUrls = selectedPhotos.map(p => p.url).join(', ');
+      const allNames = selectedPhotos.map(p => (p.fileName || '').replace(/\.(jpg|jpeg|png|webp|gif|mp4|mov|heic|heif)$/i, '')).join(', ');
+
       addItem({
         id: product.id,
         name: product.name,
         basePrice: isDigital ? (individualPrice ?? product.price) : product.price,
         price: finalPrice,
-        quantity: 1,
+        quantity: product.minQuantity || 1,
+        minQuantity: product.minQuantity || 1,
+        stepQuantity: product.stepQuantity || 1,
         image: photoToBuy.url,
-        fileName: (photoToBuy.fileName || '').replace(/\.(jpg|jpeg|png|webp|gif|mp4|mov|heic|heif)$/i, ''),
-        fileUrl: photoToBuy.url,
+        fileName: allNames,
+        fileUrl: allUrls,
         productId: product.id,
         variantId: variant?.id,
         variantName: variant?.name,
@@ -975,7 +1017,8 @@ export default function GalleryPage() {
           : finalNotes,
         variantBehavior: product.variantBehavior,
         isDigital: product.isDigital,
-        hasIndividualPrice: isDigital && (individualPrice !== null && individualPrice !== undefined)
+        hasIndividualPrice: isDigital && (individualPrice !== null && individualPrice !== undefined),
+        tierPricing: product.tierPricing // Crucial para el escalado de precios
       });
 
       // Notificación elegante en la parte inferior
@@ -1164,6 +1207,15 @@ export default function GalleryPage() {
                   )}
                 </div>
 
+                {Number(includedPhotosCount) > 0 && (
+                  <div className="hidden md:flex flex-col px-4 border-r border-slate-100">
+                    <span className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Pack</span>
+                    <span className="text-xs font-black text-[#4A7C59] leading-none mt-0.5">
+                      {includedPhotosCount} Incluidas
+                    </span>
+                  </div>
+                )}
+
                 {Number(includedPhotosCount) > 0 && favorites.size > Number(includedPhotosCount) && (
                   <div className="flex flex-col border-l border-slate-100 pl-2 sm:pl-6">
                     <span className="text-[7px] sm:text-[9px] font-black text-orange-400 uppercase tracking-widest leading-none">Extras</span>
@@ -1272,6 +1324,12 @@ export default function GalleryPage() {
                   <span className="text-5xl font-black text-slate-900 tracking-tighter italic leading-none">{favorites.size}</span>
                   <span className="text-slate-200 text-xl font-medium tracking-tighter">/ {photos.length} fotos</span>
                 </div>
+                {Number(includedPhotosCount) > 0 && (
+                  <p className="text-[11px] font-black text-[#4A7C59] uppercase tracking-[0.15em] mt-2 mb-1 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#4A7C59] animate-pulse" />
+                    Tu pack incluye {includedPhotosCount} fotos
+                  </p>
+                )}
                 
                 {/* BOTÓN PERSISTENTE OFERTA (Escenario 3: Cliente que gasta el +30% de extras) */}
                 {fullPackDismissed && 
@@ -2126,30 +2184,123 @@ export default function GalleryPage() {
                 </DialogHeader>
                 
                 <div className="p-8 pt-0">
-                  <div className="flex gap-6 mb-8 p-6 bg-slate-50/50 rounded-[28px] border border-slate-100 backdrop-blur-sm">
-                    <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-xl shrink-0 border-4 border-white rotate-1 hover:rotate-0 transition-transform duration-500 relative">
-                      {photoToBuy?.url && (
-                        <Image 
-                          src={photoToBuy.url} 
-                          alt="Product context" 
-                          fill
-                          className="object-cover" 
-                          sizes="96px"
-                        />
-                      )}
+                  {/* SLOTS DE FOTOS (Si el producto incluye varias) */}
+                  <div className="flex flex-col gap-4 mb-8">
+                    <p className="text-[11px] font-black text-[#4A7C59] uppercase tracking-[0.2em]">
+                      {selectedProduct?.fotosIncluidas > 1 ? `Fotos para este producto (${1 + extraPhotos.length}/${selectedProduct.fotosIncluidas})` : 'Imagen Seleccionada'}
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-4">
+                      {/* Slot Principal (Fijo) */}
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-xl shrink-0 border-4 border-[#4A7C59] relative">
+                          {photoToBuy?.url && (
+                            <Image 
+                              src={photoToBuy.url} 
+                              alt="Principal" 
+                              fill
+                              className="object-cover" 
+                              sizes="80px"
+                            />
+                          )}
+                          <div className="absolute top-0 left-0 bg-[#4A7C59] text-white text-[8px] font-black px-1.5 py-0.5 rounded-br-lg">1</div>
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">Principal</span>
+                      </div>
+
+                      {/* Slots Adicionales */}
+                      {selectedProduct && selectedProduct.fotosIncluidas > 1 && Array.from({ length: selectedProduct.fotosIncluidas - 1 }).map((_, idx) => {
+                        const photo = extraPhotos[idx];
+                        return (
+                          <div key={idx} className="flex flex-col items-center gap-2">
+                            <button 
+                              onClick={() => setIsPickingExtra(idx)}
+                              className={cn(
+                                "w-20 h-20 rounded-2xl overflow-hidden shadow-md shrink-0 border-4 transition-all relative group",
+                                photo ? "border-white rotate-1 hover:rotate-0" : "border-dashed border-slate-200 bg-slate-50 hover:border-orange-300 hover:bg-orange-50"
+                              )}
+                            >
+                              {photo ? (
+                                <>
+                                  <Image 
+                                    src={photo.url} 
+                                    alt={`Extra ${idx + 2}`} 
+                                    fill
+                                    className="object-cover" 
+                                    sizes="80px"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <Plus className="h-5 w-5 text-white" />
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Plus className="h-6 w-6 text-slate-300 group-hover:text-orange-400" />
+                                </div>
+                              )}
+                              <div className="absolute top-0 left-0 bg-slate-200 text-slate-600 text-[8px] font-black px-1.5 py-0.5 rounded-br-lg">
+                                {idx + 2}
+                              </div>
+                            </button>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Adicional</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="flex flex-col justify-center">
-                      <p className="text-[11px] font-black text-[#4A7C59] uppercase tracking-[0.2em] mb-1">Imagen Seleccionada</p>
-                      <p className="text-slate-500 text-[10px] font-bold truncate max-w-[220px] italic">{photoToBuy?.fileName}</p>
-                      {selectedProduct && (
-                         <button 
-                          onClick={() => { setSelectedProduct(null); setSelectedVariant(null); }}
-                          className="text-[10px] font-black text-orange-500 uppercase tracking-widest mt-3 flex items-center gap-2 hover:translate-x-1 transition-transform"
-                         >
+
+                    {/* Selector de fotos extras (cuando isPickingExtra no es null) */}
+                    <AnimatePresence>
+                      {isPickingExtra !== null && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-orange-50/50 rounded-3xl p-6 border border-orange-100 overflow-hidden"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest flex items-center gap-2">
+                              <Heart className="h-3 w-3 fill-current" /> Selecciona una de tus favoritas:
+                            </p>
+                            <button onClick={() => setIsPickingExtra(null)} className="text-[10px] font-black text-slate-400 uppercase hover:text-slate-600">Cancelar</button>
+                          </div>
+                          
+                          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                            {photos.filter((p: any) => favorites.has(p.id) && p.id !== photoToBuy?.id).map((photo: any) => (
+                              <button 
+                                key={photo.id}
+                                onClick={() => {
+                                  const newExtras = [...extraPhotos];
+                                  newExtras[isPickingExtra] = photo;
+                                  setExtraPhotos(newExtras);
+                                  setIsPickingExtra(null);
+                                }}
+                                className={cn(
+                                  "w-16 h-16 rounded-xl overflow-hidden shrink-0 border-2 transition-all hover:scale-105 active:scale-95",
+                                  extraPhotos.some(ep => ep.id === photo.id) ? "border-orange-500 opacity-50" : "border-white"
+                                )}
+                              >
+                                <img src={photo.url} alt="Fav" className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                            {photos.filter((p: any) => favorites.has(p.id) && p.id !== photoToBuy?.id).length === 0 && (
+                              <p className="text-[10px] text-slate-400 italic">No tienes más fotos favoritas seleccionadas.</p>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {selectedProduct && (
+                      <div className="flex flex-col">
+                        <p className="text-slate-500 text-[10px] font-bold truncate max-w-[220px] italic">{photoToBuy?.fileName}</p>
+                        <button 
+                          onClick={() => { setSelectedProduct(null); setSelectedVariant(null); setExtraPhotos([]); }}
+                          className="text-[10px] font-black text-orange-500 uppercase tracking-widest mt-3 flex items-center gap-2 hover:translate-x-1 transition-transform self-start"
+                        >
                           <ChevronLeft className="h-4 w-4" /> Ver catálogo completo
-                         </button>
-                      )}
-                    </div>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   
                   {/* PRODUCTOS YA SELECCIONADOS PARA ESTA FOTO */}
@@ -2176,9 +2327,19 @@ export default function GalleryPage() {
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="flex items-center bg-slate-50 rounded-full px-2 py-1">
-                                  <button onClick={() => updateQuantity(item.productId || item.id, Math.max(0, item.quantity - 1), item.variantId, item.notes)} className="p-1 hover:text-orange-500 transition-colors"><Minus className="h-3 w-3" /></button>
+                                  <button 
+                                    onClick={() => updateQuantity(item.productId || item.id, item.quantity - (item.stepQuantity || 1), item.variantId, item.notes)} 
+                                    className="p-1 hover:text-orange-500 transition-colors"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </button>
                                   <span className="w-8 text-center text-[10px] font-black">{item.quantity}</span>
-                                  <button onClick={() => updateQuantity(item.productId || item.id, item.quantity + 1, item.variantId, item.notes)} className="p-1 hover:text-[#4A7C59] transition-colors"><Plus className="h-3 w-3" /></button>
+                                  <button 
+                                    onClick={() => updateQuantity(item.productId || item.id, item.quantity + (item.stepQuantity || 1), item.variantId, item.notes)} 
+                                    className="p-1 hover:text-[#4A7C59] transition-colors"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
                                 </div>
                                 <button 
                                   onClick={() => {
@@ -2470,7 +2631,12 @@ export default function GalleryPage() {
                                 onClick={() => handleAddToOrder(selectedProduct)}
                                 className="w-full h-14 rounded-2xl bg-[#4A7C59] hover:bg-[#3d694b] text-white font-black uppercase tracking-widest"
                               >
-                                Añadir al carrito - {selectedProduct?.price}€
+                                {(() => {
+                                  const qty = selectedProduct?.minQuantity || 1;
+                                  const uPrice = getCalculatedUnitPrice(selectedProduct, qty);
+                                  const total = qty * uPrice;
+                                  return `Añadir al carrito (${qty} uds.) - ${total.toFixed(2)}€`;
+                                })()}
                               </Button>
                             </div>
                           )}
@@ -3119,7 +3285,7 @@ export default function GalleryPage() {
         isOpen={isCartOpen} 
         onClose={() => setIsCartOpen(false)} 
         clientId={clientId || slug} 
-        galleryTitle={client?.name}
+        galleryTitle={client?.gallerySettings?.galleryTitle || client?.name}
       />
 
       {/* Global Notification at the bottom */}

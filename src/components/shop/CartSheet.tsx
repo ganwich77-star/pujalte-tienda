@@ -375,7 +375,7 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
     const method = lastOrderDetails?.method || (paymentMethod === 'cash' ? 'EFECTIVO / TRANSFERENCIA' : 'PAGADO ONLINE');
 
     let message = `✅ *¡NUEVA COMPRA DE GALERÍA!* ✅\n\n`;
-    message += `Hola *Pujalte Fotografía*, he completado mi pedido desde mi área de cliente. Aquí tienes los detalles:\n\n`;
+    message += `Hola Pepe, he completado mi pedido desde mi área de cliente. Aquí tienes los detalles:\n\n`;
     message += `📍 *GALERÍA:* ${galleryName.toUpperCase()}\n`;
     
     // Fallback de nombre si no viene en 'customer'
@@ -393,6 +393,7 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
       message += `${index + 1}. *${item.name}* (x${item.quantity}) - ${formatCurrency(item.price * item.quantity)}\n`;
       if (item.variantName) message += `   ▫️ _Opción: ${item.variantName}_\n`;
       if (item.notes) {
+        // Limpiamos las notas para que no incluyan la URL de la foto si es muy larga
         const noteParts = item.notes.split(' | ').filter(p => !p.startsWith('FOTO:'));
         if (noteParts.length > 0) message += `   📝 _Notas: ${noteParts.join(', ')}_\n`;
       }
@@ -477,7 +478,9 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
                           {items.map((item) => {
                             const noteParts = item.notes?.split(' | ') || [];
                             const photoPart = noteParts.find(p => p.startsWith('FOTO:'));
-                            const photoUrl = photoPart?.split('FOTO: ')[1];
+                            // Usar item.fileUrl si existe, si no, intentar parsear de la nota
+                            const allUrls = item.fileUrl ? item.fileUrl.split(', ') : (photoPart ? [photoPart.split('FOTO: ')[1]] : []);
+                            const photoUrl = allUrls[0];
                             const variantPart = item.variantName || noteParts.find(p => !p.startsWith('FOTO:') && !p.includes(':'));
                             const otherObservations = noteParts.filter(p => p !== photoPart && p !== variantPart && p !== item.variantName);
 
@@ -486,7 +489,14 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
                                 <div className="flex gap-4 sm:gap-5">
                                   <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl overflow-hidden bg-slate-50 border border-slate-50 shrink-0 relative">
                                     {item.image ? (
-                                      <img src={fixPath(item.image as string)} alt={item.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                      <>
+                                        <img src={fixPath(item.image as string)} alt={item.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                        {allUrls.length > 1 && (
+                                          <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                            <Camera className="h-2 w-2" /> {allUrls.length}
+                                          </div>
+                                        )}
+                                      </>
                                     ) : (
                                       <div className="h-full w-full flex items-center justify-center">
                                         <ShoppingBag className="h-8 w-8 text-slate-200" />
@@ -519,20 +529,25 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
                                             </div>
                                           )}
 
-                                          {photoUrl && (
-                                            <div className="flex items-center gap-2">
-                                              <Badge variant="secondary" className="bg-orange-50 text-orange-600 text-[7px] sm:text-[8px] font-black uppercase px-2 py-0 border-none rounded-md flex items-center gap-1 text-[7px]">
-                                                <Camera className="h-2.5 w-2.5" /> Foto Personalizada
+                                          {allUrls.length > 0 && (
+                                            <div className="space-y-2">
+                                              <Badge variant="secondary" className="bg-orange-50 text-orange-600 text-[7px] sm:text-[8px] font-black uppercase px-2 py-0 border-none rounded-md flex items-center gap-1 text-[7px] w-fit">
+                                                <Camera className="h-2.5 w-2.5" /> {allUrls.length > 1 ? `${allUrls.length} Fotos Seleccionadas` : 'Foto Personalizada'}
                                               </Badge>
-                                              <button 
-                                                onClick={() => setZoomedItem({ id: item.id, variantId: item.variantId, notes: item.notes, photoUrl })}
-                                                className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg overflow-hidden border-2 border-orange-100 shadow-sm relative group/img cursor-zoom-in block"
-                                              >
-                                                <img src={photoUrl} className="h-full w-full object-cover" alt="Personalización" />
-                                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-                                                  <Eye className="h-3 w-3 text-white" />
-                                                </div>
-                                              </button>
+                                              <div className="flex flex-wrap gap-1.5">
+                                                {allUrls.map((url, idx) => (
+                                                  <button 
+                                                    key={idx}
+                                                    onClick={() => setZoomedItem({ id: item.id, variantId: item.variantId, notes: item.notes, photoUrl: url })}
+                                                    className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg overflow-hidden border-2 border-orange-100 shadow-sm relative group/img cursor-zoom-in block"
+                                                  >
+                                                    <img src={url} className="h-full w-full object-cover" alt={`Foto ${idx + 1}`} />
+                                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                                      <Eye className="h-3 w-3 text-white" />
+                                                    </div>
+                                                  </button>
+                                                ))}
+                                              </div>
                                             </div>
                                           )}
                                         </div>
