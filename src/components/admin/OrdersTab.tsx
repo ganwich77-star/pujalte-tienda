@@ -2,8 +2,8 @@
 
 import { 
   Download, Eye, ShoppingCart, Trash2, ArrowUpDown, ChevronDown, CheckSquare, Square, 
-  XCircle, Edit3, Save, Search, Loader2, User, Camera, Plus, Minus, PlusCircle, Trash, X,
-  Package, ChevronUp, Image as ImageIcon, FileText
+  XCircle, Edit3, Save, Search, Loader2, User, Camera, Plus, Minus, PlusCircle, Trash, X as CloseIcon,
+  Package, ChevronUp, Image as ImageIcon, FileText, ZoomIn
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -42,6 +42,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [previewImages, setPreviewImages] = useState<string[]>([])
   const [dniSearch, setDniSearch] = useState('')
   const [foundClients, setFoundClients] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -321,7 +322,34 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
       doc.setDrawColor(240, 240, 240);
       doc.line(15, 35, pageWidth - 15, 35);
  
-      // Datos del Cliente
+      // Datos del Cliente - Limpieza solicitada
+      const rawName = editingOrder.customerName || '';
+      const rawDni = (editingOrder.customFields as any)?.dni || (editingOrder.customFields as any)?.DNI || '';
+      
+      let finalName = rawName;
+      let finalDni = rawDni;
+
+      // Limtear el nombre si contiene "Cliente DNI:" o sufijos de sistema
+      if (rawName.includes('Cliente DNI:')) {
+        finalName = rawName.split('Cliente DNI:')[0].trim() || 'Cliente';
+        if (!finalDni || finalDni === 'N/A') {
+          finalDni = rawName.split('Cliente DNI:')[1]?.split('_')[0]?.trim() || '';
+        }
+      } else if (rawName.includes('_')) {
+        finalName = rawName.split('_')[0].trim();
+      }
+
+      // Limpiar DNI de sufijos (guión bajo en adelante)
+      if (finalDni.includes('_')) {
+        finalDni = finalDni.split('_')[0].trim();
+      }
+      
+      // Si el nombre sigue pareciendo un DNI, intentamos normalizar
+      if (/^[0-9]{8}[A-Z]$/i.test(finalName)) {
+        if (!finalDni) finalDni = finalName;
+        finalName = 'Cliente';
+      }
+
       doc.setFontSize(11);
       doc.setTextColor(0, 0, 0);
       doc.setFont('helvetica', 'bold');
@@ -329,16 +357,15 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
       
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Nombre: ${editingOrder.customerName || 'Cliente No Identificado'}`, 15, 52);
-      const customerDNI = (editingOrder.customFields as any)?.dni || 
-                          (editingOrder.customFields as any)?.DNI || 
-                          (editingOrder.customFields as any)?.identificador ||
-                          ((/^\d+$/.test(editingOrder.customerEmail || '')) ? editingOrder.customerEmail : null) ||
-                          'N/A';
- 
-      doc.text(`DNI: ${customerDNI}`, 15, 57);
-      doc.text(`Email: ${editingOrder.customerEmail || 'N/A'}`, 15, 62);
-      doc.text(`Teléfono: ${editingOrder.customerPhone || 'N/A'}`, 15, 67);
+      doc.text(`Nombre: ${finalName || 'Cliente No Identificado'}`, 15, 52);
+      doc.text(`DNI: ${finalDni || 'N/A'}`, 15, 57);
+      
+      const email = editingOrder.customerEmail || (editingOrder.customFields as any)?.email || (editingOrder.customFields as any)?.Email || (editingOrder.customFields as any)?.correo || 'N/A';
+      const phone = editingOrder.customerPhone || (editingOrder.customFields as any)?.phone || (editingOrder.customFields as any)?.Teléfono || (editingOrder.customFields as any)?.Telefono || (editingOrder.customFields as any)?.telefono || 'N/A';
+
+      doc.text(`Email: ${email}`, 15, 62);
+      doc.text(`Teléfono: ${phone}`, 15, 67);
+      
       if (editingOrder.address) {
         doc.text(`Dirección: ${editingOrder.address}`, 15, 72);
       }
@@ -394,7 +421,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
  
         return {
           num: index + 1,
-          name: item.productName,
+          name: item.fileName ? `${item.productName}\n(${item.fileName})` : item.productName,
           variant: item.variantName || 'Estándar',
           quantity: item.quantity,
           price: formatPrice(item.price),
@@ -453,11 +480,17 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
       doc.text(formatPrice(editingOrder.total), pageWidth - 15, finalY, { align: 'right' });
  
       if (editingOrder.notes) {
+        let cleanNotes = editingOrder.notes || '';
+        // Si la nota contiene el separador de sistema, nos quedamos solo con la primera parte (Galería)
+        if (cleanNotes.includes('| DNI:')) {
+          cleanNotes = cleanNotes.split('| DNI:')[0].trim();
+        }
+
         doc.setFontSize(9);
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
         doc.text('Notas adicionales:', 15, finalY + 10);
-        doc.text(editingOrder.notes, 15, finalY + 15, { maxWidth: 100 });
+        doc.text(cleanNotes, 15, finalY + 15, { maxWidth: 100 });
       }
  
       const fileName = `pedido_${editingOrder.id.slice(-6)}.pdf`;
@@ -621,6 +654,7 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
   }
 
   return (
+    <>
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-0 pb-6 sm:pb-8 gap-4 sm:gap-0">
         <div className="space-y-1">
@@ -1360,8 +1394,15 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                       {editingOrder.items.map((item, i) => (
                         <div key={i} className="p-3 rounded-2xl border border-slate-100 bg-white shadow-sm flex flex-col gap-3 relative group">
                           <div className="flex gap-4">
-                            {/* MINIATURA DE IMAGEN */}
-                            <div className="h-16 w-16 rounded-xl bg-slate-100 flex-shrink-0 overflow-hidden relative border border-slate-100">
+                            {/* MINIATURA DE IMAGEN (CLIC PARA ZOOM) */}
+                                                         <div 
+                               className="h-16 w-16 rounded-xl bg-slate-100 flex-shrink-0 overflow-hidden relative border border-slate-100 cursor-zoom-in hover:brightness-90 transition-all group"
+                               onClick={() => {
+                                 const photoMatch = item.note?.match(/FOTO:\s*(https:\/\/[^\s|]+)/i);
+                                 const urls = item.fileUrl ? (item.fileUrl as string).split(', ') : (photoMatch ? [photoMatch[1]] : []);
+                                 if (urls.length > 0) setPreviewImages(urls);
+                               }}
+                             >
                                {(() => {
                                  const photoMatch = item.note?.match(/FOTO:\s*(https:\/\/[^\s|]+)/i);
                                  const urls = item.fileUrl ? (item.fileUrl as string).split(', ') : (photoMatch ? [photoMatch[1]] : []);
@@ -1451,22 +1492,26 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                                 </button>
                               </div>
                               <div className="h-4 w-px bg-emerald-100" />
-                             <div className="flex items-center gap-3">
-                               <div className="flex flex-col items-end -space-y-0.5">
-                                 <span className="text-[7px] font-black uppercase text-emerald-400 tracking-widest leading-none">Subtotal</span>
-                                 <span className="text-[12px] font-black text-emerald-600 tabular-nums leading-none">{formatPrice((item.price || 0) * (item.quantity || 1))}</span>
-                               </div>
-                               
-                               <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-lg border border-emerald-100 shadow-sm focus-within:ring-1 focus-within:ring-emerald-200 transition-all">
-                                 <span className="text-[8px] font-black text-emerald-400">€/u</span>
-                                 <Input 
-                                   type="number"
-                                   value={item.price}
-                                   onChange={(e) => handleUpdateItem(i, { price: parseFloat(e.target.value) || 0 })}
-                                   className="h-6 w-[50px] p-0 text-right bg-transparent border-none font-black text-[11px] tabular-nums focus-visible:ring-0 text-emerald-600"
-                                 />
-                               </div>
-                            </div>
+                              <div className="flex items-center gap-5">
+                                {/* 1. Precio Unitario (Primero) */}
+                                <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-xl border border-emerald-100 shadow-sm focus-within:ring-1 focus-within:ring-emerald-200 transition-all">
+                                  <Input 
+                                    type="number"
+                                    value={item.price}
+                                    onChange={(e) => handleUpdateItem(i, { price: parseFloat(e.target.value) || 0 })}
+                                    className="h-6 w-[45px] p-0 text-right bg-transparent border-none font-black text-[11px] tabular-nums focus-visible:ring-0 text-emerald-600"
+                                  />
+                                  <span className="text-[9px] font-black text-emerald-400">€/u</span>
+                                </div>
+
+                                <div className="h-4 w-px bg-emerald-100/30" />
+
+                                {/* 2. Subtotal (Segundo) */}
+                                <div className="flex flex-col items-start gap-1">
+                                  <span className="text-[7px] font-black uppercase text-emerald-400 tracking-widest leading-none">Subtotal</span>
+                                  <span className="text-[13px] font-black text-emerald-700 tabular-nums leading-none">{formatPrice((item.price || 0) * (item.quantity || 1))}</span>
+                                </div>
+                              </div>
                           </div>
                         </div>
                       </div>
@@ -1489,20 +1534,103 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
                   </div>
                 </div>
 
-                <DialogFooter className="flex-col sm:flex-row gap-2 pt-4 mt-2 border-t border-slate-50">
-                  <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="h-11 px-6 rounded-2xl text-slate-500 font-bold hover:bg-slate-50 text-xs">Descartar cambios</Button>
-                  <Button 
-                    onClick={handleSaveEdit}
-                    className="h-11 px-8 rounded-2xl bg-[#4A7C59] text-white font-black hover:bg-[#3d6649] shadow-xl shadow-[#4A7C59]/20 text-xs flex items-center justify-center gap-2"
-                  >
-                    <Save className="h-4 w-4" /> Confirmar y Guardar Pedido
-                  </Button>
-                </DialogFooter>
+                <div className="flex flex-row items-center justify-between gap-4 px-8 py-6 mt-4 border-t border-slate-100/50 bg-white rounded-b-[2.5rem]">
+                  {/* Lado izquierdo: Eliminar */}
+                  <div className="flex-shrink-0">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          className="h-10 px-4 rounded-xl text-rose-500 font-bold hover:bg-rose-50 hover:text-rose-600 text-xs gap-2 transition-all active:scale-95"
+                        >
+                          <Trash2 className="h-4 w-4" /> Eliminar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="w-[95vw] sm:max-w-md rounded-[2.5rem] border-none p-6 sm:p-8 gap-6 shadow-2xl z-[300]">
+                        <AlertDialogHeader className="gap-3">
+                          <div className="h-12 w-12 rounded-xl bg-rose-50 flex items-center justify-center mb-1">
+                            <Trash2 className="h-6 w-6 text-rose-500" />
+                          </div>
+                          <AlertDialogTitle className="text-xl font-black text-slate-900 tracking-tight">¿Eliminar pedido?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed text-sm">
+                            Esta acción no se puede deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex-row gap-2 mt-2">
+                          <AlertDialogCancel className="h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 text-xs">Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => {
+                              onDeleteOrder(editingOrder.id);
+                              setIsEditDialogOpen(false);
+                            }}
+                            className="h-12 px-6 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow-lg shadow-rose-200 border-none text-xs"
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+
+                  {/* Lado derecho: Descartar y Guardar */}
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => setIsEditDialogOpen(false)} 
+                      className="h-10 px-4 rounded-xl text-slate-400 font-bold hover:bg-slate-50 text-xs transition-all active:scale-95"
+                    >
+                      Descartar
+                    </Button>
+                    <Button 
+                      onClick={handleSaveEdit}
+                      className="h-10 px-6 rounded-xl bg-[#4A7C59] text-white font-black hover:bg-[#3d6649] shadow-xl shadow-[#4A7C59]/10 text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+                    >
+                      <Save className="h-4 w-4" /> Guardar Pedido
+                    </Button>
+                  </div>
+                </div>
               </>
             )}
           </DialogContent>
         </Dialog>
       </CardContent>
     </Card>
+      {/* DIÁLOGO DE PREVISUALIZACIÓN DE IMÁGENES (GALERÍA) */}
+      <Dialog open={previewImages.length > 0} onOpenChange={(open) => !open && setPreviewImages([])}>
+        <DialogContent className="max-w-[95vw] sm:max-w-5xl p-0 overflow-hidden bg-transparent border-none shadow-none flex items-center justify-center z-[1000] focus:ring-0">
+          {previewImages.length > 0 && (
+            <div className="relative w-full h-full flex flex-col items-center justify-center gap-6 p-4 pt-16">
+              <button 
+                onClick={() => setPreviewImages([])}
+                className="fixed top-8 right-8 h-12 w-12 rounded-full bg-black/50 hover:bg-black text-white flex items-center justify-center transition-all z-[1010] backdrop-blur-md border border-white/20"
+              >
+                <CloseIcon className="h-6 w-6" />
+              </button>
+              
+              <div className="w-full flex flex-row items-center justify-center gap-6 py-8 px-4 max-h-[90vh]">
+                {previewImages.map((url, idx) => (
+                  <motion.div 
+                    key={idx}
+                    initial={{ scale: 0.9, opacity: 0, x: 20 }}
+                    animate={{ scale: 1, opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="relative flex flex-col items-center gap-3 flex-1 min-w-0"
+                  >
+                    <div className="bg-slate-900 px-4 py-1.5 rounded-full border border-slate-800 text-white text-[10px] font-black tracking-widest uppercase shadow-2xl mb-2">
+                      Foto {idx + 1}
+                    </div>
+                    <img 
+                      src={url} 
+                      alt={`Preview ${idx + 1}`} 
+                      className="max-h-[75vh] w-auto rounded-2xl shadow-2xl object-contain border-2 border-white/10"
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

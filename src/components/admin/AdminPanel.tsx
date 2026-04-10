@@ -92,6 +92,7 @@ interface AdminPanelProps {
   onUpdateOrder: (order: Order) => void
   onDeleteOrder: (id: string) => void
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void
+  onImageUpload: (e: React.ChangeEvent<HTMLInputElement>, aspect: number, callback: (url: string) => void) => void
   onDownloadTemplate: () => void
   onSaveConfig: (newConfig?: StoreConfig) => void
   onUpdateConfig: (config: StoreConfig) => void
@@ -107,7 +108,7 @@ interface AdminPanelProps {
 export function AdminPanel(props: AdminPanelProps) {
   const {
     stats, orders, categories, products, config, showImages, setShowImages,
-    formatPrice, onUpdateStatus, onDeleteOrder, uploading, onFileUpload,
+    formatPrice, onUpdateStatus, onDeleteOrder, uploading, onFileUpload, onImageUpload,
     onDownloadTemplate, onSaveConfig, onUpdateConfig, onRefreshCategories,
     onLogout, onViewStore, isSaving
   } = props
@@ -641,7 +642,7 @@ export function AdminPanel(props: AdminPanelProps) {
                     }
                   }}
                   categories={config.categorias || []}
-                  handleFileUpload={props.onFileUpload as any}
+                  handleFileUpload={onImageUpload}
                   injectPreset={() => {}}
                   handleImportCSV={() => {}}
                   presets={{}}

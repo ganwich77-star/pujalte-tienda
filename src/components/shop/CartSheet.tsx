@@ -183,16 +183,23 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
               address: customer.address || '',
               city: customer.city || '',
               zipCode: customer.zipCode || '',
-              dni: clientId.toUpperCase()
+              dni: customer.dni || clientId.toUpperCase()
             });
-            setCheckoutStep('payment');
+            
+            // Si tenemos el nombre del cliente, podemos ir a pago. 
+            // Si el nombre es genérico o está vacío, pedimos datos.
+            if (customer.firstName && !customer.name.startsWith('Galería:')) {
+              setCheckoutStep('payment');
+            } else {
+              setCheckoutStep('checkout');
+            }
           } else {
-            // Si es galería pero no está en la DB, le pedimos datos manuales o saltamos al pago según estrategia
+            // Si es galería pero no está en la DB, le pedimos datos manuales
             setShippingData(prev => ({ ...prev, dni: clientId.toUpperCase() }));
-            setCheckoutStep('payment');
+            setCheckoutStep('checkout'); // Cambiado de 'payment' a 'checkout' para pedir nombre
           }
         } catch (error) {
-          setCheckoutStep('payment');
+          setCheckoutStep('checkout'); // Ante error, pedimos datos
         } finally {
           setProcessingPayment(false);
         }

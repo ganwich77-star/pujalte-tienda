@@ -285,7 +285,20 @@ export default function AdminPage() {
           await fetch('/api/orders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: s }) })
           setOrders(orders.map(o => o.id === id ? { ...o, status: s } : o))
         }}
-        onUpdateOrder={(order) => setOrders(orders.map(o => o.id === order.id ? order : o))}
+        onUpdateOrder={async (order) => {
+          try {
+            await fetch('/api/orders', { 
+              method: 'PUT', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify(order) 
+            })
+            setOrders(orders.map(o => o.id === order.id ? order : o))
+            toast({ title: 'Pedido actualizado', description: 'Los cambios se han guardado correctamente.' })
+          } catch (e) {
+            console.error('Error actualizando pedido:', e)
+            toast({ title: 'Error', description: 'No se pudieron guardar los cambios del pedido.', variant: 'destructive' })
+          }
+        }}
         onDeleteOrder={(id) => setOrders(orders.filter(o => o.id !== id))}
         onFileUpload={handleFileUpload}
         onDownloadTemplate={() => window.open('/template.csv')}

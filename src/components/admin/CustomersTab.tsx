@@ -1556,7 +1556,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                           <div className="md:col-span-4 rounded-xl bg-indigo-50/50 border border-indigo-100 p-3 flex flex-col justify-between">
                             <div className="flex items-center justify-between mb-1">
                               <div className="flex items-center gap-2"><Music className="h-3.5 w-3.5 text-indigo-600" /><span className="text-indigo-900 font-black uppercase text-[9px]">Música</span></div>
-                              <Button variant="outline" size="sm" onClick={() => setIsMusicPickerOpen(true)} className="h-5 rounded-lg text-[7px] font-black bg-white px-2">MOD</Button>
+                              <Button variant="outline" size="sm" onClick={() => setIsMusicPickerOpen(true)} className="h-8 rounded-xl text-[9px] font-black bg-white px-3 border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm">AÑADIR MÚSICA</Button>
                             </div>
                             <p className="text-indigo-900 text-[8px] font-black uppercase truncate italic">{editingCustomer?.gallerySettings?.bgMusic?.name || 'No music'}</p>
                           </div>
@@ -2242,7 +2242,7 @@ Cualquier duda, ¡escríbeme! 📲
             }
             setIsMusicPickerOpen(open)
         }}>
-          <DialogContent className="w-[95vw] sm:max-w-[450px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+          <DialogContent showCloseButton={false} className="w-[95vw] sm:max-w-[450px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
             <div className="bg-white/80 backdrop-blur-2xl">
               <DialogHeader className="p-6 pb-0 border-none">
                 <div className="flex items-center justify-between">

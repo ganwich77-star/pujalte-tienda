@@ -35,10 +35,16 @@ export async function POST(request: NextRequest) {
       cName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
     }
     
-    // Fallbacks si no hay nombres separados
+    // Fallbacks si no hay nombres separados por campos
     cName = cName || customer?.name || data.customerName || "";
 
-    const cDni = customer?.dni || data.dni || "";
+    const cDni = customer?.dni || data.dni || data.customFields?.dni || "";
+    
+    // Si el nombre sigue vacío intentamos usar el del customFields si existe algo allí
+    if (!cName && typeof data.customFields === 'object' && data.customFields.name) {
+        cName = data.customFields.name;
+    }
+
     if (!cName && cDni) {
         cName = `Cliente DNI: ${cDni}`;
     }
@@ -108,6 +114,7 @@ export async function POST(request: NextRequest) {
         paymentId: trackingNumber, 
         notes: finalNotes,
         clientId: data.clientId || null,
+        customFields: typeof data.customFields === 'object' ? JSON.stringify(data.customFields) : (data.customFields || data.dni || null),
         items: {
           create: items.map((item: any) => ({
             productId: item.productId || item.id,
@@ -177,7 +184,7 @@ export async function DELETE(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
-    const { id, customerName, customerEmail, customerPhone, address, total, status, paymentStatus, paymentMethod, notes, items } = data;
+    const { id, customerName, customerEmail, customerPhone, address, total, status, paymentStatus, paymentMethod, notes, items, clientId, customFields } = data;
 
     if (!id) {
       return NextResponse.json({ error: 'ID de pedido requerido' }, { status: 400 });
@@ -197,6 +204,8 @@ export async function PUT(request: NextRequest) {
       paymentStatus,
       paymentMethod,
       notes,
+      clientId,
+      customFields: typeof customFields === 'object' ? JSON.stringify(customFields) : customFields
     };
 
     // Eliminamos undefined del objeto de actualización

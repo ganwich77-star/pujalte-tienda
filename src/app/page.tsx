@@ -109,7 +109,8 @@ const initialProductForm = {
   stepQuantity: '1',
   tierPricing: [] as { minQty: number; price: number }[],
   supplierId: '',
-  customOptions: '[]'
+  customOptions: '[]',
+  fotosIncluidas: '1'
 }
 
 export default function Home() {
@@ -732,7 +733,7 @@ Mi email: ${formData.email}`
   }
 
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
@@ -754,6 +755,38 @@ Mi email: ${formData.email}`
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, aspect: number, callback: (url: string) => void) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    // Subida directa por ahora, el cropper se maneja en los componentes específicos si es necesario
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    try {
+      setUploading(true)
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+      
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Fallo en la subida')
+      
+      callback(data.url)
+      toast({ title: 'Imagen subida correctamente', className: "bg-emerald-500 text-white" })
+    } catch (error: any) {
+      console.error(error)
+      toast({ 
+        title: 'Error de subida', 
+        description: error.message || 'No se pudo subir la imagen a la nube', 
+        variant: 'destructive' 
+      })
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -897,7 +930,8 @@ Mi email: ${formData.email}`
           onUpdateStatus={handleUpdateOrderStatus}
           onUpdateOrder={handleUpdateOrder}
           onDeleteOrder={handleDeleteOrder}
-          onFileUpload={handleFileUpload}
+          onFileUpload={handleExcelUpload}
+          onImageUpload={handleImageUpload}
           onDownloadTemplate={downloadTemplate}
           onSaveConfig={handleSaveConfig}
           onUpdateConfig={setConfig}
