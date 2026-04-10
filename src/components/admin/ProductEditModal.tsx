@@ -122,8 +122,9 @@ export default function ProductEditModal({
       }))
       .sort((a, b) => a.minQty - b.minQty);
 
-    const finalProduct: GalleryImage = {
+    const finalProduct: any = {
       ...editedProduct,
+      price: parseSafeNumber(editedProduct.precio),
       precio: parseSafeNumber(editedProduct.precio),
       salePrice: editedProduct.salePrice ? parseSafeNumber(editedProduct.salePrice) : undefined,
       tierPricing: validTiers.length > 0 ? JSON.stringify(validTiers) : undefined,

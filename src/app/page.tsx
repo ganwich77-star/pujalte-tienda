@@ -479,6 +479,8 @@ Mi email: ${formData.email}`
         }))
       };
 
+      console.log(`[FRONTEND] 🚀 Guardando producto (${method}):`, body);
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -703,6 +705,8 @@ Mi email: ${formData.email}`
 
   const handleUpdateOrder = async (fullOrder: Order) => {
     try {
+      console.log(`[FRONTEND] 📦 Actualizando pedido ${fullOrder.id}:`, fullOrder);
+      
       const res = await fetch('/api/orders', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

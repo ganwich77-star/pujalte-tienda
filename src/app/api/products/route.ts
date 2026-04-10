@@ -141,39 +141,35 @@ export async function PUT(request: Request) {
     const toNum = (val: any) => (val === undefined || val === null || val === '') ? 0 : parseFloat(String(val).replace(',', '.')) || 0;
     const toStr = (val: any) => (val === undefined || val === null) ? null : String(val);
 
-    const f: any = {};
-    if (body.name !== undefined) f.name = toStr(body.name);
-    if (body.description !== undefined) f.description = toStr(body.description);
-    if (body.price !== undefined) f.price = toNum(body.price);
-    if (body.salePrice !== undefined) f.salePrice = (body.salePrice === null || body.salePrice === undefined || body.salePrice === '') ? null : toNum(body.salePrice);
-    if (body.image) f.image = toStr(body.image);
-    if (body.src) f.src = toStr(body.src);
-    if (body.stock !== undefined) f.stock = parseInt(String(body.stock)) || 0;
-    if (body.active !== undefined) f.active = toBool(body.active);
-    if (body.showPrice !== undefined) f.showPrice = toBool(body.showPrice);
-    if (body.isPack !== undefined) f.isPack = toBool(body.isPack);
-    if (body.hasVariants !== undefined) f.hasVariants = toBool(body.hasVariants);
-    if (body.isNew !== undefined) f.isNew = toBool(body.isNew);
-    if (body.isFeatured !== undefined) f.isFeatured = toBool(body.isFeatured);
-    if (body.categoryId !== undefined) f.categoryId = toStr(body.categoryId);
-    if (body.supplierId !== undefined) f.supplierId = toStr(body.supplierId);
-    if (body.variantType !== undefined) f.variantType = toStr(body.variantType);
-    if (body.variantBehavior !== undefined) f.variantBehavior = toStr(body.variantBehavior);
-    if (body.minQuantity !== undefined) f.minQuantity = parseInt(body.minQuantity) || 1;
-    if (body.stepQuantity !== undefined) f.stepQuantity = parseInt(body.stepQuantity) || 1;
-    if (body.tierPricing !== undefined) f.tierPricing = typeof body.tierPricing === 'object' ? JSON.stringify(body.tierPricing) : (toStr(body.tierPricing) || "[]");
-    if (body.customOptions !== undefined) f.customOptions = typeof body.customOptions === 'object' ? JSON.stringify(body.customOptions) : (toStr(body.customOptions) || "[]");
-    if (body.packItems !== undefined) f.packItems = Array.isArray(body.packItems) ? JSON.stringify(body.packItems) : (toStr(body.packItems) || "[]");
-    if (body.fotosIncluidas !== undefined && body.fotosIncluidas !== null && body.fotosIncluidas !== '') {
-      f.fotosIncluidas = Math.max(1, parseInt(String(body.fotosIncluidas)) || 1);
+    const allowedFields = [
+      'name', 'description', 'image', 'price', 'salePrice', 'stock', 'active', 
+      'showPrice', 'isPack', 'hasVariants', 'isNew', 'isFeatured', 'categoryId', 
+      'supplierId', 'variantType', 'variantBehavior', 'minQuantity', 'stepQuantity', 
+      'tierPricing', 'customOptions', 'packItems', 'fotosIncluidas'
+    ];
+
+    for (const key of allowedFields) {
+      if (body[key] !== undefined) {
+        const val = body[key];
+        if (['active', 'showPrice', 'isPack', 'hasVariants', 'isNew', 'isFeatured'].includes(key)) {
+          f[key] = toBool(val);
+        } else if (['price', 'salePrice'].includes(key)) {
+          f[key] = (val === null || val === undefined || val === '') ? null : toNum(val);
+        } else if (['stock', 'minQuantity', 'stepQuantity', 'fotosIncluidas'].includes(key)) {
+          f[key] = parseInt(String(val)) || 0;
+        } else if (['tierPricing', 'customOptions', 'packItems'].includes(key)) {
+          f[key] = typeof val === 'object' ? JSON.stringify(val) : (toStr(val) || "[]");
+        } else {
+          f[key] = toStr(val);
+        }
+      }
     }
 
     const keys = Object.keys(f);
-    const setClause = keys.map(k => `\`${k}\` = ?`).join(', ');
-    const finalValues = keys.map(k => f[k] === undefined ? null : f[k]);
-    finalValues.push(id);
-
     if (keys.length > 0) {
+      const setClause = keys.map(k => `\u0060${k}\u0060 = ?`).join(', ');
+      const finalValues = keys.map(k => f[k]);
+      finalValues.push(id);
       await mysqlDb.query(`UPDATE product SET ${setClause}, updatedAt = NOW() WHERE id = ?`, finalValues);
     }
 

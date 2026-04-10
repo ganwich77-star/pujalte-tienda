@@ -42,43 +42,50 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     };
     const toStr = (val: any) => (val === undefined || val === null) ? null : String(val);
 
-    // 1. Construir objeto de campos asegurando valores válidos
-    const fields: any = {
-      name: toStr(body.name) || "Sin nombre",
-      description: toStr(body.description) || "",
-      image: toStr(body.image),
-      price: toNum(body.price),
-      salePrice: (body.salePrice === null || body.salePrice === undefined || body.salePrice === '') ? null : toNum(body.salePrice),
-      stock: parseInt(body.stock) || 0,
-      active: toBool(body.active),
-      showPrice: toBool(body.showPrice),
-      isPack: toBool(body.isPack),
-      hasVariants: toBool(body.hasVariants),
-      isNew: toBool(body.isNew),
-      isFeatured: toBool(body.isFeatured),
-      categoryId: toStr(body.categoryId),
-      supplierId: toStr(body.supplierId),
-      variantType: toStr(body.variantType),
-      variantBehavior: toStr(body.variantBehavior) || "replace",
-      minQuantity: parseInt(body.minQuantity) || 1,
-      stepQuantity: parseInt(body.stepQuantity) || 1,
-      tierPricing: typeof body.tierPricing === 'object' ? JSON.stringify(body.tierPricing) : (toStr(body.tierPricing) || "[]"),
-      customOptions: typeof body.customOptions === 'object' ? JSON.stringify(body.customOptions) : (toStr(body.customOptions) || "[]"),
-      packItems: typeof body.packItems === 'object' ? JSON.stringify(body.packItems) : (toStr(body.packItems) || "[]")
-    };
+    // 1. Construir objeto de campos dinámico para soportar actualizaciones parciales
+    const allowedFields = [
+      'name', 'description', 'image', 'price', 'salePrice', 'stock', 'active', 
+      'showPrice', 'isPack', 'hasVariants', 'isNew', 'isFeatured', 'categoryId', 
+      'supplierId', 'variantType', 'variantBehavior', 'minQuantity', 'stepQuantity', 
+      'tierPricing', 'customOptions', 'packItems', 'fotosIncluidas'
+    ];
 
-    // 2. Limpieza final Anti-Undefined (Bulletproof)
-    const keys = Object.keys(fields);
-    const setClause = keys.map(key => `\`${key}\` = ?`).join(', ');
-    const finalValues = keys.map(key => fields[key] === undefined ? null : fields[key]);
+    const fieldsToUpdate: any = {};
     
-    // IMPORTANTE: Asegurar que el ID no sea undefined (Next.js 15 requiere await params)
-    finalValues.push(id || body.id);
+    // Mapeo y transformación de campos según el tipo esperado
+    for (const key of Object.keys(body)) {
+      if (allowedFields.includes(key)) {
+        const val = body[key];
+        if (['active', 'showPrice', 'isPack', 'hasVariants', 'isNew', 'isFeatured'].includes(key)) {
+          fieldsToUpdate[key] = toBool(val);
+        } else if (['price', 'salePrice'].includes(key)) {
+          fieldsToUpdate[key] = (val === null || val === undefined || val === '') ? null : toNum(val);
+        } else if (['stock', 'minQuantity', 'stepQuantity', 'fotosIncluidas'].includes(key)) {
+          fieldsToUpdate[key] = parseInt(String(val)) || 0;
+        } else if (['tierPricing', 'customOptions', 'packItems'].includes(key)) {
+          fieldsToUpdate[key] = typeof val === 'object' ? JSON.stringify(val) : toStr(val);
+        } else {
+          fieldsToUpdate[key] = toStr(val);
+        }
+      }
+    }
 
-    await mysqlDb.query(
-      `UPDATE product SET ${setClause}, updatedAt = NOW() WHERE id = ?`,
-      finalValues.map(v => v === undefined ? null : v)
-    );
+    if (Object.keys(fieldsToUpdate).length === 0 && !body.variants) {
+       return NextResponse.json({ success: true, message: "No fields to update" });
+    }
+
+    // 2. Ejecutar UPDATE solo si hay campos de producto para actualizar
+    if (Object.keys(fieldsToUpdate).length > 0) {
+      const keys = Object.keys(fieldsToUpdate);
+      const setClause = keys.map(key => `\u0060${key}\u0060 = ?`).join(', ');
+      const values = keys.map(key => fieldsToUpdate[key]);
+      values.push(id || body.id);
+
+      await mysqlDb.query(
+        `UPDATE product SET ${setClause}, updatedAt = NOW() WHERE id = ?`,
+        values
+      );
+    }
 
     // 3. Variantes con limpieza similar
     if (body.variants && Array.isArray(body.variants)) {

@@ -598,12 +598,19 @@ export function OrdersTab({ orders, formatPrice, onUpdateStatus, onUpdateOrder, 
     setIsEditDialogOpen(true)
   }
 
-  const handleSaveEdit = () => {
-    if (editingOrder) {
-      onUpdateOrder(editingOrder)
-      setIsEditDialogOpen(false)
+  const handleSaveEdit = async () => {
+    if (!editingOrder) return;
+    
+    try {
+      setIsSearching(true); // Reutilizamos este estado para mostrar carga si hiciese falta
+      await onUpdateOrder(editingOrder);
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error("Error al guardar pedido desde tab:", error);
+    } finally {
+      setIsSearching(false);
     }
-  }
+  };
 
   const exportToCSV = () => {
     // Definimos las cabeceras

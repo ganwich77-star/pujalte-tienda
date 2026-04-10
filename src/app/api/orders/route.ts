@@ -194,22 +194,32 @@ export async function PUT(request: NextRequest) {
     // Para los artículos, lo más sencillo es borrar los anteriores y crear los nuevos 
     // si se proporciona la lista de items, o simplemente actualizar los campos del pedido.
     
-    const updateData: any = {
-      customerName,
-      customerEmail,
-      customerPhone,
-      address,
-      total: total !== undefined ? parseFloat(String(total)) : undefined,
-      status,
-      paymentStatus,
-      paymentMethod,
-      notes,
-      clientId,
-      customFields: typeof customFields === 'object' ? JSON.stringify(customFields) : customFields
-    };
+    // 1. Construir objeto de actualización dinámico para soportar actualizaciones parciales
+    const allowedFields = [
+      'customerName', 'customerEmail', 'customerPhone', 'address', 'total', 
+      'status', 'paymentStatus', 'paymentMethod', 'notes', 'clientId', 'customFields'
+    ];
+
+    const updateData: any = {};
+    
+    for (const key of allowedFields) {
+      if (data[key] !== undefined) {
+        if (key === 'customFields') {
+          updateData[key] = typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key];
+        } else {
+          updateData[key] = data[key];
+        }
+      }
+    }
 
     // Eliminamos undefined del objeto de actualización
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+    console.log(`[API ORDERS] 🔄 Actualizando pedido ${id}:`, {
+      name: updateData.customerName,
+      client: updateData.clientId,
+      itemsCount: items?.length || 0
+    });
 
     const result = await db.$transaction(async (tx) => {
       // 1. Si hay items, borramos los antiguos y creamos los nuevos
