@@ -177,6 +177,8 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
   const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false)
   const [isGalleryConfigOpen, setIsGalleryConfigOpen] = useState(true)
+  const [sessionsReport, setSessionsReport] = useState<any[] | null>(null)
+  const [showReportModal, setShowReportModal] = useState(false)
   const [newCustomer, setNewCustomer] = useState<any>({
     name: '',
     dni: '',
@@ -938,7 +940,8 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
         marketing: fc.marketing || false,
         cashEnabled: fc.cashEnabled || false,
         gallerySettings: fc.gallerySettings || {},
-        slug: fc.slug || ''
+        slug: fc.slug || '',
+        stamps: fc.stamps || 0
       })
     })
 
@@ -1590,10 +1593,24 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                                     const q = query(collection(db, COLLECTIONS.CLIENTS), where("dni", "==", editingCustomer.dni.toUpperCase().trim()));
                                     const snap = await getDocs(q);
                                     const count = snap.size;
+                                    
+                                    const sessions = snap.docs.map(doc => {
+                                      const data = doc.data();
+                                      return {
+                                        id: doc.id,
+                                        title: data.name || data.gallerySettings?.galleryTitle || 'Galería sin título',
+                                        date: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+                                        sessionType: data.gallerySettings?.sessionType || 'General'
+                                      };
+                                    }).sort((a, b) => b.date.getTime() - a.date.getTime());
+
                                     setEditingCustomer({ ...editingCustomer, stamps: count });
+                                    setSessionsReport(sessions);
+                                    setShowReportModal(true);
+
                                     toast({ 
                                       title: '¡Sincronizado!', 
-                                      description: `Hemos encontrado ${count} sesiones registradas para este DNI.`,
+                                      description: `Hemos encontrado ${count} sesiones registradas.`,
                                       className: "bg-[#4A7C59] text-white border-none rounded-2xl"
                                     });
                                   } catch(e) {
@@ -2745,7 +2762,59 @@ Cualquier duda, ¡escríbeme! 📲
             </div>
           </DialogContent>
         </Dialog>
+      <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
+        <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
+          <div className="bg-[#4A7C59] p-8 text-white relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+             <div className="relative z-10 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                   <h3 className="text-xl font-black uppercase tracking-tight">Informe de Cliente</h3>
+                   <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-1">Historial detectado por DNI</p>
+                </div>
+             </div>
+          </div>
+          
+          <div className="p-8 space-y-6">
+             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {sessionsReport && sessionsReport.length > 0 ? (
+                  sessionsReport.map((session, idx) => (
+                    <div key={session.id} className="group p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-emerald-100 hover:shadow-lg hover:shadow-emerald-900/5 transition-all animate-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 50}ms` }}>
+                       <div className="flex justify-between items-start mb-1">
+                          <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">{session.sessionType}</p>
+                          <p className="text-[9px] font-bold text-slate-300">{session.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                       </div>
+                       <h4 className="text-sm font-black text-slate-900 line-clamp-1">{session.title}</h4>
+                       <div className="flex items-center gap-2 mt-2">
+                          <Badge className="bg-[#4A7C59]/10 text-[#4A7C59] hover:bg-[#4A7C59]/10 border-none text-[8px] font-black uppercase rounded-full px-2">1 Sello</Badge>
+                          <span className="text-[8px] font-bold text-slate-300">ID: {session.id.slice(0, 8)}...</span>
+                       </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-12 text-center opacity-40">
+                    <History className="h-10 w-10 mx-auto mb-4 text-slate-300" />
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">No se han encontrado sesiones previas</p>
+                  </div>
+                )}
+             </div>
 
+             <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-emerald-700 tracking-widest">Total Acumulado</span>
+                <span className="text-xl font-black text-emerald-900">{sessionsReport?.length || 0} Sellos</span>
+             </div>
+
+             <Button 
+                onClick={() => setShowReportModal(false)}
+                className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-black transition-all shadow-xl"
+             >
+                Entendido, cerrar informe
+             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       </div>
     </TooltipProvider>
   )
