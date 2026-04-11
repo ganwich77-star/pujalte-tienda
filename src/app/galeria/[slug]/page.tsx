@@ -3589,8 +3589,9 @@ export default function GalleryPage() {
           
           {/* PASAPORTE DE FIDELIDAD */}
           <LoyaltyPassport 
-            client={client} 
+            stamps={client?.stamps || 0} 
             milestones={globalConfig?.loyaltyMilestones || []} 
+            customerName={client?.name || 'Cliente'}
           />
         </div>
       )
