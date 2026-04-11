@@ -137,6 +137,7 @@ export async function PUT(request: Request) {
     const id = body.id;
     if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
 
+    const f: any = {};
     const toBool = (val: any) => (val === true || val === 1 || val === 'true') ? 1 : 0;
     const toNum = (val: any) => (val === undefined || val === null || val === '') ? 0 : parseFloat(String(val).replace(',', '.')) || 0;
     const toStr = (val: any) => (val === undefined || val === null) ? null : String(val);
