@@ -659,7 +659,18 @@ export function CartSheet({ isOpen, onClose, clientId, galleryTitle }: { isOpen:
                   className="flex-1 flex flex-col h-full overflow-hidden"
                 >
                   <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar touch-pan-y overscroll-contain">
-                    <button onClick={() => setCheckoutStep('checkout')} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#4A7C59] mb-8 hover:opacity-70 transition-opacity"><ChevronLeft className="h-4 w-4" /> Volver</button>
+                    <button 
+                      onClick={() => {
+                        if (isLoggedIn || clientId) {
+                          setCheckoutStep('cart')
+                        } else {
+                          setCheckoutStep('checkout')
+                        }
+                      }} 
+                      className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#4A7C59] mb-8 hover:opacity-70 transition-opacity"
+                    >
+                      <ChevronLeft className="h-4 w-4" /> Volver
+                    </button>
                     <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight uppercase italic">Finalizar Pago</h3>
 
                     <div className="space-y-4">
