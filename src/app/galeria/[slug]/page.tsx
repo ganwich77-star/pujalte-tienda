@@ -3586,6 +3586,12 @@ export default function GalleryPage() {
               </div>
             )}
           </AnimatePresence>
+          
+          {/* PASAPORTE DE FIDELIDAD */}
+          <LoyaltyPassport 
+            client={client} 
+            milestones={globalConfig?.loyaltyMilestones || []} 
+          />
         </div>
       )
     }
