@@ -2215,6 +2215,16 @@ Cualquier duda, ¡escríbeme! 📲
                   />
                 </div>
               </div>
+              
+              <div className="grid gap-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">Teléfono</Label>
+                <Input 
+                  placeholder="+34 600 000 000" 
+                  value={newCustomer.phone} 
+                  onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                  className="rounded-xl h-11"
+                />
+              </div>
 
               <div className="grid gap-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59]">Categoría de Sesión</Label>
