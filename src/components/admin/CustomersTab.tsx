@@ -436,7 +436,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
     }
     setUpdating(true)
     try {
-      const { doc: firestoreDoc, setDoc: firestoreSet, serverTimestamp, query, where, getDocs, collection } = await import('firebase/firestore')
+      const { doc: firestoreDoc, setDoc: firestoreSet, serverTimestamp, query, where, getDocs, collection, limit } = await import('firebase/firestore')
       
       // GARANTIZAR SLUG ÚNICO
       let baseSlug = (newCustomer.slug || newCustomer.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) || 
@@ -458,8 +458,25 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
 
       const docId = (newCustomer.dni || newCustomer.email || newCustomer.phone).trim().toUpperCase().replace(/[^A-Z0-9]/g, '') + "_" + Math.random().toString(36).substring(2, 7)
       
+      // MÚSICA POR DEFECTO: Buscar la primera disponible si no tiene
+      let finalGallerySettings = { ...newCustomer.gallerySettings };
+      if (!finalGallerySettings.bgMusic || !finalGallerySettings.bgMusic.url) {
+        try {
+          const musicSnap = await getDocs(query(collection(db, 'comuniones2026_music'), limit(1)));
+          if (!musicSnap.empty) {
+            const firstSong = musicSnap.docs[0].data();
+            finalGallerySettings.bgMusic = {
+               id: musicSnap.docs[0].id,
+               name: firstSong.name,
+               url: firstSong.url
+            };
+          }
+        } catch (e) { console.error("No se pudo asignar música por defecto:", e); }
+      }
+
       await firestoreSet(firestoreDoc(db, COLLECTIONS.CLIENTS, docId), {
         ...newCustomer,
+        gallerySettings: finalGallerySettings,
         id: docId,
         slug: finalSlug,
         dni: newCustomer.dni.trim().toUpperCase(),
@@ -507,6 +524,11 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
             extraPrintPrice: 5,
             packIncluded: 0,
             fullPackPrice: 0
+          },
+          bgMusic: {
+             id: '',
+             name: '',
+             url: ''
           }
         },
         slug: ''
@@ -2489,7 +2511,7 @@ Cualquier duda, ¡escríbeme! 📲
             {/* Visor de Foto Ampliada (Zoom) - DENTRO para la misma capa de portal */}
             {zoomedPhoto && (
               <div 
-                className="fixed inset-0 z-[9999] bg-black backdrop-blur-3xl flex flex-col items-center justify-center p-4 sm:p-20 animate-in fade-in zoom-in-95 duration-300"
+                className="fixed inset-4 sm:inset-10 z-[9999] bg-black backdrop-blur-3xl flex flex-col items-center justify-center p-4 sm:p-10 rounded-[3rem] shadow-2xl animate-in fade-in zoom-in-95 duration-300 overflow-hidden"
                 onClick={() => setZoomedPhoto(null)}
               >
                 {editingCustomer?.gallerySettings?.photos && (() => {
@@ -2512,21 +2534,21 @@ Cualquier duda, ¡escríbeme! 📲
                         <X className="h-10 w-10" />
                       </button>
 
-                      <div className="w-full flex-1 flex items-center justify-between px-6 min-h-0 min-w-0">
-                        {/* Navegación Izquierda - Carril forzado de 200px (LG) */}
-                        <div className="hidden sm:flex w-32 lg:w-56 items-center justify-center shrink-0 h-full">
+                      <div className="w-full flex-1 flex items-center justify-between px-2 min-h-0 min-w-0">
+                        {/* Navegación Izquierda - Carril ajustado */}
+                        <div className="hidden sm:flex w-16 lg:w-32 items-center justify-center shrink-0 h-full">
                           <button 
                             onClick={(e) => navigate('prev', e)}
-                            className="group bg-white/[0.02] hover:bg-white/10 text-white p-8 rounded-full border border-white/5 backdrop-blur-sm transition-all hover:scale-110 active:scale-95 shadow-2xl flex items-center justify-center"
+                            className="group bg-white/[0.02] hover:bg-white/10 text-white p-4 sm:p-6 rounded-full border border-white/5 backdrop-blur-sm transition-all hover:scale-110 active:scale-95 shadow-2xl flex items-center justify-center"
                           >
                             <ChevronLeft className="h-10 w-10 text-white/30 group-hover:text-white transition-colors" />
                           </button>
                         </div>
 
-                        {/* Contenedor Imagen Central (Limitado para aire lateral) */}
-                        <div className="flex-1 h-full flex items-center justify-center overflow-hidden py-4 px-10">
+                        {/* Contenedor Imagen Central (Maximizando espacio) */}
+                        <div className="flex-1 h-full flex items-center justify-center overflow-hidden py-4 px-2">
                           <div 
-                            className="relative flex items-center justify-center w-full h-full cursor-pointer pointer-events-auto max-w-[85%] lg:max-w-[75%]" 
+                            className="relative flex items-center justify-center w-full h-full cursor-pointer pointer-events-auto max-w-[95%] lg:max-w-[92%]" 
                             onClick={(e) => navigate('next', e)}
                             title="Siguiente foto"
                           >
@@ -2538,11 +2560,11 @@ Cualquier duda, ¡escríbeme! 📲
                           </div>
                         </div>
 
-                        {/* Navegación Derecha - Carril forzado de 200px (LG) */}
-                        <div className="hidden sm:flex w-32 lg:w-56 items-center justify-center shrink-0 h-full">
+                        {/* Navegación Derecha - Carril ajustado */}
+                        <div className="hidden sm:flex w-16 lg:w-32 items-center justify-center shrink-0 h-full">
                           <button 
                             onClick={(e) => navigate('next', e)}
-                            className="group bg-white/[0.02] hover:bg-white/10 text-white p-8 rounded-full border border-white/5 backdrop-blur-sm transition-all hover:scale-110 active:scale-95 shadow-2xl flex items-center justify-center"
+                            className="group bg-white/[0.02] hover:bg-white/10 text-white p-4 sm:p-6 rounded-full border border-white/5 backdrop-blur-sm transition-all hover:scale-110 active:scale-95 shadow-2xl flex items-center justify-center"
                           >
                             <ChevronRight className="h-10 w-10 text-white/30 group-hover:text-white transition-colors" />
                           </button>

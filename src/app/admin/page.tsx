@@ -299,7 +299,20 @@ export default function AdminPage() {
             toast({ title: 'Error', description: 'No se pudieron guardar los cambios del pedido.', variant: 'destructive' })
           }
         }}
-        onDeleteOrder={(id) => setOrders(orders.filter(o => o.id !== id))}
+        onDeleteOrder={async (id) => {
+          try {
+            const res = await fetch(`/api/orders?id=${id}`, { method: 'DELETE' });
+            if (res.ok) {
+              setOrders(prev => prev.filter(o => o.id !== id));
+              toast({ title: 'Pedido eliminado correctamente' });
+            } else {
+              toast({ title: 'Error al eliminar', description: 'No se pudo borrar el pedido de la base de datos.', variant: 'destructive' });
+            }
+          } catch (e) {
+            console.error('Error deleting order:', e);
+            toast({ title: 'Error de red', variant: 'destructive' });
+          }
+        }}
         onFileUpload={handleFileUpload}
         onDownloadTemplate={() => window.open('/template.csv')}
         onSaveConfig={handleSaveConfig}

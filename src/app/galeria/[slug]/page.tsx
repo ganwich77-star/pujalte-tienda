@@ -316,22 +316,27 @@ export default function GalleryPage() {
   useEffect(() => {
     const handleGlobalInteraction = () => {
       setHasInteracted(true);
+      // Intentar forzar el inicio del audio si estaba bloqueado
+      if (audioRef.current && isPlaying) {
+        audioRef.current.muted = false;
+        audioRef.current.play().catch(e => console.log("Intento de reproducción post-interacción:", e));
+      }
       // Una vez capturado, quitamos los listeners para ahorrar recursos
       window.removeEventListener('click', handleGlobalInteraction);
       window.removeEventListener('touchstart', handleGlobalInteraction);
-      window.removeEventListener('scroll', handleGlobalInteraction);
+      window.removeEventListener('mousedown', handleGlobalInteraction);
       window.removeEventListener('keydown', handleGlobalInteraction);
     };
 
     window.addEventListener('click', handleGlobalInteraction);
     window.addEventListener('touchstart', handleGlobalInteraction);
-    window.addEventListener('scroll', handleGlobalInteraction);
+    window.addEventListener('mousedown', handleGlobalInteraction);
     window.addEventListener('keydown', handleGlobalInteraction);
 
     return () => {
       window.removeEventListener('click', handleGlobalInteraction);
       window.removeEventListener('touchstart', handleGlobalInteraction);
-      window.removeEventListener('scroll', handleGlobalInteraction);
+      window.removeEventListener('mousedown', handleGlobalInteraction);
       window.removeEventListener('keydown', handleGlobalInteraction);
     };
   }, []);
@@ -340,7 +345,7 @@ export default function GalleryPage() {
   useEffect(() => {
     const audio = audioRef.current;
     if (client?.gallerySettings?.bgMusic?.url && audio) {
-        audio.volume = 0.5;
+        audio.volume = 0.8; // Subimos un poco el volumen predeterminado
         audio.loop = true;
 
         if (audio.src !== client.gallerySettings.bgMusic.url) {
@@ -348,11 +353,24 @@ export default function GalleryPage() {
             audio.load();
         }
 
-        // Si ya interactuó o cuando interactúe, intentamos reproducir
-        if ((hasInteracted || isPreview) && isPlaying) {
-          audio.play().then(() => {
-            setUserInteracted(true);
-          }).catch(e => console.log("Error al reproducir audio:", e));
+        // ESTRATEGIA ALWAYS-ON:
+        // 1. Si no hay interacción, intentamos sonar silenciados (muchos navegadores lo permiten)
+        // 2. En cuanto hay interacción, quitamos el silencio
+        if (isPlaying) {
+          if (hasInteracted || isPreview) {
+            audio.muted = false;
+            audio.play().then(() => {
+              setUserInteracted(true);
+            }).catch(e => console.log("Error al reproducir audio:", e));
+          } else {
+            // Intento de reproducción en background (silenciado)
+            audio.muted = true;
+            audio.play().catch(() => {
+               // Si falla aquí no pasa nada, esperaremos a la interacción
+            });
+          }
+        } else {
+          audio.pause();
         }
     }
 
