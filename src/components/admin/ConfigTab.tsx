@@ -227,6 +227,81 @@ export function ConfigTab({ config, onUpdateConfig, onSave }: ConfigTabProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* NUEVA SECCIÓN: PASAPORTE DIGITAL */}
+          <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-emerald-900/5 overflow-hidden bg-white/60 backdrop-blur-sm">
+            <CardHeader className="border-b border-slate-50 bg-white/80 p-8">
+              <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-[#4A7C59] flex items-center gap-2">
+                <Sparkles className="h-4 w-4" /> Pasaporte Digital de Fidelidad
+              </CardTitle>
+              <CardDescription className="text-[10px] font-bold text-slate-400 mt-2 italic">Define los premios que ganarán tus clientes al acumular sesiones contigo.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+              <div className="space-y-4">
+                {(config.loyaltyMilestones || []).map((milestone, idx) => (
+                  <div key={milestone.id} className="flex gap-4 items-end bg-slate-50 p-4 rounded-2xl border border-slate-100 group animate-in slide-in-from-right-2">
+                    <div className="space-y-1 flex-1">
+                      <Label className="text-[9px] font-black uppercase tracking-widest text-[#4A7C59] pl-1">Al Sello nº</Label>
+                      <Input 
+                         type="number"
+                         value={milestone.sessions}
+                         onChange={(e) => {
+                           const newMilestones = [...(config.loyaltyMilestones || [])];
+                           newMilestones[idx].sessions = parseInt(e.target.value) || 0;
+                           onUpdateConfig({ ...config, loyaltyMilestones: newMilestones });
+                         }}
+                         className="h-11 rounded-[1.25rem] bg-white border-slate-200 font-black text-slate-900 focus:ring-emerald-500/20"
+                      />
+                    </div>
+                    <div className="space-y-1 flex-[3]">
+                      <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-1">Premio / Regalo</Label>
+                      <div className="relative group/reward">
+                        <Input 
+                          value={milestone.reward}
+                          onChange={(e) => {
+                            const newMilestones = [...(config.loyaltyMilestones || [])];
+                            newMilestones[idx].reward = e.target.value;
+                            onUpdateConfig({ ...config, loyaltyMilestones: newMilestones });
+                          }}
+                          placeholder="Ej: Ampliación 30x40"
+                          className="h-11 rounded-[1.25rem] bg-white border-slate-200 font-bold text-slate-700 pl-4 group-hover/reward:border-emerald-200 transition-all"
+                        />
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => {
+                        onUpdateConfig({ ...config, loyaltyMilestones: config.loyaltyMilestones?.filter((_, i) => i !== idx) });
+                      }}
+                      className="h-11 w-11 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+
+                {(!config.loyaltyMilestones || config.loyaltyMilestones.length === 0) && (
+                  <div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50">
+                    <p className="text-[10px] font-black uppercase text-slate-300 tracking-[0.2em]">Crea tu primer hito para empezar</p>
+                  </div>
+                )}
+
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    const newMilestones = [...(config.loyaltyMilestones || [])];
+                    const nextSession = newMilestones.length > 0 ? Math.max(...newMilestones.map(m => m.sessions)) + 1 : 1;
+                    newMilestones.push({ id: Math.random().toString(36).substring(2, 9), sessions: nextSession, reward: '' });
+                    onUpdateConfig({ ...config, loyaltyMilestones: newMilestones });
+                  }}
+                  className="w-full h-14 rounded-2xl border-dashed border-2 border-emerald-100 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 font-black uppercase tracking-widest text-[10px] gap-3 transition-all active:scale-95"
+                >
+                  <Plus className="h-5 w-5" /> Añadir Hito de Regalo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Columna Derecha: Seguridad y Estadisticas Rápidas */}

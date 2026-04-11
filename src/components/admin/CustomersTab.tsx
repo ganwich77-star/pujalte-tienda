@@ -51,7 +51,10 @@ import {
   Package,
   Settings2,
   ChevronDown,
-  Layers
+  Layers,
+  Sparkles,
+  Minus,
+  RefreshCw
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -481,6 +484,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
         slug: finalSlug,
         dni: newCustomer.dni.trim().toUpperCase(),
         email: newCustomer.email.toLowerCase().trim(),
+        stamps: 0,
         updatedAt: serverTimestamp(),
         createdAt: serverTimestamp()
       })
@@ -1526,6 +1530,7 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                             <Input value={editingCustomer.phone || ''} onChange={(e) => setEditingCustomer({...editingCustomer, phone: e.target.value})} className="rounded-2xl h-12 text-base font-bold bg-slate-50/50 border-slate-100 px-5" />
                           </div>
                         </div>
+                        
                         <div className="space-y-2">
                           <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Mensaje de Bienvenida</Label>
                           <textarea 
@@ -1533,6 +1538,74 @@ export function CustomersTab({ orders, formatPrice, customerIdToEdit, initialFil
                             onChange={(e) => setEditingCustomer({ ...editingCustomer, gallerySettings: { ...editingCustomer.gallerySettings, welcomeMessage: e.target.value }})}
                             className="w-full p-6 rounded-[2rem] text-sm font-medium border-slate-100 bg-slate-50/30 min-h-[100px] outline-none shadow-inner transition-all focus:bg-white focus:ring-1 focus:ring-[#4A7C59]/10"
                           />
+                        </div>
+
+                        {/* GESTIÓN DE FIDELIDAD */}
+                        <div className="pt-6 border-t border-slate-50">
+                          <div className="bg-emerald-50/40 rounded-[2.5rem] p-8 border border-emerald-100/50 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-emerald-500/10 transition-all duration-700" />
+                            
+                            <div className="flex items-center gap-5 relative z-10">
+                              <div className="w-16 h-16 rounded-[1.5rem] bg-[#4A7C59] text-white flex items-center justify-center shadow-xl shadow-[#4A7C59]/20 transform -rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                                <Sparkles className="h-8 w-8" />
+                              </div>
+                              <div className="text-center md:text-left">
+                                <h4 className="text-base font-black text-slate-900 uppercase tracking-tight">Pasaporte Digital</h4>
+                                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-1">Fidelidad y Recompensas acumuladas</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-col sm:flex-row items-center gap-6 bg-white/80 backdrop-blur-md p-3 pr-8 rounded-[2rem] border border-emerald-100 shadow-sm relative z-10 transition-all hover:shadow-md">
+                              <div className="flex items-center gap-4">
+                                <Button 
+                                  variant="outline" 
+                                  size="icon" 
+                                  onClick={() => setEditingCustomer({ ...editingCustomer, stamps: Math.max(0, (editingCustomer.stamps || 0) - 1) })}
+                                  className="h-12 w-12 rounded-2xl border-emerald-100 text-emerald-600 hover:bg-emerald-50 active:scale-90 transition-all shadow-sm"
+                                >
+                                  <Minus className="h-5 w-5" />
+                                </Button>
+                                <div className="w-16 text-center">
+                                  <span className="text-3xl font-black text-slate-900 leading-none">{editingCustomer.stamps || 0}</span>
+                                  <p className="text-[9px] font-black uppercase text-slate-300 tracking-[0.2em] mt-1">Sellos</p>
+                                </div>
+                                <Button 
+                                  variant="outline" 
+                                  size="icon" 
+                                  onClick={() => setEditingCustomer({ ...editingCustomer, stamps: (editingCustomer.stamps || 0) + 1 })}
+                                  className="h-12 w-12 rounded-2xl border-emerald-100 text-emerald-600 hover:bg-emerald-50 active:scale-90 transition-all shadow-sm"
+                                >
+                                  <Plus className="h-5 w-5" />
+                                </Button>
+                              </div>
+                              
+                              <div className="hidden sm:block h-10 w-px bg-emerald-100/50 mx-2" />
+                              
+                              <Button 
+                                variant="ghost" 
+                                onClick={async () => {
+                                  toast({ title: 'Sincronizando...', description: 'Rastreando historial de sesiones.' });
+                                  try {
+                                    const { query, collection, where, getDocs } = await import('firebase/firestore');
+                                    const q = query(collection(db, COLLECTIONS.CLIENTS), where("dni", "==", editingCustomer.dni.toUpperCase().trim()));
+                                    const snap = await getDocs(q);
+                                    const count = snap.size;
+                                    setEditingCustomer({ ...editingCustomer, stamps: count });
+                                    toast({ 
+                                      title: '¡Sincronizado!', 
+                                      description: `Hemos encontrado ${count} sesiones registradas para este DNI.`,
+                                      className: "bg-[#4A7C59] text-white border-none rounded-2xl"
+                                    });
+                                  } catch(e) {
+                                    toast({ title: 'Error', description: 'Error al conectar con la base de datos.', variant: 'destructive' });
+                                  }
+                                }}
+                                className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] hover:bg-emerald-50 h-12 px-6 rounded-2xl gap-3 transition-all"
+                              >
+                                <RefreshCw className="h-4 w-4" /> Recalcular Historial
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </TabsContent>
 
@@ -2127,6 +2200,7 @@ Cualquier duda, ¡escríbeme! 📲
                           slug: finalSlug,
                           gallerySettings: editingCustomer.gallerySettings || {},
                           cashEnabled: !!editingCustomer.cashEnabled,
+                          stamps: editingCustomer.stamps || 0,
                           updatedAt: serverTimestamp()
                         }
 

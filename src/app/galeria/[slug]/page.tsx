@@ -54,6 +54,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { CartSheet } from '@/components/shop/CartSheet'
+import { LoyaltyPassport } from '@/components/gallery/LoyaltyPassport'
 import Image from 'next/image'
 
 

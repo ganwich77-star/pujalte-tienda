@@ -97,6 +97,12 @@ export interface FormField {
   isCustom?: boolean
 }
 
+export interface LoyaltyMilestone {
+  id: string;
+  sessions: number;
+  reward: string;
+}
+
 export interface StoreConfig {
   [key: string]: any;
   whatsappNumber: string
@@ -113,6 +119,7 @@ export interface StoreConfig {
   formFields: FormField[]
   promos?: any[] // Para evitar dependencias circulares con lib/landing-config
   sessionTypes?: string[]
+  loyaltyMilestones?: LoyaltyMilestone[]
 }
 
 export interface GallerySettings {
@@ -141,6 +148,7 @@ export interface Customer {
   phone: string;
   slug: string;
   cashEnabled: boolean;
+  stamps?: number;
   gallerySettings: GallerySettings;
   createdAt: any;
   updatedAt: any;
