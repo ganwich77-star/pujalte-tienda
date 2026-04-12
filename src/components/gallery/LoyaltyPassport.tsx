@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Trophy, Gift, ChevronRight, X, Star } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { LoyaltyMilestone } from '@/types'
+import { Badge } from '@/components/ui/badge'
 
 interface LoyaltyPassportProps {
   stamps: number
@@ -108,8 +109,8 @@ export function LoyaltyPassport({ stamps, milestones, customerName }: LoyaltyPas
                   <Trophy className="h-10 w-10 text-white" />
                 </motion.div>
                 
-                <h2 className="text-2xl font-black text-white uppercase tracking-tight relative z-10">Pasaporte Pujalte</h2>
-                <p className="text-white/70 text-[10px] font-black uppercase tracking-[0.2em] mt-1 relative z-10">Fidelidad Premium de {customerName}</p>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight relative z-10">Pasaporte de Fidelidad</h2>
+                <p className="text-white/70 text-[10px] font-black uppercase tracking-[0.2em] mt-1 relative z-10">Premiamos tu fidelidad, {customerName}</p>
                 
                 <button 
                   onClick={() => setIsOpen(false)}
