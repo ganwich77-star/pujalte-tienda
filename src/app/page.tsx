@@ -1914,8 +1914,8 @@ Mi email: ${formData.email}`
             />
           )}
         </>
-        </div>
       )}
+    </div>
 
       {/* DIÁLOGO DE ÉXITO GLOBAL (TRAS PAGO QR O TIENDA) */}
       <Dialog open={showFastSuccess} onOpenChange={setShowFastSuccess}>
