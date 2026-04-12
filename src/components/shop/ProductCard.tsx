@@ -55,6 +55,49 @@ export function ProductCard({
     subject: `Comunión de `
   })
   const [isProcessingFastCheckout, setIsProcessingFastCheckout] = useState(false)
+  const [fastRegistryError, setFastRegistryError] = useState<string | null>(null)
+  const [isShaking, setIsShaking] = useState(false)
+
+  const handleFastCheckout = (method: string) => {
+    // Validar
+    if (!fastRegistryData.name.trim()) {
+      setFastRegistryError('Por favor, introduce tu nombre.')
+      setIsShaking(true)
+      setTimeout(() => setIsShaking(false), 500)
+      return
+    }
+    if (!fastRegistryData.phone.trim() || fastRegistryData.phone.length < 9) {
+      setFastRegistryError('Introduce un teléfono de contacto válido.')
+      setIsShaking(true)
+      setTimeout(() => setIsShaking(false), 500)
+      return
+    }
+
+    setFastRegistryError(null)
+    setIsProcessingFastCheckout(true)
+
+    // Formatear mensaje para WhatsApp
+    const message = `*NUEVA RESERVA RÁPIDA* 🚀\n\n` +
+      `👤 *Cliente:* ${fastRegistryData.name}\n` +
+      `📱 *Teléfono:* ${fastRegistryData.phone}\n` +
+      `🏷️ *Producto:* ${product.name}\n` +
+      `${selectedVariant ? `✨ *Opción:* ${selectedVariant.name}\n` : ''}` +
+      `📦 *Cantidad:* ${quantity}\n` +
+      `💰 *Total:* ${formatPrice(displayPrice)}\n` +
+      `💳 *Pago:* ${method.toUpperCase()}\n` +
+      `📝 *Referencia:* ${fastRegistryData.subject}\n` +
+      `${uploadedUrl ? `📸 *Foto:* ${uploadedUrl}` : ''}`
+
+    const encodedMessage = encodeURIComponent(message)
+    const whatsappUrl = `https://wa.me/${config.whatsapp || config.phone || '34600000000'}?text=${encodedMessage}`
+
+    // Simular conexión y redirigir
+    setTimeout(() => {
+      window.open(whatsappUrl, '_blank')
+      setIsProcessingFastCheckout(false)
+      setShowFastRegistry(false)
+    }, 1000)
+  }
 
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
   const [personalizationNote, setPersonalizationNote] = useState('')
@@ -320,7 +363,15 @@ export function ProductCard({
           {showFastRegistry && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1, 
+                y: 0,
+                x: isShaking ? [0, -10, 10, -10, 10, 0] : 0
+              }}
+              transition={{
+                x: { duration: 0.4, ease: "easeInOut" }
+              }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="absolute inset-0 z-[110] bg-white flex flex-col p-6 sm:p-10 overflow-y-auto"
             >
@@ -365,6 +416,16 @@ export function ProductCard({
                     onChange={(e) => setFastRegistryData({...fastRegistryData, subject: e.target.value})}
                   />
                 </div>
+
+                {fastRegistryError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-red-50 text-red-500 p-3 rounded-xl text-[10px] font-black uppercase tracking-tight text-center"
+                  >
+                    {fastRegistryError}
+                  </motion.div>
+                )}
               </div>
 
               <div className="mt-8 grid grid-cols-2 gap-4">
