@@ -143,7 +143,10 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>('all')
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>('featured')
+  const [qrMode, setQrMode] = useState(false)
+  const [initialProductId, setInitialProductId] = useState<string | null>(null)
+  const [initialVariantId, setInitialVariantId] = useState<string | null>(null)
   
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isPostAddDialogOpen, setIsPostAddDialogOpen] = useState(false)
@@ -163,7 +166,7 @@ export default function Home() {
   const { addItem, getItemCount } = useCartStore()
 
   // Landing specific logic
-  const [activeLandingCategory, setActiveLandingCategory] = useState('todos')
+  const [activeLandingCategory, setActiveLandingCategory] = useState('destacados')
   
   const landingCategories = useMemo<string[]>(() => {
     if (!config) return ['todos']
@@ -369,6 +372,21 @@ Mi email: ${formData.email}`
 
       // Manejar resultados de pago (Paycomet/Bizum redirect)
       const params = new URLSearchParams(window.location.search)
+      
+      // DEEP LINKING Y MODO QR
+      const productId = params.get('p')
+      const variantId = params.get('v')
+      const qrParam = params.get('qr')
+      
+      if (productId) {
+        setInitialProductId(productId)
+        if (variantId) setInitialVariantId(variantId)
+        if (qrParam === '1') setQrMode(true)
+        
+        // Si hay producto inicial, forzamos vista tienda
+        setView('shop')
+      }
+
       const paymentStatus = params.get('payment')
       const tracking = params.get('tracking')
       
@@ -1027,6 +1045,9 @@ Mi email: ${formData.email}`
                     config={config}
                     formatPrice={formatPrice}
                     handleAddToCart={handleAddToCart}
+                    forceOpen={initialProductId === product.id}
+                    qrMode={qrMode}
+                    initialVariantId={initialVariantId}
                   />
                 ))}
               </div>

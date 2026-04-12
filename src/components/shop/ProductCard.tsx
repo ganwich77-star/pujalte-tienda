@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon, X, Palette, Loader2, Camera, Upload, Trash2, ChevronRight, Users, ImagePlus, Briefcase, ChevronLeft, ChevronDown } from 'lucide-react'
+import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon, X, Palette, Loader2, Camera, Upload, Trash2, ChevronRight, Users, ImagePlus, Briefcase, ChevronLeft, ChevronDown, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -26,21 +26,58 @@ interface ProductCardProps {
   config: StoreConfig
   formatPrice: (price: number) => string
   handleAddToCart: (product: Product, variant?: ProductVariant, quantity?: number) => void
+  forceOpen?: boolean
+  qrMode?: boolean
+  initialVariantId?: string | null
 }
 
-export function ProductCard({ product, config, formatPrice, handleAddToCart }: ProductCardProps) {
-  const { user, isLoggedIn, setIsLoginModalOpen } = useUserStore()
+export function ProductCard({ 
+  product, 
+  config, 
+  formatPrice, 
+  handleAddToCart, 
+  forceOpen = false, 
+  qrMode = false, 
+  initialVariantId = null 
+}: ProductCardProps) {
+  const { user, isLoggedIn, setIsLoginModalOpen, login } = useUserStore()
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, string>>({})
   const [added, setAdded] = useState(false)
   const [open, setOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  
+  // Estados para Registro Rápido (QR Mode)
+  const [showFastRegistry, setShowFastRegistry] = useState(false)
+  const [fastRegistryData, setFastRegistryData] = useState({
+    name: '',
+    phone: '',
+    subject: `Comunión de `
+  })
+  const [isProcessingFastCheckout, setIsProcessingFastCheckout] = useState(false)
+
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
   const [personalizationNote, setPersonalizationNote] = useState('')
   const minQty = product.minQuantity || 1
   const stepQty = product.stepQuantity || 1
   
   const [quantity, setQuantity] = useState(minQty)
+
+  // Efectos para Deep Linking y QR
+  useEffect(() => {
+    if (forceOpen) {
+      setOpen(true)
+    }
+  }, [forceOpen])
+
+  useEffect(() => {
+    if (open && initialVariantId && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.id === initialVariantId)
+      if (variant) {
+        setSelectedVariant(variant)
+      }
+    }
+  }, [open, initialVariantId, product.variants])
 
   // Estados para la galería
   const [showGallerySelector, setShowGallerySelector] = useState(false)
@@ -224,7 +261,7 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
     }
 
     return (
-    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setShowGallerySelector(false); setShowScrollHint(true); } }}>
+    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setShowGallerySelector(false); setShowScrollHint(true); setShowFastRegistry(false); } }}>
       <DialogTrigger asChild>
         <motion.div whileHover={{ y: -8 }} className="group cursor-pointer flex flex-col gap-3">
           <div className="relative aspect-square w-full bg-white rounded-[2.5rem] overflow-hidden shadow-[0_15px_40px_-15px_rgba(0,0,0,0.08)] group-hover:shadow-[0_25px_50px_-12px_rgba(74,124,89,0.2)] transition-all duration-700 border border-white/50">
@@ -276,8 +313,96 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
         </motion.div>
       </DialogTrigger>
 
-      <DialogContent showCloseButton={false} className={cn("w-[95vw] max-h-[82dvh] sm:max-h-[90dvh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all", showPreview && "bg-transparent shadow-none")}>
-        <div className={cn("relative flex-1 flex flex-col overflow-hidden transition-all duration-300", showPreview ? "opacity-0 pointer-events-none scale-95" : "opacity-100")}>
+      <DialogContent showCloseButton={false} className={cn("w-[95vw] max-h-[82dvh] sm:max-h-[90dvh] sm:max-w-[550px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[2.5rem] sm:rounded-[3rem] focus:outline-none flex flex-col transition-all", (showPreview || showFastRegistry) && "bg-transparent shadow-none")}>
+        
+        {/* MODAL REGISTRO RÁPIDO (QR MODE) */}
+        <AnimatePresence>
+          {showFastRegistry && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="absolute inset-0 z-[110] bg-white flex flex-col p-6 sm:p-10 overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase italic">Reserva Rápida</h3>
+                  <p className="text-[9px] font-bold text-[#4A7C59] uppercase tracking-widest mt-1 italic">Solo te tomará 10 segundos</p>
+                </div>
+                <button onClick={() => setShowFastRegistry(false)} className="h-10 w-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6 flex-1">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] ml-1">Nombre Completo</Label>
+                  <Input 
+                    placeholder="Tu nombre y apellidos" 
+                    className="h-14 rounded-2xl bg-slate-50 border-none px-5 font-bold focus-visible:ring-1 focus-visible:ring-[#4A7C59]/30"
+                    value={fastRegistryData.name}
+                    onChange={(e) => setFastRegistryData({...fastRegistryData, name: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-[#4A7C59] ml-1">Teléfono (WhatsApp)</Label>
+                  <Input 
+                    type="tel"
+                    placeholder="Ej: 600 000 000" 
+                    className="h-14 rounded-2xl bg-slate-50 border-none px-5 font-bold focus-visible:ring-1 focus-visible:ring-[#4A7C59]/30"
+                    value={fastRegistryData.phone}
+                    onChange={(e) => setFastRegistryData({...fastRegistryData, phone: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Referencia / Motivo</Label>
+                  <Input 
+                    placeholder="Comunión de..." 
+                    className="h-14 rounded-2xl bg-[#FDF8F3] border-none px-5 font-bold text-[#C87941]"
+                    value={fastRegistryData.subject}
+                    onChange={(e) => setFastRegistryData({...fastRegistryData, subject: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-2 gap-4">
+                <Button 
+                  disabled={isProcessingFastCheckout}
+                  onClick={() => handleFastCheckout('card')}
+                  className="h-16 rounded-2xl bg-[#4A7C59] hover:bg-[#3D6649] text-white flex flex-col items-center justify-center gap-0.5 shadow-lg shadow-[#4A7C59]/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Tarjeta</span>
+                  </div>
+                  <span className="text-[8px] font-bold opacity-60 uppercase">Pago Seguro</span>
+                </Button>
+
+                <Button 
+                  disabled={isProcessingFastCheckout}
+                  onClick={() => handleFastCheckout('bizum')}
+                  className="h-16 rounded-2xl bg-[#00AACB] hover:bg-[#008BA5] text-white flex flex-col items-center justify-center gap-0.5 shadow-lg shadow-[#00AACB]/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-xs italic">BIZUM</span>
+                  </div>
+                  <span className="text-[8px] font-bold opacity-60 uppercase">Rápido</span>
+                </Button>
+              </div>
+
+              {isProcessingFastCheckout && (
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 text-[#4A7C59] animate-spin" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#4A7C59] animate-pulse">Conectando con banco...</span>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className={cn("relative flex-1 flex flex-col overflow-hidden transition-all duration-300", (showPreview || showFastRegistry) ? "opacity-0 pointer-events-none scale-95" : "opacity-100")}>
             {/* Indicador de scroll flotante sutil */}
             <AnimatePresence>
               {showScrollHint && (
@@ -656,13 +781,24 @@ export function ProductCard({ product, config, formatPrice, handleAddToCart }: P
                      </div>
                   </div>
                 </div>
-                <Button 
-                 onClick={(e) => { e.stopPropagation(); onAdd(); }} disabled={added}
-                 className={`h-11 sm:h-16 w-full rounded-xl sm:rounded-2xl transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3 border-none shadow-lg ${added ? 'bg-emerald-500' : 'bg-slate-950 hover:bg-black text-white'}`}
-                >
-                  <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.15em]">{added ? 'PRODUCTO AÑADIDO' : 'CONFIRMAR Y AÑADIR'}</span>
-                  <div className={`h-6 w-6 rounded-full flex items-center justify-center ${added ? 'bg-white text-emerald-500' : 'bg-white/20 text-white'}`}>{added ? <Check className="h-3 w-3" strokeWidth={4} /> : <Plus className="h-3 w-3" strokeWidth={3} />}</div>
-                </Button>
+                
+                {qrMode ? (
+                  <Button 
+                   onClick={(e) => { e.stopPropagation(); setShowFastRegistry(true); }}
+                   className="h-11 sm:h-16 w-full rounded-xl sm:rounded-2xl transition-all duration-300 bg-[#C87941] hover:bg-[#b06a38] text-white font-black uppercase tracking-[0.15em] shadow-xl flex items-center justify-center gap-3"
+                  >
+                    CONTINUAR Y PAGAR
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button 
+                   onClick={(e) => { e.stopPropagation(); onAdd(); }} disabled={added}
+                   className={`h-11 sm:h-16 w-full rounded-xl sm:rounded-2xl transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3 border-none shadow-lg ${added ? 'bg-emerald-500' : 'bg-slate-950 hover:bg-black text-white'}`}
+                  >
+                    <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.15em]">{added ? 'PRODUCTO AÑADIDO' : 'CONFIRMAR Y AÑADIR'}</span>
+                    <div className={`h-6 w-6 rounded-full flex items-center justify-center ${added ? 'bg-white text-emerald-500' : 'bg-white/20 text-white'}`}>{added ? <Check className="h-3 w-3" strokeWidth={4} /> : <Plus className="h-3 w-3" strokeWidth={3} />}</div>
+                  </Button>
+                )}
             </div>
         </div>
 

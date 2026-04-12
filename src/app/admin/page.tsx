@@ -96,10 +96,16 @@ export default function AdminPage() {
         body: JSON.stringify(payload)
       })
       if (res.ok) {
-        toast({ title: 'Éxito', description: 'Producto guardado correctamente.' })
-        setIsProductDialogOpen(false)
-        const freshRes = await fetch('/api/products?admin=true&t=' + Date.now());
-        if (freshRes.ok) setProducts(await freshRes.json())
+        // Refrescar lista de forma robusta
+        const pRes = await fetch('/api/products?admin=true&t=' + Date.now(), { cache: 'no-store' });
+        if (pRes.ok) {
+          const updatedProducts = await pRes.json();
+          if (Array.isArray(updatedProducts)) setProducts(updatedProducts);
+        }
+        
+        setIsProductDialogOpen(false);
+        setEditingProduct(null);
+        toast({ title: 'Éxito', description: `Producto ${editingProduct ? 'actualizado' : 'creado'} correctamente` });
       } else {
         toast({ title: 'Error', description: 'No se pudo guardar el producto.', variant: 'destructive' })
       }

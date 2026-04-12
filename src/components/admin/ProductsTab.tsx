@@ -5,7 +5,7 @@ import {
   Plus, Package, Edit, Trash2, Eye, EyeOff, ImageIcon,
   ImageOff, Upload, GripVertical, Check, X as CloseIcon, ZoomIn, ZoomOut,
   ArrowUp, ArrowDown, Info, Sparkles, ArrowUpDown, Search, Filter, ShoppingCart,
-  ChevronDown, ChevronUp, Percent, Settings2, Loader2, Palette, Star
+  ChevronDown, ChevronUp, Percent, Settings2, Loader2, Palette, Star, QrCode, Clipboard, Download
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Checkbox } from "@/components/ui/checkbox"
@@ -983,6 +983,51 @@ export function ProductsTab({
                   </DialogTitle>
                   <p className="text-[8px] text-blue-400 font-black uppercase tracking-[0.2em] mt-1 opacity-70">Gestión v2.1</p>
                 </div>
+
+                {editingProduct && (
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 rounded-xl bg-blue-500/10 border-blue-500/30 text-blue-400 text-[9px] font-black tracking-widest uppercase hover:bg-blue-500 hover:text-white transition-all gap-2"
+                      onClick={() => {
+                        const url = `${window.location.origin}/?p=${editingProduct.id}&qr=1`;
+                        navigator.clipboard.writeText(url);
+                        toast({ title: "¡Enlace copiado!", description: "Ya puedes pegarlo en tu generador de QR" });
+                      }}
+                    >
+                      <Clipboard className="h-4 w-4" /> Copiar Enlace
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      title="Descargar Código QR"
+                      className="h-9 w-9 p-0 rounded-xl bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
+                      onClick={async () => {
+                        const url = `${window.location.origin}/?p=${editingProduct.id}&qr=1`;
+                        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(url)}`;
+                        try {
+                          const res = await fetch(qrUrl);
+                          const blob = await res.blob();
+                          const blobUrl = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = blobUrl;
+                          a.download = `QR_${editingProduct.name.replace(/\s+/g, '_')}.png`;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          URL.revokeObjectURL(blobUrl);
+                          toast({ title: "¡QR Descargado!", description: "Imagen lista para imprimir." });
+                        } catch (e) {
+                          window.open(qrUrl, '_blank');
+                        }
+                      }}
+                    >
+                      <QrCode className="h-5 w-5" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </DialogHeader>
 
