@@ -1541,7 +1541,13 @@ export function ProductsTab({
                                           const [movedItem] = newVariants.splice(oldIndex, 1)
                                           newVariants.splice(newIndex, 0, movedItem)
 
-                                          setProductForm({ ...productForm, variants: newVariants })
+                                          // Actualizar sortOrder según posición
+                                          const finalVariants = newVariants.map((v: any, i: number) => ({
+                                            ...v,
+                                            sortOrder: i
+                                          }))
+
+                                          setProductForm({ ...productForm, variants: finalVariants })
                                         }
                                       }}
                                     >
