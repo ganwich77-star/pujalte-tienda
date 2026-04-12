@@ -49,13 +49,14 @@ interface ShopHeaderProps {
   isCartOpen: boolean
   setIsCartOpen: (open: boolean) => void
   onBackToWeb: () => void
+  qrMode?: boolean
 }
 
 export function ShopHeader({
   config, isAdmin, setIsAdmin, searchQuery, 
   setSearchQuery, cartCount, formatPrice,
   isCartOpen, setIsCartOpen, onBackToWeb,
-  onOpenSizeGuide
+  onOpenSizeGuide, qrMode = false
 }: ShopHeaderProps) {
   const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false)
   const [adminPassword, setAdminPassword] = useState('')
@@ -80,8 +81,8 @@ export function ShopHeader({
   useEffect(() => {
     setMounted(true)
     
-    // Si no está logueado y NO ha cerrado el aviso en ESTA sesión, lo mostramos
-    if (!isLoggedIn && !hasClosedThisSession) {
+    // Si no está logueado, NO estamos en modo QR y NO ha cerrado el aviso en ESTA sesión, lo mostramos
+    if (!isLoggedIn && !hasClosedThisSession && !qrMode) {
       // Pequeño delay para que no aparezca de golpe al cargar
       const timer = setTimeout(() => {
         setIsFirstVisit(true)
@@ -90,7 +91,7 @@ export function ShopHeader({
     } else {
       setIsFirstVisit(false)
     }
-  }, [isLoggedIn, hasClosedThisSession])
+  }, [isLoggedIn, hasClosedThisSession, qrMode])
   
   const fixPath = (path: string) => {
     if (!path) return ''

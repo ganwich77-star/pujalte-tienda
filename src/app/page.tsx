@@ -381,7 +381,11 @@ Mi email: ${formData.email}`
       if (productId) {
         setInitialProductId(productId)
         if (variantId) setInitialVariantId(variantId)
-        if (qrParam === '1') setQrMode(true)
+        if (qrParam === '1') {
+          setQrMode(true)
+          setShowSplash(false)
+          setShowPromo(false)
+        }
         
         // Si hay producto inicial, forzamos vista tienda
         setView('shop')
@@ -984,6 +988,7 @@ Mi email: ${formData.email}`
             setIsCartOpen={setIsCartOpen}
             onBackToWeb={() => setView('landing')}
             onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+            qrMode={qrMode}
           />
 
           <CartSheet 
@@ -1865,7 +1870,7 @@ Mi email: ${formData.email}`
           />
 
           <AnimatePresence>
-            {showPromo && config?.promos && config.promos.length > 0 && (
+            {!qrMode && showPromo && config?.promos && config.promos.length > 0 && (
               <PromoModal 
                 promos={config.promos.filter(p => !!p.url)}
                 onClose={() => setShowPromo(false)}
@@ -1886,7 +1891,7 @@ Mi email: ${formData.email}`
           <CookieBanner />
 
           {/* SPLASH SCREEN ORIGINAL (ACTUALIZADO CON VIDEO) */}
-          {showSplash && (
+          {!qrMode && showSplash && (
             <SplashScreen 
               onComplete={() => setShowSplash(false)} 
               logo={fixPath(config.logo || landingData.logo)}
