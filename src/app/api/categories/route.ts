@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { mysqlDb } from '@/lib/db'
+import { db, mysqlDb } from '@/lib/db'
 
 export async function GET() {
   try {

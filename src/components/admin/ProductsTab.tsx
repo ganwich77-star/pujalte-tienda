@@ -1183,7 +1183,7 @@ export function ProductsTab({
                             </SelectTrigger>
                             <SelectContent className="rounded-2xl border-none shadow-2xl">
                               <SelectItem value="none" className="text-[10px] font-black uppercase tracking-widest">Sin Clasificar</SelectItem>
-                              {categories.map((cat: any) => (
+                              {(Array.isArray(categories) ? categories : []).map((cat: any) => (
                                 <SelectItem key={cat.id} value={cat.id} className="text-[10px] font-black uppercase tracking-widest">{cat.name}</SelectItem>
                               ))}
                             </SelectContent>
@@ -1203,7 +1203,7 @@ export function ProductsTab({
                             </SelectTrigger>
                             <SelectContent className="rounded-2xl border-none shadow-2xl">
                               <SelectItem value="none" className="text-[10px] font-black uppercase tracking-widest">Sin Proveedor</SelectItem>
-                              {suppliers.map((sup: any) => (
+                              {(Array.isArray(suppliers) ? suppliers : []).map((sup: any) => (
                                 <SelectItem key={sup.id} value={sup.id} className="text-[10px] font-black uppercase tracking-widest">{sup.name}</SelectItem>
                               ))}
                             </SelectContent>

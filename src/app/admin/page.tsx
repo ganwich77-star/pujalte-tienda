@@ -19,6 +19,7 @@ export default function AdminPage() {
 
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [suppliers, setSuppliers] = useState<any[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [config, setConfig] = useState<StoreConfig>({} as any)
   const [stats, setStats] = useState({ totalSales: 0, totalOrders: 0, totalRevenue: 0 })
@@ -58,11 +59,16 @@ export default function AdminPage() {
 
     async function init() {
       try {
-        const [pRes, catRes, confRes, ordRes] = await Promise.all([
-          fetch('/api/products?admin=true'), fetch('/api/categories'), fetch('/api/config'), fetch('/api/orders')
+        const [pRes, catRes, confRes, ordRes, supRes] = await Promise.all([
+          fetch('/api/products?admin=true'), 
+          fetch('/api/categories'), 
+          fetch('/api/config'), 
+          fetch('/api/orders'),
+          fetch('/api/suppliers')
         ])
         if (pRes.ok) setProducts(await pRes.json())
         if (catRes.ok) setCategories(await catRes.json())
+        if (supRes.ok) setSuppliers(await supRes.json())
         if (confRes.ok) setConfig(await confRes.json())
         if (ordRes.ok) {
           const ordData = await ordRes.json()
@@ -215,7 +221,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#FDFDFD]">
       <AdminPanel
-        {...{ stats, orders, categories, products, config, isProductDialogOpen, setIsProductDialogOpen, productForm, setProductForm, editingProduct, uploading, isSaving }}
+        {...{ stats, orders, categories, suppliers, products, config, isProductDialogOpen, setIsProductDialogOpen, productForm, setProductForm, editingProduct, uploading, isSaving }}
         showImages={config.showImages}
         setShowImages={(s) => setConfig({ ...config, showImages: s })}
         formatPrice={(p) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(p)}

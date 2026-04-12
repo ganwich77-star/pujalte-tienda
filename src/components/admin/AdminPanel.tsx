@@ -103,11 +103,12 @@ interface AdminPanelProps {
   resetProductForm: () => void
   onLogout?: () => void
   onViewStore?: () => void
+  suppliers: any[]
 }
 
 export function AdminPanel(props: AdminPanelProps) {
   const {
-    stats, orders, categories, products, config, showImages, setShowImages,
+    stats, orders, categories, suppliers, products, config, showImages, setShowImages,
     formatPrice, onUpdateStatus, onDeleteOrder, uploading, onFileUpload, onImageUpload,
     onDownloadTemplate, onSaveConfig, onUpdateConfig, onRefreshCategories,
     onLogout, onViewStore, isSaving
@@ -117,7 +118,6 @@ export function AdminPanel(props: AdminPanelProps) {
   const [activeFilter, setActiveFilter] = useState<string>('all')
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [isLandingExpanded, setIsLandingExpanded] = useState(false)
-  const [suppliers, setSuppliers] = useState<any[]>([])
   const [firebaseClients, setFirebaseClients] = useState<Record<string, any>>({})
   const [customerIdToEdit, setCustomerIdToEdit] = useState<string | null>(null)
   const [returnTab, setReturnTab] = useState<string | null>(null)
@@ -131,18 +131,6 @@ export function AdminPanel(props: AdminPanelProps) {
     const savedMode = localStorage.getItem('pujalte_admin_dark_mode') === 'true'
     setIsDarkMode(savedMode)
     
-    // Cargar proveedores
-    fetch('/api/suppliers')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setSuppliers(data)
-        else setSuppliers([])
-      })
-      .catch(err => {
-        console.error(err)
-        setSuppliers([])
-      })
-
     // Cargar clientes de Firebase para resolver nombres "DESCONOCIDO"
     loadFirebaseClients()
   }, [])
