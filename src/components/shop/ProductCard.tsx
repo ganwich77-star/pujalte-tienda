@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon, X, Palette, Loader2, Camera, Upload, Trash2, ChevronRight, Users, ImagePlus, Briefcase, ChevronLeft, ChevronDown, CreditCard } from 'lucide-react'
+import { Check, ShoppingCart, Plus, Info, Sparkles, Tag, TrendingDown, Settings2, ArrowRight, Star, Image as ImageIcon, X, Palette, Loader2, Camera, Upload, Trash2, ChevronRight, Users, ImagePlus, Briefcase, ChevronLeft, ChevronDown, CreditCard, MessageCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -57,6 +57,9 @@ export function ProductCard({
   const [isProcessingFastCheckout, setIsProcessingFastCheckout] = useState(false)
   const [fastRegistryError, setFastRegistryError] = useState<string | null>(null)
   const [isShaking, setIsShaking] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [trackingCode, setTrackingCode] = useState('')
+  const [paymentMethodUsed, setPaymentMethodUsed] = useState('')
 
   const handleFastCheckout = (method: string) => {
     // Validar
@@ -75,28 +78,34 @@ export function ProductCard({
 
     setFastRegistryError(null)
     setIsProcessingFastCheckout(true)
+    setPaymentMethodUsed(method)
 
-    // Formatear mensaje para WhatsApp
-    const message = `*NUEVA RESERVA RÁPIDA* 🚀\n\n` +
+    // Simular conexión bancaria y luego mostrar éxito
+    setTimeout(() => {
+      const code = `PUJ-26-${Math.floor(1000 + Math.random() * 9000)}`;
+      setTrackingCode(code)
+      setIsProcessingFastCheckout(false)
+      setShowSuccess(true)
+    }, 2000)
+  }
+
+  const sendWhatsAppOrder = () => {
+    const message = `*✅ ¡NUEVA RESERVA REALIZADA!* ✅\n\n` +
+      `🏷️ *TICKET:* ${trackingCode}\n` +
       `👤 *Cliente:* ${fastRegistryData.name}\n` +
       `📱 *Teléfono:* ${fastRegistryData.phone}\n` +
-      `🏷️ *Producto:* ${product.name}\n` +
+      `📦 *Producto:* ${product.name}\n` +
       `${selectedVariant ? `✨ *Opción:* ${selectedVariant.name}\n` : ''}` +
-      `📦 *Cantidad:* ${quantity}\n` +
+      `🔢 *Cantidad:* ${quantity}\n` +
       `💰 *Total:* ${formatPrice(displayPrice)}\n` +
-      `💳 *Pago:* ${method.toUpperCase()}\n` +
+      `💳 *Pago:* ${paymentMethodUsed.toUpperCase()}\n` +
       `📝 *Referencia:* ${fastRegistryData.subject}\n` +
-      `${uploadedUrl ? `📸 *Foto:* ${uploadedUrl}` : ''}`
+      `${uploadedUrl ? `📸 *Foto:* ${uploadedUrl}` : ''}\n\n` +
+      `¡Muchas gracias! Quedo a la espera de la confirmación.`
 
     const encodedMessage = encodeURIComponent(message)
     const whatsappUrl = `https://wa.me/${config.whatsapp || config.phone || '34600000000'}?text=${encodedMessage}`
-
-    // Simular conexión y redirigir
-    setTimeout(() => {
-      window.open(whatsappUrl, '_blank')
-      setIsProcessingFastCheckout(false)
-      setShowFastRegistry(false)
-    }, 1000)
+    window.open(whatsappUrl, '_blank')
   }
 
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
@@ -454,11 +463,63 @@ export function ProductCard({
               </div>
 
               {isProcessingFastCheckout && (
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 text-[#4A7C59] animate-spin" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#4A7C59] animate-pulse">Conectando con banco...</span>
+                <div className="mt-4 flex flex-col items-center justify-center gap-3 py-4">
+                  <div className="h-10 w-10 border-4 border-slate-100 border-t-[#4A7C59] rounded-full animate-spin" />
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-800">Conectando con banco...</span>
+                    <span className="text-[8px] font-bold text-slate-400">PAGO SEGURO CIFRADO</span>
+                  </div>
                 </div>
               )}
+
+              {/* PANTALLA DE ÉXITO (MODO QR) */}
+              <AnimatePresence>
+                {showSuccess && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="absolute inset-0 z-[120] bg-[#F8FAFC] flex flex-col items-center justify-center p-8 text-center"
+                  >
+                    <div className="w-20 h-20 rounded-[2rem] bg-[#4A7C59] flex items-center justify-center mb-6 shadow-2xl shadow-[#4A7C59]/30 border-4 border-white">
+                      <CheckCircle2 className="h-10 w-10 text-white" />
+                    </div>
+                    
+                    <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight uppercase italic">¡Pedido Realizado!</h3>
+                    <div className="h-1 w-10 bg-[#4A7C59] mx-auto rounded-full mb-6" />
+                    
+                    <p className="text-slate-500 text-[11px] font-bold mb-6 leading-relaxed">
+                      Gracias por confiar en nosotros.<br/>Tu código de seguimiento es:
+                    </p>
+                    
+                    <div className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xl tracking-[0.2em] mb-10 shadow-lg border border-white/10 uppercase">
+                      {trackingCode}
+                    </div>
+                    
+                    <div className="flex flex-col w-full gap-3">
+                      <Button 
+                        onClick={sendWhatsAppOrder}
+                        className="h-14 w-full bg-[#25D366] hover:bg-[#128C7E] text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"
+                      >
+                        <MessageCircle className="h-5 w-5 fill-current" />
+                        Enviar por WhatsApp
+                      </Button>
+                      
+                      <Button 
+                        onClick={() => {
+                          setShowSuccess(false);
+                          setShowFastRegistry(false);
+                          setOpen(false);
+                        }} 
+                        variant="ghost" 
+                        className="h-12 w-full text-slate-400 font-black uppercase tracking-widest text-[9px]"
+                      >
+                        Cerrar y Compartir Después
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
