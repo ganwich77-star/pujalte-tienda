@@ -80,13 +80,48 @@ export function ProductCard({
     setIsProcessingFastCheckout(true)
     setPaymentMethodUsed(method)
 
-    // Simular conexión bancaria y luego mostrar éxito
-    setTimeout(() => {
-      const code = `PUJ-26-${Math.floor(1000 + Math.random() * 9000)}`;
-      setTrackingCode(code)
+    try {
+      // 1. Crear el pedido y obtener URL de pago
+      const checkoutRes = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: fastRegistryData.name,
+          customerPhone: fastRegistryData.phone,
+          notes: fastRegistryData.subject,
+          paymentMethod: method,
+          items: [
+            {
+              id: product.id,
+              name: product.name,
+              price: selectedVariant 
+                ? (product.variantBehavior === 'replace' ? Number(selectedVariant.price) : activeBasePrice + Number(selectedVariant.price)) 
+                : activeBasePrice,
+              quantity: quantity,
+              variantId: selectedVariant?.id,
+              variantName: selectedVariant?.name,
+              notes: personalizationNote,
+              fileUrl: uploadedUrl
+            }
+          ],
+          clientId: product.categoryId, // O el id relevante
+          gateway: 'paycomet'
+        })
+      })
+
+      const checkoutData = await checkoutRes.json()
+
+      if (checkoutData.success && checkoutData.paymentUrl) {
+        // Redirigir a pasarela real
+        window.location.href = checkoutData.paymentUrl
+      } else {
+        throw new Error(checkoutData.error || 'Error al conectar con el banco')
+      }
+    } catch (err: any) {
+      console.error("Error en checkout rápido:", err)
+      setFastRegistryError(err.message || "Error al conectar con la pasarela.")
       setIsProcessingFastCheckout(false)
-      setShowSuccess(true)
-    }, 2000)
+    }
   }
 
   const sendWhatsAppOrder = () => {

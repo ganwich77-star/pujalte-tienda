@@ -30,7 +30,9 @@ import {
   Package,
   Phone,
   Mail,
-  MessageCircle
+  MessageCircle,
+  CheckCircle2,
+  Fingerprint
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { Product, Category, Order, StoreConfig, ProductVariant } from '@/types'
@@ -147,8 +149,8 @@ export default function Home() {
   const [qrMode, setQrMode] = useState(false)
   const [initialProductId, setInitialProductId] = useState<string | null>(null)
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null)
-  
-  const [isCartOpen, setIsCartOpen] = useState(false)
+  const [showFastSuccess, setShowFastSuccess] = useState(false)
+  const [successOrder, setSuccessOrder] = useState<any>(null)
   const [isPostAddDialogOpen, setIsPostAddDialogOpen] = useState(false)
   
   // Admin state
@@ -393,8 +395,21 @@ Mi email: ${formData.email}`
 
       const paymentStatus = params.get('payment')
       const tracking = params.get('tracking')
+      const orderId = params.get('orderId')
       
       if (paymentStatus === 'success') {
+        // Intentar recuperar el pedido para el WhatsApp
+        if (orderId) {
+          try {
+            const orderRes = await fetch(`/api/orders/${orderId}`)
+            if (orderRes.ok) {
+              const orderData = await orderRes.json()
+              setSuccessOrder(orderData)
+              setShowFastSuccess(true)
+            }
+          } catch (e) { console.error("Error recuperando pedido para éxito:", e) }
+        }
+
         toast({
           title: '¡PAGO COMPLETADO!',
           description: `Tu pedido con código ${tracking || ''} se ha procesado correctamente.`,
@@ -1901,5 +1916,59 @@ Mi email: ${formData.email}`
         </>
       )}
     </div>
+
+      {/* DIÁLOGO DE ÉXITO GLOBAL (TRAS PAGO QR O TIENDA) */}
+      <Dialog open={showFastSuccess} onOpenChange={setShowFastSuccess}>
+        <DialogContent className="w-[95vw] sm:max-w-[500px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-[3rem] focus:outline-none">
+           <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center bg-[#F8FAFC]">
+              <div className="w-24 h-24 rounded-[3rem] bg-[#4A7C59] flex items-center justify-center mb-8 shadow-2xl shadow-[#4A7C59]/30 border-4 border-white animate-bounce-subtle">
+                <CheckCircle2 className="h-12 w-12 text-white" />
+              </div>
+              
+              <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight uppercase italic font-inter">¡Pedido Realizado!</h3>
+              <div className="h-1 w-12 bg-[#4A7C59] mx-auto rounded-full mb-8" />
+              
+              <p className="text-slate-500 font-bold mb-8 leading-relaxed px-4">
+                Gracias por confiar en Pujalte Creative Studio.<br/>Tu número de seguimiento es:
+              </p>
+              
+              <div className="bg-slate-900 text-white px-10 py-6 rounded-[2rem] font-black text-2xl tracking-[0.3em] mb-12 shadow-inner border border-white/10 uppercase font-inter">
+                {successOrder?.paymentId || successOrder?.trackingNumber || "CONFIRMADO"}
+              </div>
+              
+              <div className="flex flex-col w-full gap-4">
+                <Button 
+                  onClick={() => {
+                    if (!successOrder) return;
+                    const phone = config.whatsappNumber || "34650494728";
+                    let message = `*✅ ¡NUEVA COMPRA REALIZADA!* ✅\n\n`;
+                    message += `🏷️ *CÓDIGO:* ${successOrder.paymentId || successOrder.trackingNumber}\n`;
+                    message += `👤 *CLIENTE:* ${successOrder.customerName}\n`;
+                    message += `📞 *TEL:* ${successOrder.customerPhone}\n\n`;
+                    message += `📦 *DETALLE DEL PEDIDO:*\n`;
+                    
+                    (successOrder.items || []).forEach((item: any, i: number) => {
+                       message += `${i+1}. *${item.productName}* x${item.quantity}\n`;
+                       if (item.variantName) message += `   ▫️ _Opción: ${item.variantName}_\n`;
+                    });
+
+                    message += `\n💵 *TOTAL: ${successOrder.total}€*\n\n`;
+                    message += `💬 Quedo a la espera de confirmación. ¡Muchas gracias!`;
+
+                    const encoded = encodeURIComponent(message);
+                    window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${encoded}`, '_blank');
+                  }}
+                  className="h-16 w-full bg-[#25D366] hover:bg-[#128C7E] text-white rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95"
+                >
+                  <MessageCircle className="h-6 w-6 fill-current" />
+                  Enviar por WhatsApp
+                </Button>
+                
+                <Button onClick={() => setShowFastSuccess(false)} variant="ghost" className="h-14 w-full text-slate-400 font-black uppercase tracking-widest transition-all text-xs">Volver a la tienda</Button>
+              </div>
+           </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
