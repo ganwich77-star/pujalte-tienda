@@ -79,10 +79,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       const keys = Object.keys(fieldsToUpdate);
       const setClause = keys.map(key => `\u0060${key}\u0060 = ?`).join(', ');
       const values = keys.map(key => fieldsToUpdate[key]);
-      values.push(id || body.id);
+      values.push(id);
 
       await mysqlDb.query(
-        `UPDATE product SET ${setClause}, updatedAt = NOW() WHERE id = ?`,
+        `UPDATE product SET ${setClause} WHERE id = ?`,
         values
       );
     }
@@ -105,8 +105,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         ].map(p => p === undefined ? null : p);
 
         await mysqlDb.query(
-          `INSERT INTO productvariant (id, productId, name, price, stock, sku, sortOrder, createdAt, updatedAt) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          `INSERT INTO productvariant (id, productId, name, price, stock, sku, sortOrder) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
           vParams
         );
       }
