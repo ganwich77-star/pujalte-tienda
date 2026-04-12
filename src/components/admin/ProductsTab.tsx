@@ -986,7 +986,7 @@ export function ProductsTab({
               </div>
             </DialogHeader>
 
-            <ScrollArea className="flex-1 min-h-0 bg-white">
+            <div className="flex-1 overflow-y-auto bg-white custom-scrollbar">
               <div className="px-6 py-4 space-y-4 pb-8">
 
                 {/* SECCIÓN 1: GENERAL */}
@@ -1689,7 +1689,7 @@ export function ProductsTab({
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
 
             {/* ACCIONES COMPACTAS */}
             <div className="px-6 py-3 border-t border-slate-100 flex items-center gap-4 bg-white z-20">
