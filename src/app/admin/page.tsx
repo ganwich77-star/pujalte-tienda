@@ -30,7 +30,7 @@ export default function AdminPage() {
     name: '',
     price: 0,
     description: '',
-    categoryId: 'social',
+    categoryId: null,
     image: '',
     stock: 99,
     active: true,
@@ -68,7 +68,10 @@ export default function AdminPage() {
         ])
         if (pRes.ok) setProducts(await pRes.json())
         if (catRes.ok) setCategories(await catRes.json())
-        if (supRes.ok) setSuppliers(await supRes.json())
+        if (supRes.ok) {
+          const supData = await supRes.json();
+          setSuppliers(Array.isArray(supData) ? supData : []);
+        }
         if (confRes.ok) setConfig(await confRes.json())
         if (ordRes.ok) {
           const ordData = await ordRes.json()
@@ -222,6 +225,10 @@ export default function AdminPage() {
     <div className="min-h-screen bg-[#FDFDFD]">
       <AdminPanel
         {...{ stats, orders, categories, suppliers, products, config, isProductDialogOpen, setIsProductDialogOpen, productForm, setProductForm, editingProduct, uploading, isSaving }}
+        onRefreshSuppliers={async () => {
+          const res = await fetch('/api/suppliers?t=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) setSuppliers(await res.json());
+        }}
         showImages={config.showImages}
         setShowImages={(s) => setConfig({ ...config, showImages: s })}
         formatPrice={(p) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(p)}
@@ -236,7 +243,7 @@ export default function AdminPage() {
         onAddProduct={() => { 
           setEditingProduct(null); 
           setProductForm({ 
-            name: '', price: 0, description: '', categoryId: 'social', image: '', stock: 99, active: true, 
+            name: '', price: 0, description: '', categoryId: null, image: '', stock: 99, active: true, 
             showPrice: true, isPack: false, hasVariants: false, variantType: '', variantBehavior: 'replace',
             variants: [], isNew: false, salePrice: null, minQuantity: 1, stepQuantity: 1, tierPricing: [],
             customOptions: null, supplierId: null, fotosIncluidas: 1

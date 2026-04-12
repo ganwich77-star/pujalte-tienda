@@ -19,8 +19,13 @@ import {
 import { toast } from '@/hooks/use-toast'
 import { Supplier } from '@/types'
 
-export function SuppliersTab() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+interface SuppliersTabProps {
+  suppliers?: Supplier[]
+  onRefresh?: () => Promise<void>
+}
+
+export function SuppliersTab({ suppliers: propsSuppliers, onRefresh }: SuppliersTabProps) {
+  const [localSuppliers, setLocalSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -30,16 +35,17 @@ export function SuppliersTab() {
 
   const fetchSuppliers = async () => {
     try {
-      const res = await fetch('/api/suppliers')
+      const res = await fetch('/api/suppliers?t=' + Date.now(), { cache: 'no-store' })
       const data = await res.json()
       if (Array.isArray(data)) {
-        setSuppliers(data)
+        setLocalSuppliers(data)
+        if (onRefresh) await onRefresh()
       } else {
-        setSuppliers([])
+        setLocalSuppliers([])
       }
     } catch (error) {
       console.error(error)
-      setSuppliers([])
+      setLocalSuppliers([])
       toast({ title: 'Error', description: 'No se pudieron cargar los proveedores', variant: 'destructive' })
     } finally {
       setLoading(false)
@@ -47,8 +53,12 @@ export function SuppliersTab() {
   }
 
   useEffect(() => {
-    fetchSuppliers()
-  }, [])
+    if (!propsSuppliers || propsSuppliers.length === 0) {
+      fetchSuppliers()
+    } else {
+      setLoading(false)
+    }
+  }, [propsSuppliers])
 
   const handleOpenDialog = (supplier?: Supplier) => {
     setEditingSupplier(supplier || { name: '', url: '', contactName: '', phone: '' })
@@ -105,6 +115,7 @@ export function SuppliersTab() {
     }
   }
 
+  const suppliers = propsSuppliers || localSuppliers
   const currentSuppliers = Array.isArray(suppliers) ? suppliers : []
 
   const filteredSuppliers = currentSuppliers.filter(s => 

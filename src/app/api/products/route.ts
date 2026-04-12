@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
     const toBool = (val: any) => (val === true || val === 1 || val === 'true') ? 1 : 0;
     const toNum = (val: any) => (val === undefined || val === null || val === '') ? 0 : parseFloat(String(val).replace(',', '.')) || 0;
-    const toStr = (val: any) => (val === undefined || val === null) ? null : String(val);
+    const toStr = (val: any) => (val === undefined || val === null || val === 'none' || val === '') ? null : String(val);
 
     const fieldsToInsert: any = {
       id,
@@ -140,7 +140,7 @@ export async function PUT(request: Request) {
     const f: any = {};
     const toBool = (val: any) => (val === true || val === 1 || val === 'true') ? 1 : 0;
     const toNum = (val: any) => (val === undefined || val === null || val === '') ? 0 : parseFloat(String(val).replace(',', '.')) || 0;
-    const toStr = (val: any) => (val === undefined || val === null) ? null : String(val);
+    const toStr = (val: any) => (val === undefined || val === null || val === 'none' || val === '') ? null : String(val);
 
     const allowedFields = [
       'name', 'description', 'image', 'price', 'salePrice', 'stock', 'active', 

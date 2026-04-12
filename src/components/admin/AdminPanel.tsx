@@ -104,6 +104,7 @@ interface AdminPanelProps {
   onLogout?: () => void
   onViewStore?: () => void
   suppliers: any[]
+  onRefreshSuppliers: () => Promise<void>
 }
 
 export function AdminPanel(props: AdminPanelProps) {
@@ -111,7 +112,7 @@ export function AdminPanel(props: AdminPanelProps) {
     stats, orders, categories, suppliers, products, config, showImages, setShowImages,
     formatPrice, onUpdateStatus, onDeleteOrder, uploading, onFileUpload, onImageUpload,
     onDownloadTemplate, onSaveConfig, onUpdateConfig, onRefreshCategories,
-    onLogout, onViewStore, isSaving
+    onLogout, onViewStore, isSaving, onRefreshSuppliers
   } = props
 
   const [activeTab, setActiveTab] = useState('galleries')
@@ -551,7 +552,10 @@ export function AdminPanel(props: AdminPanelProps) {
               )}
 
               {activeTab === 'suppliers' && (
-                <SuppliersTab />
+                <SuppliersTab 
+                  suppliers={suppliers}
+                  onRefresh={onRefreshSuppliers}
+                />
               )}
 
               {activeTab === 'galleries' && (
